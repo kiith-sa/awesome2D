@@ -19,11 +19,11 @@ related to my Bachelor thesis. The goals of this project are:
 
 
 A presentation describing this project (in Slovak) can be found
-`here <https://github.com/kiith-sa/awesome2D/blob/master/pbs.pdf>`_.
+`here <https://github.com/kiith-sa/awesome2D/raw/master/pbs.pdf>`_.
 
 Rationale behind this project (again in Slovak) can be found 
 `here (html) <https://github.com/kiith-sa/awesome2D/blob/master/rationale.rst>`_
-and `here (pdf) <https://github.com/kiith-sa/awesome2D/blob/master/rationale.pdf>`_.
+and `here (pdf) <https://github.com/kiith-sa/awesome2D/raw/master/rationale.pdf>`_.
 
 
 
