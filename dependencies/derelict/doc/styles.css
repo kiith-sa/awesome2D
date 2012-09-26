@@ -1,0 +1,89 @@
+a:link, a:visited	{
+	color			: #0000FF;
+	text-decoration	: none;
+}
+
+a:hover 	{
+	color			: #808080;
+	text-decoration	: underline;
+}
+
+a.bookmark {
+	color : #404040;	
+}
+
+body{
+	font-family 	: Verdana, Helvetica, sans-serif;
+	font-size		: 11pt;
+	color 			: #404040;
+	line-height		: 14pt;
+	background-color : #F0F0F0;
+}
+
+ul {
+	margin-top 		: 0.25em;
+}
+
+pre {
+	color			: #000080;
+	font-weight		: bold;
+}
+
+tt {
+	color: #000080;
+	font-weight: bold;
+}
+
+h2 {
+	font-family 	: Verdana, Helvetica, sans-serif;
+	font-size		: 20pt;
+	color 			: #705030;
+	margin-top 		: .5em;
+	margin-bottom	: .5em;
+	border-bottom : 2px solid black;
+	padding-top : 4px;
+	padding-bottom : 4px;
+}
+
+h3 {
+	font-family 	: Verdana, Helvetica, sans-serif;
+	font-size		: 12pt;
+	color 			: #705030;
+	background-color: #CDBA96;
+	margin-bottom	: .5em;
+	border : 4px double black;
+}
+
+h4 {
+	text-decoration: underline;
+	margin-bottom: .5em;
+}
+
+blockquote {
+	font-style: italic;
+}
+
+.note {
+	font-weight: bold;
+	margin-top: .5em;
+	margin-bottom: .5em;
+}
+
+.important {
+	font-weight: bold;
+	color: #FF0000;
+	margin-top: .5em;
+	margin-bottom: .5em;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+.emph {
+	font-style: italic;
+}
+
+td, th {
+	text-align: center;
+}
