@@ -9,5 +9,5 @@ module video.indexbuffer;
 
 struct IndexBuffer
 {
-	//"Derived" implementations will override API function pointers.
+    //"Derived" implementations will override API function pointers.
 }

@@ -9,6 +9,6 @@ module video.vertexbuffer;
 
 struct VertexBuffer
 {
-	//"Derived" implementations will override API function pointers.
+    //"Derived" implementations will override API function pointers.
 }
 

@@ -9,7 +9,7 @@ module video.texture;
 
 struct Texture
 {
-	//"Derived" implementations will override API function pointers.
+    //"Derived" implementations will override API function pointers.
 }
 
 

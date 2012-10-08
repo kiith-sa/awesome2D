@@ -9,6 +9,6 @@ module video.glslshader;
 
 struct GLSLShader
 {
-	//"Derived" implementations will override API function pointers.
+    //"Derived" implementations will override API function pointers.
 }
 
