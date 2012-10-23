@@ -15,6 +15,7 @@ import std.typecons;
 
 import dgamevfs._;
 
+import awesome2d.awesome2d;
 import formats.cli;
 import util.unittests;
 import memory.memory;
@@ -63,6 +64,17 @@ void main(string[] args)
 
         writeln("Initialized VFS...");
         memory.memory.gameDir = gameDir;
+
+        auto demo = new Awesome2D(gameDir);
+        writeln("Initialized Awesome2D...");
+        scope(exit){clear(demo);}
+        writeln("Going to run Awesome2D...");
+        demo.run();
+    }
+    catch(StartupException e)
+    {
+        writeln("Demo failed to start: ", e.msg);
+        exit(-1);
     }
     catch(VFSException e)
     {
