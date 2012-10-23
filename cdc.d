@@ -181,7 +181,8 @@ void main(string[] args)
                          "dependencies/derelict/DerelictUtil",
                          "dependencies/dgamevfs/dgamevfs",
                          "dependencies/dyaml/dyaml"];
-    auto sources      = ["formats/", "math/", "memory/", "time/", "util/", "video/", 
+    auto sources      = ["awesome2D", "formats/", "math/", 
+                         "memory/", "platform/", "time/", "util/", "video/", 
 	                      "color.d", "demo.d", "image.d"];
 
     void compile_(string[] args, string[] files)
