@@ -5,9 +5,15 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 
+/// Vertex buffer struct.
 module video.vertexbuffer;
 
-struct VertexBuffer
+/// Vertex buffer struct.
+///
+/// Stores vertex data for drawing.
+///
+/// Acts as a dynamic array of vertex type V.
+struct VertexBuffer(V)
 {
     //"Derived" implementations will override API function pointers.
 }

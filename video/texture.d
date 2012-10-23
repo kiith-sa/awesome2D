@@ -5,8 +5,11 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 
+/// 2D texture.
 module video.texture;
 
+
+/// 2D texture.
 struct Texture
 {
     //"Derived" implementations will override API function pointers.
