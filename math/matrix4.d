@@ -29,7 +29,7 @@ struct Matrix4(T)
 
     public:
         ///Get a pointer to matrix data. Useful for passing to OpenGL functions.
-        @property T* ptr() pure {return m_.ptr;}
+        @property const(T)* ptr() pure const {return m_.ptr;}
 
         ///Multiplication with a matrix.
         Matrix4!T opMul(const ref Matrix4!T m) const pure
