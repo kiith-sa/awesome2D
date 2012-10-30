@@ -37,7 +37,7 @@ class GLSLException: RendererException
 }
 
 /// Exception thrown at GLSL shader initialization errors.
-class GLSLInitException: RendererException
+class GLSLCompileException: RendererException
 {
     public this(string msg, string file = __FILE__, int line = __LINE__)
     {
@@ -45,7 +45,7 @@ class GLSLInitException: RendererException
     }
 }
 
-/// Thrown at GLSL linking related exceptions.
+/// Thrown at GLSL linking related errors.
 class GLSLLinkException: GLSLException
 {
     public this(string msg, string file = __FILE__, int line = __LINE__)
@@ -54,7 +54,7 @@ class GLSLLinkException: GLSLException
     }
 }
 
-/// Thrown at GLSL uniform related exceptions.
+/// Thrown at GLSL uniform related errors.
 class GLSLUniformException: GLSLException
 {
     public this(string msg, string file = __FILE__, int line = __LINE__)
@@ -63,3 +63,11 @@ class GLSLUniformException: GLSLException
     }
 }
 
+/// Thrown at GLSL attribute related errors.
+class GLSLAttributeException: GLSLException
+{
+    public this(string msg, string file = __FILE__, int line = __LINE__)
+    {
+        super(msg, file, line);
+    }
+}
