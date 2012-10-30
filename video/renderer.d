@@ -66,8 +66,8 @@ abstract class Renderer
     /// destroyed.
     Texture* createTexture(const ref Image image);
 
-    /// Create a GLSL shader
-    GLSLShader* createGLSLShader();
+    /// Create a GLSL shader program.
+    GLSLShaderProgram* createGLSLShader();
 
     /// Draw specified vertex buffer.
     ///

@@ -19,9 +19,11 @@ import derelict.util.exception;
 
 import image;
 import math.vector2;
+import memory.memory;
 import video.blendmode;
 import video.exceptions;
 import video.glslshader;
+import video.gl2glslshader;
 import video.renderer;
 import video.texture;
 import video.vertexbuffer;
@@ -132,7 +134,7 @@ public:
         assert(false, "TODO");
     }
 
-    override GLSLShader* createGLSLShader()
+    override GLSLShaderProgram* createGLSLShader()
     {
         assert(false, "TODO");
     }
