@@ -284,15 +284,15 @@ private:
 
         // Attach shaders and generate ID.
         ulong pot = 1;
-        foreach(ref const Shader shader; vertexShaders_) if(shader.enabled)
+        foreach(ref const Shader shader; vertexShaders_)
         {
-            id |= pot;
+            if(shader.enabled){id |= pot;}
             pot <<= 1;
         }
         pot = 1 << MAX_VERTEX_SHADERS;
-        foreach(ref const Shader shader; fragmentShaders_) if(shader.enabled)
+        foreach(ref const Shader shader; fragmentShaders_)
         {
-            id |= pot;
+            if(shader.enabled){id |= pot;}
             pot <<= 1;
         }
 
@@ -384,7 +384,7 @@ private:
         }
         glGetShaderInfoLog(shader, cast(int)infoLogBuffer.length, 
                            null, infoLogBuffer.ptr);
-        if(infoLogLength > 0)
+        if(infoLogLength > 0 && infoLogBuffer[0] != '\0')
         {
             writeln(infoLogBuffer[0 .. infoLogLength]);
         }
@@ -412,6 +412,8 @@ private:
 uint addShader(GLenum type)(ref GLSLShaderProgram self, const string source) 
 {with(self.gl2_)
 {
+    assert(canModifyShaders(), "Trying to add a shader to a locked shader program");
+
     auto error = glGetError();
     if(error != GL_NO_ERROR)
     {
@@ -432,6 +434,8 @@ uint addShader(GLenum type)(ref GLSLShaderProgram self, const string source)
                "Too many fragment shaders in a shader program");
         fragmentShaders_ ~= Shader(result);
     }
+
+    state_ = State.NeedRelink;
 
     return cast(uint)result;
 }}
@@ -516,7 +520,6 @@ void lock(ref GLSLShaderProgram self)
         return;
     }
 
-
     // Modified. Try finding a matching program in cache, and if not found,
     // link a new program.
 
@@ -565,7 +568,7 @@ void lock(ref GLSLShaderProgram self)
     }
     glGetProgramInfoLog(newProgram, cast(int)infoLogBuffer.length, 
                         null, infoLogBuffer.ptr);
-    if(infoLogLength > 0)
+    if(infoLogLength > 0 && infoLogBuffer[0] != '\0')
     {
         writeln(infoLogBuffer[0 .. infoLogLength]);
     }
@@ -579,6 +582,7 @@ void lock(ref GLSLShaderProgram self)
     // Add the new program to cache and use it.
     programCache_ ~= CachedProgram(id, newProgram);
     currentProgramIndex_ = cast(uint)programCache_.length - 1;
+    state_ = State.Locked;
 }}
 
 /// Unlock the program to allow modifications.
