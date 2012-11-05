@@ -24,6 +24,12 @@ import video.gl2glslshader;
 /// This removes one indirection compared to a virtual function call,
 /// possibly making this more ARM friendly.
 /// Also, might allow to share some functions between different implementations.
+///
+/// Note that backends might set limits on some shader properties.
+///
+/// Currently, all backends are required to support at least 16 vertex 
+/// and 16 fragment shaders in a program (both enabled and disabled),
+/// at least 16 uniforms and at least 8 attributes.
 struct GLSLShaderProgram
 {
 package:
