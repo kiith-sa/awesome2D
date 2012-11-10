@@ -154,7 +154,7 @@ public:
         disableVertexShader_(this, handle);
     }
 
-    /// Bind the shader program for drawing.
+    /// Bind the shader program for drawing (also allowing uniforms to be set).
     ///
     /// Can only be called while the shader program is locked.
     void bind()
@@ -174,8 +174,8 @@ public:
 
     /// Get a handle to a uniform variable.
     ///
-    /// Params: name = Name of the uniform. Must be present in an enabled 
-    ///                shader - otherwise a call to setUniformValue 
+    /// Params: name = Name of the uniform. Must be present in an enabled
+    ///                shader - otherwise a call to setUniformValue
     ///                with the returned handle will throw.
     ///
     /// Returns: Handle to set values of the uniform with.
@@ -189,9 +189,9 @@ public:
     ///
     /// Can only be called while the shader program is bound.
     ///
-    /// Params: handle = Handle of the uniform to set. Must be previously 
-    ///                  returned by getUniformHandle(), must match the 
-    ///                  data type of the value, and must be present in 
+    /// Params: handle = Handle of the uniform to set. Must be previously
+    ///                  returned by getUniformHandle(), must match the
+    ///                  data type of the value, and must be present in
     ///                  the shader.
     ///
     /// Throws: GLSLUniformException on failure.
