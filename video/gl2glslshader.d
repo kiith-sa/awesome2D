@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 
+/// GL2 GLSL shader program implementation.
 module video.gl2glslshader;
 
 import std.conv;
@@ -42,7 +43,7 @@ void constructGLSLShaderGL2(ref GLSLShaderProgram shader) pure @safe nothrow
     shader.getAttributeGLHandle_ = &getAttributeGLHandle;
 }
 
-/// Data members needed by the GL2 GLSL shader program backend.
+/// Data members of the GL2 GLSL shader program backend.
 struct GL2GLSLShaderData
 {
 private:
