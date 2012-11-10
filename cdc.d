@@ -179,11 +179,12 @@ void main(string[] args)
                          "dependencies/derelict/DerelictGL",
                          "dependencies/derelict/DerelictFT",
                          "dependencies/derelict/DerelictUtil",
+                         "dependencies/gl3n",
                          "dependencies/dgamevfs/dgamevfs",
                          "dependencies/dyaml/dyaml"];
     auto sources      = ["awesome2D", "formats/", "math/", 
                          "memory/", "platform/", "time/", "util/", "video/", 
-	                      "color.d", "demo.d", "image.d"];
+                         "color.d", "demo.d", "image.d"];
 
     void compile_(string[] args, string[] files)
     {

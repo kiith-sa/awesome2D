@@ -26,8 +26,6 @@ public import dyaml.exception;
 public import dyaml.node : YAMLNode = Node;
 
 import color;
-import math.vector2;
-import math.rect;
 
 
 /**
@@ -73,7 +71,7 @@ class InvalidYAMLValueException : YAMLException
  * positive). 
  *
  *
- * Currently supported types: float, double, real, Vector2f.
+ * Currently supported types: float, double, real
  *
  * For floating point types, NaN values are automatically considered invalid.
  *
@@ -91,14 +89,6 @@ T fromYAML(T, string cond = "")(ref YAMLNode yaml, string context = "")
     {
         T val = yaml.as!T;
         enforce(!isNaN(val), new E("NaN YAML value. Context: " ~ context));
-    }
-    else static if(is(T == Vector2f))
-    {
-        enforce(yaml.length == 2,
-                new E("2D vector with an unexpected number of components. "
-                      "Context: " ~ context));
-        T val = Vector2f(fromYAML!float(yaml[0], context), 
-                         fromYAML!float(yaml[1], context));
     }
     else static if(is(T == Rectf))
     {

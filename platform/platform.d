@@ -9,8 +9,9 @@
 module platform.platform;
 
 
+import gl3n.linalg;
+
 public import platform.key;
-import math.vector2;
 import util.weaksingleton;
 import util.signal;
 
@@ -28,12 +29,12 @@ class PlatformException : Exception{this(string msg){super(msg);}}
  *     Emitted when a key is pressed. Passes the key, its state and unicode value.
  *
  * Signal:
- *     public mixin Signal!(KeyState, MouseKey, Vector2u) mouseKey 
+ *     public mixin Signal!(KeyState, MouseKey, vec2u) mouseKey 
  *
  *     Emitted when a mouse button is pressed. Passes the key, its state and mouse position.
  *
  * Signal:
- *     public mixin Signal!(Vector2u, Vector2i) mouseMotion
+ *     public mixin Signal!(vec2u, vec2i) mouseMotion
  *
  *     Emitted when mouse is moved. Passes mouse position and position change. 
  */
@@ -47,14 +48,14 @@ abstract class Platform
     private:
         ///Continue to run?
         bool run_ = true;
-                 
+
     public:
         ///Emitted when a key is pressed. Passes the key, its state and unicode value.
         mixin Signal!(KeyState, Key, dchar) key;
         ///Emitted when a mouse button is pressed. Passes the key, its state and mouse position.
-        mixin Signal!(KeyState, MouseKey, Vector2u) mouseKey;
+        mixin Signal!(KeyState, MouseKey, vec2u) mouseKey;
         ///Emitted when mouse is moved. Passes mouse position and position change.
-        mixin Signal!(Vector2u, Vector2i) mouseMotion;
+        mixin Signal!(vec2u, vec2i) mouseMotion;
 
         /**
          * Construct Platform.

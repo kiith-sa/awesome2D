@@ -12,8 +12,9 @@ module video.renderer;
 import std.conv;
 import std.stdio;
 
+import gl3n.linalg;
+
 import color;
-import math.vector2;
 import image;
 
 import video.blendmode;
@@ -57,7 +58,9 @@ abstract class Renderer
     /// the renderer is destroyed.
     VertexBuffer!V* createVertexBuffer(V)(const PrimitiveType primitiveType)
     {
-        assert(false, "TODO");
+        auto result = alloc!(VertexBuffer!V)(primitiveType);
+        createVertexBufferBackend(result.backend_);
+        return result;
     }
 
     /// Create a 2D texture, loading from specified image.
@@ -107,7 +110,7 @@ abstract class Renderer
     bool isGLSLSupported() const;
 
     /// Get viewport size in pixels.
-    @property Vector2u viewportSize() const;
+    @property vec2u viewportSize() const;
 
     /// Set blend mode to use for following draws.
     void setBlendMode(const BlendMode blendMode);
@@ -122,6 +125,9 @@ abstract class Renderer
     void setVideoMode(const uint width, const uint height, 
                       const ColorFormat format, const bool fullscreen);
 
+protected:
+    /// Initialize passed vertex buffer backend.
+    void createVertexBufferBackend(ref VertexBufferBackend backend);
 }
 
 

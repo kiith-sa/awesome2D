@@ -9,11 +9,11 @@ module video.gl2vertexbuffer;
 
 
 import derelict.opengl.gl;
+import gl3n.linalg;
 
 import color;
-import math.vector2;
-import math.matrix4;
 import video.gl2glslshader;
+import video.limits;
 import video.vertexbuffer;
 
 

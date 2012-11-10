@@ -14,12 +14,12 @@ import std.stdio;
 import std.string;
 
 import derelict.opengl.gl;
+import gl3n.linalg;
 
 import color;
-import math.vector2;
-import math.matrix4;
 import video.exceptions;
 import video.glslshader;
+import video.limits;
 
 
 /// Construct a GL2-based GLSL shader program.
@@ -36,8 +36,8 @@ void constructGLSLShaderGL2(ref GLSLShaderProgram shader) pure @safe nothrow
     shader.release_              = &release;
     shader.getUniformHandle_     = &getUniformHandle;
     shader.setUniformFloat_      = &setUniformFloat;
-    shader.setUniformVector2f_   = &setUniformVector2f;
-    shader.setUniformMatrix4f_   = &setUniformMatrix4f;
+    shader.setUniformvec2_       = &setUniformvec2;
+    shader.setUniformmat4_       = &setUniformmat4;
     shader.setUniformColor_      = &setUniformColor;
     shader.getAttributeHandle_   = &getAttributeHandle;
     shader.getAttributeGLHandle_ = &getAttributeGLHandle;
@@ -92,15 +92,6 @@ private:
         /// Uniforms can be set and the underlying GL attribute handles can be accessed.
         Bound
     }
-
-    /// Maximum number of vertex attributes.
-    enum MAX_ATTRIBUTES = 8;
-    /// Maximum number of uniform variables.
-    enum MAX_UNIFORMS = 16;
-    /// Maximum number of vertex shaders (enabled or disabled) in the program.
-    enum MAX_VERTEX_SHADERS = 16;
-    /// Maximum number of fragment shaders (enabled or disabled) in the program.
-    enum MAX_FRAGMENT_SHADERS = 16;
 
     /// Linked GL shader program corresponding to a combination of vertex and fragment shaders.
     ///
@@ -650,8 +641,8 @@ void setUniformFloat
 /// Set a 2D vector uniform value.
 ///
 /// Implements GLSLShaderProgram::setUniform.
-void setUniformVector2f
-    (ref GLSLShaderProgram self, const uint outerHandle, const Vector2f value)
+void setUniformvec2
+    (ref GLSLShaderProgram self, const uint outerHandle, const vec2 value)
 {with(self.gl2_)
 {
     assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
@@ -661,12 +652,13 @@ void setUniformVector2f
 /// Set a 4x4 matrix uniform value.
 ///
 /// Implements GLSLShaderProgram::setUniform.
-void setUniformMatrix4f
-    (ref GLSLShaderProgram self, const uint outerHandle, ref const(Matrix4f) value)
+void setUniformmat4
+    (ref GLSLShaderProgram self, const uint outerHandle, ref const(mat4) value)
 {with(self.gl2_)
 {
     assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
-    glUniformMatrix4fv(getUniformGLHandle(outerHandle), 1, GL_FALSE, value.ptr);
+    glUniformMatrix4fv(getUniformGLHandle(outerHandle), 1, GL_FALSE, 
+                       cast(const(float*))value.transposed.ptr);
 }}
 
 /// Set a color uniform value.

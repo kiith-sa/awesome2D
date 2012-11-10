@@ -15,10 +15,10 @@ import std.string;
 
 import derelict.sdl.sdl;
 import derelict.util.exception;
+import gl3n.linalg;
 
 import platform.key;
 import platform.platform;
-import math.vector2;
 
 
 ///Platform implementation based on SDL 1.2 .
@@ -135,7 +135,7 @@ class SDLPlatform : Platform
                 default: break;
             }
 
-            const position = Vector2u(event.x, event.y);
+            const position = vec2u(event.x, event.y);
 
             mouseKey.emit(state, key, position);
         }
@@ -143,8 +143,8 @@ class SDLPlatform : Platform
         ///Process a mouse motion event.
         void processMouseMotion(const SDL_MouseMotionEvent event) 
         {
-            const position = Vector2u(event.x, event.y);
-            const positionRelative = Vector2i(event.xrel, event.yrel);
+            const position = vec2u(event.x, event.y);
+            const positionRelative = vec2i(event.xrel, event.yrel);
             mouseMotion.emit(position, positionRelative);
         }
 }

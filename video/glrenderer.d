@@ -17,13 +17,15 @@ import derelict.opengl.exttypes;
 import derelict.opengl.extfuncs;
 import derelict.util.exception;
 
+import gl3n.linalg;
+
 import image;
-import math.vector2;
 import memory.memory;
 import video.blendmode;
 import video.exceptions;
 import video.glslshader;
 import video.gl2glslshader;
+import video.gl2vertexbuffer;
 import video.renderer;
 import video.texture;
 import video.vertexbuffer;
@@ -82,26 +84,7 @@ public:
 
     override void testDrawTriangle()
     {
-        setupGLState();
-        scope(exit) {restoreGLState();}
-
-        glShadeModel(GL_SMOOTH);
-        glBegin(GL_TRIANGLES);
-
-        glColor3f(1.0f, 0.0f, 0.0f);
-        glVertex3f(0.0f,  0.0f,  0.0f);
-        glColor3f(0.0f, 1.0f, 0.0f);
-        glVertex3f(1.0f, 1.0f, 0.0f);
-        glColor3f(0.0f, 0.0f, 1.0f);
-        glVertex3f(0.0f,  1.0f, 1.0f);
-
-        glEnd();
-        // TODO:
-        // -Implement createGLSLShader and draw with a shader (and projection matrix)
-        // -VBO.
-        // -IBO.
-        // -Texture.
-        // -BlendMode, etc setup/restore
+        assert(false, "TODO");
     }
 
     override void renderFrame(bool delegate(Renderer) drawPartial)
@@ -136,7 +119,9 @@ public:
 
     override GLSLShaderProgram* createGLSLShader()
     {
-        assert(false, "TODO");
+        auto result = alloc!GLSLShaderProgram;
+        constructGLSLShaderGL2(*result);
+        return result;
     }
 
     override bool isGLSLSupported() const
@@ -144,9 +129,9 @@ public:
         return true;
     }
 
-    override @property Vector2u viewportSize() const
+    override @property vec2u viewportSize() const
     {
-        return Vector2u(screenWidth_, screenHeight_);
+        return vec2u(screenWidth_, screenHeight_);
     }
 
     override void setBlendMode(const BlendMode blendMode)
@@ -155,6 +140,11 @@ public:
     }
 
 protected:
+    override void createVertexBufferBackend(ref VertexBufferBackend backend)
+    {
+        constructVertexBufferBackendGL2(backend);
+    }
+
     /// Initialize OpenGL context.
     void initGL()
     {

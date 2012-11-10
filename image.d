@@ -9,9 +9,10 @@
 module image;
 
 
+import gl3n.linalg;
+
 import core.stdc.string;
 
-import math.vector2;
 import color;
 import memory.memory;
 
@@ -27,7 +28,7 @@ struct Image
         ///Image data. Manually allocated.
         ubyte[] data_ = null;
         ///Size of the image in pixels.
-        Vector2u size_;
+        vec2u size_;
         ///Color format of the image.
         ColorFormat format_;
 
@@ -43,18 +44,18 @@ struct Image
              const ColorFormat format = ColorFormat.RGBA_8)
         {
             data_ = allocArray!ubyte(width * height * bytesPerPixel(format));
-            size_ = Vector2u(width, height);
+            size_ = vec2u(width, height);
             format_ = format;
         }
 
         ///Destroy the image and free its memory.
         ~this(){if(data !is null){free(data_);}}
-        
+
         ///Get color format of the image.
         @property ColorFormat format() const pure {return format_;}
 
         ///Get size of the image in pixels.
-        @property Vector2u size() const pure {return size_;}
+        @property vec2u size() const pure {return size_;}
 
         ///Get image width in pixels.
         @property uint width() const pure {return size_.x;}

@@ -9,11 +9,11 @@
 module video.glslshader;
 
 import derelict.opengl.gl;
+import gl3n.linalg;
 
 import color;
-import math.vector2;
-import math.matrix4;
 import video.gl2glslshader;
+import video.limits;
 
 
 /// Shader program implemented in the GLSL language.
@@ -27,7 +27,7 @@ import video.gl2glslshader;
 ///
 /// Note that backends might set limits on some shader properties.
 ///
-/// Currently, all backends are required to support at least 16 vertex 
+/// All backends are required to support at least 16 vertex 
 /// and 16 fragment shaders in a program (both enabled and disabled),
 /// at least 16 uniforms and at least 8 attributes.
 struct GLSLShaderProgram
@@ -64,10 +64,10 @@ package:
     uint function(ref Self, const string)                    getUniformHandle_;
     // Pointer to setUniform float overload implementation.
     void function(ref Self, const uint, const float)         setUniformFloat_;
-    // Pointer to setUniform Vector2f overload implementation.
-    void function(ref Self, const uint, const Vector2f)      setUniformVector2f_;
-    // Pointer to setUniform Matrix4f overload implementation.
-    void function(ref Self, const uint, ref const(Matrix4f)) setUniformMatrix4f_;
+    // Pointer to setUniform vec2 overload implementation.
+    void function(ref Self, const uint, const vec2)      setUniformvec2_;
+    // Pointer to setUniform mat4 overload implementation.
+    void function(ref Self, const uint, ref const(mat4)) setUniformmat4_;
     // Pointer to setUniform Color overload implementation.
     void function(ref Self, const uint, const Color)         setUniformColor_;
     // Pointer to getAttributeHandle implementation.
@@ -210,9 +210,9 @@ public:
     ///                  the shader.
     ///
     /// Throws: GLSLUniformException on failure.
-    void setUniform(const uint handle, const Vector2f value)
+    void setUniform(const uint handle, const vec2 value)
     {
-        setUniformVector2f_(this, handle, value);
+        setUniformvec2_(this, handle, value);
     }
 
     /// Set a 4x4 matrix uniform value.
@@ -225,9 +225,9 @@ public:
     ///                  the shader.
     ///
     /// Throws: GLSLUniformException on failure.
-    void setUniform(const uint handle, ref const(Matrix4f) value)
+    void setUniform(const uint handle, ref const(mat4) value)
     {
-        setUniformMatrix4f_(this, handle, value);
+        setUniformmat4_(this, handle, value);
     }
 
     /// Set a color uniform value.
