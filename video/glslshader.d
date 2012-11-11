@@ -156,6 +156,8 @@ public:
 
     /// Bind the shader program for drawing (also allowing uniforms to be set).
     ///
+    /// Only one shader program can be bound at a time.
+    ///
     /// Can only be called while the shader program is locked.
     void bind()
     {
