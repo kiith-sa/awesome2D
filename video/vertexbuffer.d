@@ -121,7 +121,7 @@ public:
     bool locked() @safe const pure nothrow {return backend_.locked_;}
 
     /// Get the number of vertices in the buffer.
-    uint length() @safe pure nothrow const {return backend_.vertexCount_;}
+    size_t length() @safe pure nothrow const {return backend_.vertexCount_;}
 
     /// Get the graphics primitive type formed by the vertices in the buffer.
     @property PrimitiveType primitiveType() const pure nothrow {return backend_.primitiveType_;}
