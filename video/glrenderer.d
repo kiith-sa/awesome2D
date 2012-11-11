@@ -25,6 +25,7 @@ import video.blendmode;
 import video.exceptions;
 import video.glslshader;
 import video.gl2glslshader;
+import video.gl2indexbuffer;
 import video.gl2vertexbuffer;
 import video.renderer;
 import video.texture;
@@ -76,11 +77,6 @@ public:
             DerelictGL.unload();
             glInitialized_ = false;
         }
-    }
-
-    override IndexBuffer* createIndexBuffer()
-    {
-        assert(false, "TODO");
     }
 
     override void testDrawTriangle()
@@ -232,6 +228,13 @@ public:
         {
             writeln("GL error at the end of a frame: ", to!string(error));
         }
+    }
+
+    override IndexBuffer* createIndexBuffer()
+    {
+        auto result = alloc!IndexBuffer;
+        constructIndexBufferGL2(*result);
+        return result;
     }
 
     override Texture* createTexture(const ref Image image)

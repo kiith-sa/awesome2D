@@ -75,14 +75,6 @@ abstract class Renderer
     /// Create a GLSL shader program.
     GLSLShaderProgram* createGLSLShader();
 
-    /// Draw specified vertex buffer.
-    ///
-    /// The entire buffer is drawn in order of the vertices.
-    void drawVertexBuffer(V)(VertexBuffer!V* vertexBuffer)
-    {
-        assert(false, "TODO");
-    }
-
     /// Draw a vertex buffer with an index buffer specifying vertices to draw.
     ///
     /// Params: vertexBuffer  = Vertex buffer to draw from.
