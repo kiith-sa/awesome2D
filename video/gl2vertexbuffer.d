@@ -17,8 +17,9 @@ import color;
 import memory.memory;
 import video.exceptions;
 import video.gl2bufferobject;
-import video.gl2glslshader;
 import video.gl2bufferobject;
+import video.gl2glslshader;
+import video.gl2indexbuffer;
 import video.glslshader;
 import video.glutils;
 import video.indexbuffer;
@@ -145,26 +146,32 @@ void drawVertexBufferGL2
         attributeOffset += attribute.type.attributeSize();
     }
 
+    auto drawVertexCount =
+        indexBuffer is null ? vertexCount_ : indexBuffer.indexCount_;
+
+    final switch(primitiveType_)
+    {
+        case PrimitiveType.Triangles:
+            assert(drawVertexCount % 3 == 0, 
+                   "Number of vertices drawn must be divisible by 3 when drawing triangles");
+            break;
+        case PrimitiveType.Lines:
+            assert(drawVertexCount % 2 == 0, 
+                   "Number of vertices drawn must be divisible by 2 when drawing lines");
+            break;
+    }
+
     // Draw.
     if(indexBuffer !is null)
     {
-        // TODO when IndexBuffer is implemented
-        assert(false, "TODO");
+        indexBuffer.gl2_.indicesIBO_.bind();
+        glDrawElements(primitiveType_.glPrimitiveType(), cast(uint)indexBuffer.length,
+                       GL_UNSIGNED_INT, null);
+        indexBuffer.gl2_.indicesIBO_.release();
     }
     else
     {
-        final switch(primitiveType_)
-        {
-            case PrimitiveType.Triangles:
-                assert(vertexCount_ % 3 == 0, 
-                       "Vertex count must be divisible by 3 when drawing triangles");
-                break;
-            case PrimitiveType.Lines:
-                assert(vertexCount_ % 2 == 0, 
-                       "Vertex count must be divisible by 2 when drawing triangles");
-                break;
-        }
-        glDrawArrays(glPrimitiveType(primitiveType_), 0, vertexCount_);
+        glDrawArrays(primitiveType_.glPrimitiveType(), 0, vertexCount_);
     }
 }}
 
