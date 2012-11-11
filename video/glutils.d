@@ -9,7 +9,9 @@ module video.glutils;
 
 
 import derelict.opengl.gl;
+import gl3n.linalg;
 
+import color;
 import video.primitivetype;
 import video.texture;
 import video.vertexattribute;
@@ -55,4 +57,61 @@ GLint glTextureWrap(const TextureWrap wrap) @safe pure nothrow
         case TextureWrap.Repeat:      return GL_REPEAT;
         case TextureWrap.ClampToEdge: return GL_CLAMP_TO_EDGE;
     }
+}
+
+/// Get internal (on-GPU) GL pixel format (internalFormat passed to glTexImage2D())
+/// corresponding to a ColorFormat.
+GLint glTextureInternalFormat(const ColorFormat format)
+{
+    final switch(format)
+    {
+        case ColorFormat.RGB_565: return GL_RGB5;
+        case ColorFormat.RGB_8:   return GL_RGB8;
+        case ColorFormat.RGBA_8:  return GL_RGBA8;
+        case ColorFormat.GRAY_8:  return GL_RED;
+    }
+}
+
+/// Get a GL enum representing the format of pixel data to be loaded to a GL texture.
+GLenum glTextureLoadFormat(const ColorFormat format)
+{
+    final switch(format)
+    {
+        case ColorFormat.RGB_565: return GL_RGB;
+        case ColorFormat.RGB_8:   return GL_RGB;
+        case ColorFormat.RGBA_8:  return GL_RGBA;
+        case ColorFormat.GRAY_8:  return GL_RED;
+    }
+}
+
+/// Get a GL enum representing the data type of pixel data to be loaded to a GL texture.
+GLenum glTextureType(const ColorFormat format)
+{
+    final switch(format)
+    {
+        case ColorFormat.RGB_565: return GL_UNSIGNED_SHORT_5_6_5;
+        case ColorFormat.RGB_8:   return GL_UNSIGNED_BYTE;
+        case ColorFormat.RGBA_8:  return GL_UNSIGNED_INT_8_8_8_8;
+        case ColorFormat.GRAY_8:  return GL_UNSIGNED_BYTE;
+    }
+}
+
+/// Determine if specified texture size/format combination is supported.
+bool glTextureSizeSupported(const vec2u size, const ColorFormat format)
+{
+    const internalFormat = format.glTextureInternalFormat();
+    const loadFormat     = format.glTextureLoadFormat();
+    const type           = format.glTextureType();
+
+    // Try creating a texture proxy with these parameters.
+    // If the result has zero dimensions, this format is not supported.
+    glTexImage2D(GL_PROXY_TEXTURE_2D, 0, internalFormat, size.x, size.y, 0,
+                 loadFormat, type, null);
+
+    GLint width  = size.x;
+    GLint height = size.y;
+    glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &height);
+
+    return width != 0 && height != 0;
 }
