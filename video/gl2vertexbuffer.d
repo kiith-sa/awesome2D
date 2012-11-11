@@ -79,6 +79,7 @@ struct GL2VertexBufferBackendData
     void deinitialize()
     {
         free(verticesRAM_);
+        clear(verticesVBO_);
     }
 }
 
@@ -189,11 +190,10 @@ void lock(ref VertexBufferBackend self)
     verticesVBO_.uploadData(cast(void*)verticesRAM_, vertexCount_ * vertexBytes_);
 }}
 
-/// Unlock the vertex buffer so it can be drawn.
+/// Unlock the vertex buffer so it can be modified.
 ///
 /// Implements VertexBuffer::unlock.
 void unlock(ref VertexBufferBackend self) {}
-
 
 /// Add a new vertex to the vertex buffer.
 ///
