@@ -65,9 +65,9 @@ package:
     // Pointer to setUniform float overload implementation.
     void function(ref Self, const uint, const float)         setUniformFloat_;
     // Pointer to setUniform vec2 overload implementation.
-    void function(ref Self, const uint, const vec2)      setUniformvec2_;
+    void function(ref Self, const uint, const vec2)          setUniformvec2_;
     // Pointer to setUniform mat4 overload implementation.
-    void function(ref Self, const uint, ref const(mat4)) setUniformmat4_;
+    void function(ref Self, const uint, ref const(mat4))     setUniformmat4_;
     // Pointer to setUniform Color overload implementation.
     void function(ref Self, const uint, const Color)         setUniformColor_;
     // Pointer to getAttributeHandle implementation.
