@@ -16,11 +16,14 @@ import gl3n.linalg;
 
 import color;
 import image;
+import memory.memory;
 
 import video.blendmode;
 import video.exceptions;
 import video.glslshader;
+import video.primitivetype;
 import video.texture;
+import video.vertexattribute;
 import video.vertexbuffer;
 import video.indexbuffer;
 
@@ -59,7 +62,7 @@ abstract class Renderer
     VertexBuffer!V* createVertexBuffer(V)(const PrimitiveType primitiveType)
     {
         auto result = alloc!(VertexBuffer!V)(primitiveType);
-        createVertexBufferBackend(result.backend_);
+        createVertexBufferBackend(result.backend_, V.vertexAttributeSpec_);
         return result;
     }
 
@@ -80,13 +83,20 @@ abstract class Renderer
         assert(false, "TODO");
     }
 
-    /// Draw specified vertex buffer with an index buffer specifying vertices to draw.
+    /// Draw a vertex buffer with an index buffer specifying vertices to draw.
     ///
-    /// Params: vertexBuffer = Vertex buffer to draw from.
-    ///         indexBuffer  = Index buffer specifying vertices to draw.
-    void drawVertexBuffer(V)(VertexBuffer!V* vertexBuffer, IndexBuffer* indexBuffer)
+    /// Params: vertexBuffer  = Vertex buffer to draw from.
+    ///         indexBuffer   = Index buffer specifying vertices to draw.
+    ///                         If null, the vertices are drawn consecutively.
+    ///         shaderProgram = Shader program to use for drawing.
+    ///                         Must be bound.
+    void drawVertexBuffer(V)(VertexBuffer!V* vertexBuffer,
+                             IndexBuffer* indexBuffer,
+                             GLSLShaderProgram* shaderProgram)
     {
-        assert(false, "TODO");
+        assert(vertexBuffer  !is null, "Vertex buffer must be specified when drawing");
+        assert(shaderProgram !is null, "Shader program must be specified when drawing");
+        drawVertexBufferBackend(vertexBuffer.backend_, indexBuffer, shaderProgram);
     }
 
     /// A test function that draws a triangle.
@@ -106,7 +116,6 @@ abstract class Renderer
     /// Are GLSL shaders supported?
     /// 
     /// Shaders are required, but alternative backends might support e.g. HLSL in future.
-    /// 
     bool isGLSLSupported() const;
 
     /// Get viewport size in pixels.
@@ -126,10 +135,20 @@ abstract class Renderer
                       const ColorFormat format, const bool fullscreen);
 
 protected:
-    /// Initialize passed vertex buffer backend.
-    void createVertexBufferBackend(ref VertexBufferBackend backend);
-}
+    /// Initialize the passed vertex buffer backend.
+    ///
+    /// Params:  backend       = Backend to initialize.
+    ///          attributeSpec = Attribute specification of the vertex type
+    ///                          stored in the buffer.
+    void createVertexBufferBackend(ref VertexBufferBackend backend, 
+                                   ref const VertexAttributeSpec attributeSpec);
 
+
+    /// Implementation of drawVertexBuffer. (Separate due to template-virtual incompatibility)
+    void drawVertexBufferBackend(ref VertexBufferBackend backend,
+                                 IndexBuffer* indexBuffer, 
+                                 GLSLShaderProgram* shaderProgram);
+}
 
 ///Class managing lifetime and dependencies of video driver.
 class RendererContainer

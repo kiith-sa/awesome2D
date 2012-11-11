@@ -28,6 +28,7 @@ import video.gl2glslshader;
 import video.gl2vertexbuffer;
 import video.renderer;
 import video.texture;
+import video.vertexattribute;
 import video.vertexbuffer;
 import video.indexbuffer;
 
@@ -84,7 +85,129 @@ public:
 
     override void testDrawTriangle()
     {
-        assert(false, "TODO");
+        // Test vertex struct.
+        struct TestVertex
+        {
+            vec3 position;
+            vec3 color;
+            this(ref const vec3 position, ref const vec3 color)
+            {
+                this.position = position;
+                this.color    = color;
+            }
+
+            mixin VertexAttributes!(vec3, AttributeInterpretation.Position, 
+                                    vec3, AttributeInterpretation.Color);
+        }
+
+        // Set up the modelViewProjection matrix.
+        const viewOffset = vec2(0.0f, 0.0f);
+        const viewZoom   = 1.0f;
+        const modelView  =
+            mat4.translation(viewOffset.x / screenWidth_,
+                             viewOffset.y / screenHeight_, 0.0f);
+        // near,far will have to be set from -1.0f,1.0f to something serious 
+        // for 3D loading
+        const projection =
+            mat4.orthographic(0.0f, screenWidth_ / viewZoom, screenHeight_ / viewZoom,
+                              0.0f, -1.0f, 1.0f);
+        const modelViewProjection = modelView * projection;
+
+        // Shader source code.
+        string vertexShaderSource = 
+            "attribute vec3 Position;\n" ~
+            "attribute vec4 Color;\n" ~
+            "\n" ~
+            "varying vec4 out_color;\n" ~
+            "\n" ~
+            "uniform mat4 mvp_matrix;\n" ~
+            "\n" ~
+            "void main (void)\n" ~
+            "{\n" ~
+            "    out_color = Color;\n" ~
+            "    gl_Position = mvp_matrix * vec4(Position, 1);\n" ~
+            "}\n";
+
+        string vertexShaderSource2 = 
+            "attribute vec3 Position;\n" ~
+            "attribute vec4 Color;\n" ~
+            "\n" ~
+            "varying vec4 out_color;\n" ~
+            "\n" ~
+            "uniform mat4 mvp_matrix;\n" ~
+            "\n" ~
+            "void main (void)\n" ~
+            "{\n" ~
+            "    out_color = vec4(Color.r, Color.g, 1.0, 1.0);\n" ~
+            "    gl_Position = mvp_matrix * vec4(Position.x, 200.0 + Position.y, Position.z, 1);\n" ~
+            "}\n";
+
+        string fragmentShaderSource = 
+            "varying vec4 out_color;\n" ~
+            "\n" ~
+            "void main (void)\n" ~
+            "{\n" ~
+            "    gl_FragColor = out_color;\n" ~
+            "}\n";
+
+        // Init shader program.
+        GLSLShaderProgram* shaderProgram = createGLSLShader();
+        const vertexShader = shaderProgram.addVertexShader(vertexShaderSource);
+        const vertexShader2 = shaderProgram.addVertexShader(vertexShaderSource2);
+        const fragmentShader = shaderProgram.addFragmentShader(fragmentShaderSource);
+
+        // Init vertex buffer.
+        auto vertexBuffer = createVertexBuffer!TestVertex(PrimitiveType.Triangles);
+        alias TestVertex V;
+        vertexBuffer.addVertex(V(vec3(0.0f,   0.0f,   0.0f), vec3(1.0f, 0.0f, 0.0f)));
+        vertexBuffer.addVertex(V(vec3(0.0f,   100.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)));
+        vertexBuffer.addVertex(V(vec3(800.0f, 600.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f)));
+        vertexBuffer.lock();
+
+        // Use vertex shader 1.
+        shaderProgram.disableVertexShader(vertexShader2);
+        shaderProgram.lock();
+
+        // Upload any uniforms.
+        const modelViewProjectionUniform = 
+            shaderProgram.getUniformHandle("mvp_matrix");
+        shaderProgram.bind();
+        shaderProgram.setUniform(modelViewProjectionUniform, 
+                                 modelViewProjection);
+
+        // Draw.
+        drawVertexBuffer(vertexBuffer, null, shaderProgram);
+        shaderProgram.release();
+
+
+
+
+        // Modify the program (swap to vertex shader 2)
+        shaderProgram.unlock();
+        shaderProgram.enableVertexShader(vertexShader2);
+        shaderProgram.disableVertexShader(vertexShader);
+        shaderProgram.lock();
+        shaderProgram.bind();
+
+        // Upload any uniforms.
+        shaderProgram.setUniform(modelViewProjectionUniform, 
+                                 modelViewProjection);
+
+        // Draw.
+        drawVertexBuffer(vertexBuffer, null, shaderProgram);
+        shaderProgram.release();
+
+
+        // Clean up.
+        free(shaderProgram);
+        free(vertexBuffer);
+
+        // TODO:
+        // -IBO.
+        // -Texture (Do not do virtualization - that will be on top of renderer 
+        //           (as will font drawing - 1 texture page per font,
+        //           and we can generate permanent VBOs))
+        // -BlendMode, etc setup/restore
     }
 
     override void renderFrame(bool delegate(Renderer) drawPartial)
@@ -140,9 +263,19 @@ public:
     }
 
 protected:
-    override void createVertexBufferBackend(ref VertexBufferBackend backend)
+    override void createVertexBufferBackend(ref VertexBufferBackend backend,
+                                            ref const VertexAttributeSpec attributeSpec)
     {
-        constructVertexBufferBackendGL2(backend);
+        constructVertexBufferBackendGL2(backend, attributeSpec);
+    }
+
+    override void drawVertexBufferBackend(ref VertexBufferBackend backend,
+                                          IndexBuffer* indexBuffer, 
+                                          GLSLShaderProgram* shaderProgram)
+    {
+        setupGLState();
+        backend.drawVertexBufferGL2(indexBuffer, *shaderProgram);
+        restoreGLState();
     }
 
     /// Initialize OpenGL context.
