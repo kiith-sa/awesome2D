@@ -158,7 +158,18 @@ public:
         vertexBuffer.addVertex(V(vec3(0.0f,   0.0f,   0.0f), vec3(1.0f, 0.0f, 0.0f)));
         vertexBuffer.addVertex(V(vec3(0.0f,   100.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)));
         vertexBuffer.addVertex(V(vec3(800.0f, 600.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f)));
+        vertexBuffer.addVertex(V(vec3(800.0f, 0.0f, 0.0f),   vec3(1.0f, 1.0f, 1.0f)));
         vertexBuffer.lock();
+
+        // Init index buffer.
+        auto indexBuffer = createIndexBuffer();
+        indexBuffer.addIndex(0);
+        indexBuffer.addIndex(1);
+        indexBuffer.addIndex(2);
+        indexBuffer.addIndex(0);
+        indexBuffer.addIndex(2);
+        indexBuffer.addIndex(3);
+        indexBuffer.lock();
 
         // Use vertex shader 1.
         shaderProgram.disableVertexShader(vertexShader2);
@@ -172,9 +183,8 @@ public:
                                  modelViewProjection);
 
         // Draw.
-        drawVertexBuffer(vertexBuffer, null, shaderProgram);
+        drawVertexBuffer(vertexBuffer, indexBuffer, shaderProgram);
         shaderProgram.release();
-
 
 
 
@@ -190,16 +200,16 @@ public:
                                  modelViewProjection);
 
         // Draw.
-        drawVertexBuffer(vertexBuffer, null, shaderProgram);
+        drawVertexBuffer(vertexBuffer, indexBuffer, shaderProgram);
         shaderProgram.release();
 
 
         // Clean up.
-        free(shaderProgram);
+        free(indexBuffer);
         free(vertexBuffer);
+        free(shaderProgram);
 
         // TODO:
-        // -IBO.
         // -Texture (Do not do virtualization - that will be on top of renderer 
         //           (as will font drawing - 1 texture page per font,
         //           and we can generate permanent VBOs))
