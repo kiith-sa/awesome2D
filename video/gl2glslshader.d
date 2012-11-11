@@ -22,6 +22,8 @@ import video.glslshader;
 import video.limits;
 
 
+package:
+
 /// Construct a GL2-based GLSL shader program.
 void constructGLSLShaderGL2(ref GLSLShaderProgram shader) pure @safe nothrow
 {
