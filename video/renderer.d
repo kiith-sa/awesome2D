@@ -73,6 +73,8 @@ abstract class Renderer
     ///
     /// Params:  image  = Image to load from.
     ///          params = Texture parameters (e.g. filtering).
+    ///
+    /// Returns: Pointer to the new texture, or null on failure.
     Texture* createTexture(const ref Image image, 
                            const TextureParams params = TextureParams.init);
 
