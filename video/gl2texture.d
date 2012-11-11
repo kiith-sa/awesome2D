@@ -10,6 +10,7 @@ module video.gl2texture;
 
 import derelict.opengl.gl;
 import image;
+import video.glutils;
 import video.texture;
 
 

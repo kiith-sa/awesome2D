@@ -10,8 +10,9 @@ module video.glutils;
 
 import derelict.opengl.gl;
 
-import video.vertexattribute;
 import video.primitivetype;
+import video.texture;
+import video.vertexattribute;
 
 
 /// Translate PrimitiveType to OpenGL primitive type.
@@ -33,5 +34,25 @@ GLint glAttributeType(const AttributeType type)
     {
         case AttributeType.vec2, AttributeType.vec3, AttributeType.vec4:
             return GL_FLOAT;
+    }
+}
+
+/// Translate TextureFiltering to OpenGL texture filtering mode.
+GLint glTextureFiltering(const TextureFiltering filter) @safe pure nothrow
+{
+    final switch(filter)
+    {
+        case TextureFiltering.Nearest: return GL_NEAREST;
+        case TextureFiltering.Linear:  return GL_LINEAR;
+    }
+}
+
+/// Translate TextureWrap to OpenGL texture wrap mode.
+GLint glTextureWrap(const TextureWrap wrap) @safe pure nothrow
+{
+    final switch(wrap)
+    {
+        case TextureWrap.Repeat:      return GL_REPEAT;
+        case TextureWrap.ClampToEdge: return GL_CLAMP_TO_EDGE;
     }
 }
