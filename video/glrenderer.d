@@ -252,7 +252,15 @@ public:
         (ref const Image image, const TextureParams params)
     {
         auto result = alloc!Texture;
-        constructTextureGL2(*result, image, params);
+        try
+        {
+            constructTextureGL2(*result, image, params);
+        }
+        catch(TextureInitException e)
+        {
+            free(result);
+            return null;
+        }
         return result;
     }
 
