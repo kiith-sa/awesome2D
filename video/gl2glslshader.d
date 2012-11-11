@@ -25,6 +25,7 @@ import video.limits;
 /// Construct a GL2-based GLSL shader program.
 void constructGLSLShaderGL2(ref GLSLShaderProgram shader) pure @safe nothrow
 {
+    shader.gl2_                  = GL2GLSLShaderData.init;
     shader.addVertexShader_      = &addShader!GL_VERTEX_SHADER;
     shader.addFragmentShader_    = &addShader!GL_FRAGMENT_SHADER;
     shader.enableVertexShader_   = &enableVertexShader;
