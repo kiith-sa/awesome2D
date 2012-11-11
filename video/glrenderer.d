@@ -265,6 +265,13 @@ public:
         return true;
     }
 
+    override uint textureUnitCount() const
+    {
+        int textureUnitCount;
+        glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &textureUnitCount);
+        return textureUnitCount;
+    }
+
     override @property vec2u viewportSize() const
     {
         return vec2u(screenWidth_, screenHeight_);

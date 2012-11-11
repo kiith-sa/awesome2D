@@ -110,6 +110,11 @@ abstract class Renderer
     /// Shaders are required, but alternative backends might support e.g. HLSL in future.
     bool isGLSLSupported() const;
 
+    /// Get the number of texture units on the machine.
+    ///
+    /// This is always at least 2.
+    @property uint textureUnitCount() const;
+
     /// Get viewport size in pixels.
     @property vec2u viewportSize() const;
 
