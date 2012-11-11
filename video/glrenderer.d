@@ -26,6 +26,7 @@ import video.exceptions;
 import video.glslshader;
 import video.gl2glslshader;
 import video.gl2indexbuffer;
+import video.gl2texture;
 import video.gl2vertexbuffer;
 import video.renderer;
 import video.texture;
@@ -247,10 +248,12 @@ public:
         return result;
     }
 
-    override Texture* createTexture(const ref Image image)
+    override Texture* createTexture
+        (ref const Image image, const TextureParams params)
     {
-        //TODO LATER
-        assert(false, "TODO");
+        auto result = alloc!Texture;
+        constructTextureGL2(*result, image, params);
+        return result;
     }
 
     override GLSLShaderProgram* createGLSLShader()

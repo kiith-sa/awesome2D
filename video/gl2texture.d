@@ -8,19 +8,25 @@
 module video.gl2texture;
 
 
+import derelict.opengl.gl;
+import image;
 import video.texture;
 
 
 package:
 
-void constructTextureGL2(ref Texture texture)
+/// Construct a GL2 texture backend with specified parameters from specified image.
+void constructTextureGL2
+    (ref Texture texture, ref const Image image, const ref TextureParams params)
 {
-    texture.gl2_ = GL2TextureData.init;
+    texture.gl2_        = GL2TextureData.init;
+    texture.dimensions_ = image.size();
+    texture.params_     = params;
     //TODO
 }
 
 /// Data members of the GL2 texture backend.
 struct GL2TextureData
 {
-    
+    GLuint textureHandle_;
 }

@@ -70,7 +70,11 @@ abstract class Renderer
     ///
     /// The texture must be destroyed by the user before the renderer is 
     /// destroyed.
-    Texture* createTexture(const ref Image image);
+    ///
+    /// Params:  image  = Image to load from.
+    ///          params = Texture parameters (e.g. filtering).
+    Texture* createTexture(const ref Image image, 
+                           const TextureParams params = TextureParams.init);
 
     /// Create a GLSL shader program.
     GLSLShaderProgram* createGLSLShader();

@@ -13,6 +13,52 @@ import gl3n.linalg;
 
 import video.gl2texture;
 
+/// Texture filtering modes.
+///
+/// These specify how the texture is enlarged/shrunk as the viewer 
+/// gets closer/farther.
+enum TextureFiltering
+{
+    /// Nearest-neighbor (blocky, like in old 1990's 3D games).
+    Nearest,
+    /// Bilinear.
+    Linear
+}
+
+/// Texture wrapping modes.
+///
+/// These specify how the texture is applied outside its area 
+/// (i.e. outside the (0,0, 1,1) texture coord rectangle.)
+enum TextureWrap
+{
+    /// Texture is repeated infinitely.
+    Repeat,
+    /// Colors at the edge of the texture are used.
+    ClampToEdge
+}
+
+/// A convenience builder struct to pass texture parameters with.
+struct TextureParams
+{
+    /// Texture filtering mode.
+    TextureFiltering filtering_ = TextureFiltering.Linear;
+    /// Texture wrapping mode.
+    TextureWrap      wrap_      = TextureWrap.Repeat;
+
+    /// Set texture filtering mode.
+    ref TextureParams filtering(const TextureFiltering filtering) @safe pure nothrow
+    {
+        filtering_ = filtering;
+        return this;
+    }
+
+    /// Set texture wrapping mode.
+    ref TextureParams wrap(const TextureWrap wrap) @safe pure nothrow
+    {
+        wrap_ = wrap;
+        return this;
+    }
+}
 
 /// 2D texture.
 ///
@@ -29,6 +75,8 @@ package:
     // X and Y size of the texture in pixels.
     vec2u dimensions_;
 
+    // Parameters the texture was constructed with (filtering, wrapping, etc.).
+    TextureParams params_;
     // Alias for readability.
     alias Texture Self;
 
