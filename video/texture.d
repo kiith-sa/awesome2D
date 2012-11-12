@@ -101,7 +101,7 @@ public:
     /// supported on the machine, it will be silently ignored.
     /// You can determine the number of texture units supported by
     /// calling Renderer.textureUnitCount. It must always be at least 2.
-    void bind(const uint textureUnit = 0)
+    void bind(const uint textureUnit)
     {
         bind_(this, textureUnit);
     }
