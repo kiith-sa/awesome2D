@@ -82,8 +82,8 @@ class SDLGLRenderer : GLRenderer
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,   green);
         SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,    blue);
         SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE,   alpha);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,   24);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
         const uint bitDepth = red + green + blue + alpha;
 
         uint flags = SDL_OPENGL;
