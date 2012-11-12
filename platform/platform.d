@@ -43,7 +43,7 @@ abstract class Platform
     mixin WeakSingleton;
     protected:
         ///Array of bools for each key specifying if the key is currently pressed.
-        bool[Key.max] keysPressed_;
+        bool[Key] keysPressed_;
 
     private:
         ///Continue to run?
@@ -94,6 +94,6 @@ abstract class Platform
         ///Determine if specified key is pressed.
         final bool isKeyPressed(const Key key) const pure nothrow
         {
-            return keysPressed_[cast(uint)key];
+            return (null is (key in keysPressed_)) ? keysPressed_[key] : false;
         }
 }

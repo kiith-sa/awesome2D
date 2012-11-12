@@ -15,11 +15,11 @@ import dgamevfs._;
 
 import color;
 import platform.platform;
-import platform.sdlplatform;
+import platform.sdl2platform;
 import util.yaml;
 import video.exceptions;
 import video.renderer;
-import video.sdlglrenderer;
+import video.sdl2glrenderer;
 
 
 /// Thrown when the program fails to start.
@@ -128,7 +128,7 @@ private:
     {
         try
         {
-            platform_ = new SDLPlatform();
+            platform_ = new SDL2Platform();
         }
         catch(PlatformException e)
         {
@@ -159,7 +159,7 @@ private:
             writeln("Unsupported video mode depth: ", depth,
                     " - falling back to 32bit");
         }
-        renderer_ = rendererContainer_.produce!SDLGLRenderer
+        renderer_ = rendererContainer_.produce!SDL2GLRenderer
                     (width, height, format, fullscreen);
         if(renderer_ is null)
         {

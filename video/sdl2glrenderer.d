@@ -5,26 +5,31 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 
-/// An OpenGL 2.0 backend using SDL 1.2 for OpenGL setup.
-module video.sdlglrenderer;
+/// An OpenGL 2.0 backend using SDL 2.0 for OpenGL setup.
+module video.sdl2glrenderer;
 
-version(none)
-{
 
 import std.stdio;
 import std.string;
 
 import derelict.opengl3.gl;
-import derelict.sdl.sdl;
+import derelict.sdl2.sdl;
 
 import color;
 import video.exceptions;
 import video.glrenderer;
 
 
-/// An OpenGL 2.0 backend using SDL 1.2 for OpenGL setup.
-class SDLGLRenderer : GLRenderer
+/// An OpenGL 2.0 backend using SDL 2.0 for OpenGL setup.
+class SDL2GLRenderer : GLRenderer
 {
+private:
+    /// Game window.
+    SDL_Window* window_;
+    /// GL context of the game.
+    SDL_GLContext glContext_;
+
+public:
     /// Construct an SDLGLRenderer.
     this()
     {
@@ -36,14 +41,13 @@ class SDLGLRenderer : GLRenderer
     ~this()
     {
         writeln("Destroying SDLGLRenderer");
+        SDL_GL_DeleteContext(glContext_);  
+        SDL_DestroyWindow(window_);
     }
 
     /// Set video mode.
     ///
-    /// This must be called exactly once after construction:
-    ///
-    /// In SDL 1.2, GL context is estabilished after setting the video mode;
-    /// it can't be changed without replacing the GL context.
+    /// This must be called exactly once after construction.
     ///
     /// Params: width      = Video mode width in pixels.
     ///         height     = Video mode height in pixels.
@@ -61,7 +65,8 @@ class SDLGLRenderer : GLRenderer
                "Can't set video mode with such ridiculous height");
 
         // Determine bit depths of color channels.
-        uint red, green, blue, alpha;
+        int red, green, blue, alpha, depth;
+        depth = 24;
         switch(format)
         {
             case ColorFormat.RGB_565:
@@ -80,37 +85,44 @@ class SDLGLRenderer : GLRenderer
                 assert(false, "Unsupported video mode color format");
         }
 
+        // Set up the internal GL screen pixel format.
         SDL_GL_SetAttribute(SDL_GL_RED_SIZE,     red);
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,   green);
         SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,    blue);
         SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE,   alpha);
-        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,   24);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,   depth);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+        auto flags = SDL_WINDOW_OPENGL/*TODO |SDL_WINDOW_RESIZABLE*/;
+        if(fullscreen){flags |= SDL_WINDOW_FULLSCREEN;}
+        // Create a window. Window mode MUST include SDL_WINDOW_OPENGL for use with OpenGL.
+        window_ = SDL_CreateWindow
+            ("Awesome2D Demo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
+             width, height, flags);
+        assert(window_ !is null, "Failed to create window");
+
+        glContext_ = SDL_GL_CreateContext(window_);
+        assert(glContext_ !is null, "Failed to create GL context");
+
+        // Print the GL screen pixel format.
+        SDL_GL_GetAttribute(SDL_GL_RED_SIZE,   &red);
+        SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &green);
+        SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE,  &blue);
+        SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &alpha);
+        SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &depth);
         const uint bitDepth = red + green + blue + alpha;
-
-        uint flags = SDL_OPENGL;
-        if(fullscreen){flags |= SDL_FULLSCREEN;}
-
-        if(SDL_SetVideoMode(width, height, bitDepth, flags) is null)
-        {
-            string msg = std.string.format("Could not set video mode: %d %d %dbpp",
-                                           width, height, bitDepth);
-            writeln(msg);
-            throw new RendererException(msg);
-        }
+        writefln("Red: %d, Green: %d, Blue: %d, Alpha: %d, Depth: %d\n",
+                 red, green, blue, alpha, depth);
 
         screenWidth_  = width;
         screenHeight_ = height;
         screenDepth_  = bitDepth;
-
         initGL();
     }
 
     override void swapBuffers()
     {
         const error = glGetError();
-        SDL_GL_SwapBuffers();
+        SDL_GL_SwapWindow(window_);
     }
-}
-
 }

@@ -4,17 +4,15 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-///SDL platform implementation.
-module platform.sdlplatform;
+///SDL 2.0 platform implementation.
+module platform.sdl2platform;
 
 
-version(none)
-{
 import std.conv;
 import std.stdio;
 import std.string;
 
-import derelict.sdl.sdl;
+import derelict.sdl2.sdl;
 import derelict.util.exception;
 import gl3n.linalg;
 
@@ -22,8 +20,8 @@ import platform.key;
 import platform.platform;
 
 
-///Platform implementation based on SDL 1.2 .
-class SDLPlatform : Platform
+///Platform implementation based on SDL 2.0 .
+class SDL2Platform : Platform
 {
     public:
         /**
@@ -42,7 +40,7 @@ class SDLPlatform : Platform
 
             try
             {
-                DerelictSDL.load();
+                DerelictSDL2.load();
             }
             catch(SharedLibLoadException e)
             {
@@ -55,20 +53,19 @@ class SDLPlatform : Platform
 
             if(SDL_Init(SDL_INIT_VIDEO) < 0)
             {
-                DerelictSDL.unload();
+                DerelictSDL2.unload();
                 throw new PlatformException("Could not initialize SDL: " 
                                             ~ to!string(SDL_GetError()));
             }
-            SDL_EnableUNICODE(SDL_ENABLE);
         }
 
         ~this()
         {
             writeln("Destroying SDLPlatform");
             SDL_Quit();
-            DerelictSDL.unload();
+            DerelictSDL2.unload();
         }
-        
+
         override bool run()
         {
             SDL_Event event;
@@ -97,7 +94,7 @@ class SDLPlatform : Platform
 
         @property override void windowCaption(const string str)
         {
-            SDL_WM_SetCaption(toStringz(str), null); 
+            assert(false, "Window caption setting not implemented yet for SDL2");
         }
 
         override void hideCursor(){SDL_ShowCursor(0);}
@@ -109,11 +106,11 @@ class SDLPlatform : Platform
         void processKey(const SDL_KeyboardEvent event)
         {
             KeyState state = KeyState.Pressed;
-            keysPressed_[event.keysym.sym] = true;
+            keysPressed_[cast(Key)event.keysym.sym] = true;
             if(event.type == SDL_KEYUP)
             {
                 state = KeyState.Released;
-                keysPressed_[event.keysym.sym] = false;
+                keysPressed_[cast(Key)event.keysym.sym] = false;
             }
             key.emit(state, cast(Key)event.keysym.sym, event.keysym.unicode);
         }
@@ -128,11 +125,9 @@ class SDLPlatform : Platform
             MouseKey key;
             switch(event.button)
             {
-                case(SDL_BUTTON_LEFT): key = MouseKey.Left;           break;
+                case(SDL_BUTTON_LEFT):   key = MouseKey.Left;           break;
                 case(SDL_BUTTON_MIDDLE): key = MouseKey.Middle;       break;
-                case(SDL_BUTTON_RIGHT): key = MouseKey.Right;         break;
-                case(SDL_BUTTON_WHEELUP): key = MouseKey.WheelUp;     break;
-                case(SDL_BUTTON_WHEELDOWN): key = MouseKey.WheelDown; break;
+                case(SDL_BUTTON_RIGHT):  key = MouseKey.Right;         break;
                 default: break;
             }
 
@@ -148,5 +143,4 @@ class SDLPlatform : Platform
             const positionRelative = vec2i(event.xrel, event.yrel);
             mouseMotion.emit(position, positionRelative);
         }
-}
 }
