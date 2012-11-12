@@ -104,6 +104,8 @@ public:
                                     vec3, AttributeInterpretation.Color);
         }
 
+        blendMode = BlendMode.Alpha;
+
         // Set up the modelViewProjection matrix.
         const viewOffset = vec2(0.0f, 0.0f);
         const viewZoom   = 1.0f;
@@ -121,7 +123,7 @@ public:
         string vertexShaderSource = 
             "attribute vec3 Position;\n" ~
             "attribute vec2 TexCoord;\n" ~
-            "attribute vec4 Color;\n" ~
+            "attribute vec3 Color;\n" ~
             "\n" ~
             "varying vec2 out_texcoord;\n" ~
             "varying vec4 out_color;\n" ~
@@ -131,14 +133,14 @@ public:
             "void main (void)\n" ~
             "{\n" ~
             "    out_texcoord = TexCoord;\n" ~
-            "    out_color = Color;\n" ~
-            "    gl_Position = mvp_matrix * vec4(Position, 1);\n" ~
+            "    out_color = vec4(Color, 1.0);\n" ~
+            "    gl_Position = mvp_matrix * vec4(Position, 1.0);\n" ~
             "}\n";
 
         string vertexShaderSource2 = 
             "attribute vec3 Position;\n" ~
             "attribute vec2 TexCoord;\n" ~
-            "attribute vec4 Color;\n" ~
+            "attribute vec3 Color;\n" ~
             "\n" ~
             "varying vec2 out_texcoord;\n" ~
             "varying vec4 out_color;\n" ~
@@ -148,8 +150,8 @@ public:
             "void main (void)\n" ~
             "{\n" ~
             "    out_texcoord = TexCoord;\n" ~
-            "    out_color = vec4(Color.r, Color.g, 1.0, 1.0);\n" ~
-            "    gl_Position = mvp_matrix * vec4(Position.x, 200.0 + Position.y, Position.z - 0.1, 1);\n" ~
+            "    out_color = vec4(Color.r, Color.g, 1.0, 0.5);\n" ~
+            "    gl_Position = mvp_matrix * vec4(Position.x, 200.0 + Position.y, Position.z + 0.1, 1);\n" ~
             "}\n";
 
         string fragmentShaderSource = 
@@ -237,9 +239,6 @@ public:
         free(indexBuffer);
         free(vertexBuffer);
         free(shaderProgram);
-
-        // TODO:
-        // -Depth test setup/restore
     }
 
     override void renderFrame(bool delegate(Renderer) drawPartial)
