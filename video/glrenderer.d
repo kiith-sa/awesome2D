@@ -12,9 +12,8 @@ module video.glrenderer;
 import std.stdio;
 import std.conv;
 
-import derelict.opengl.gl;
-import derelict.opengl.exttypes;
-import derelict.opengl.extfuncs;
+import derelict.opengl3.gl3;
+import derelict.opengl3.gl;
 import derelict.util.exception;
 
 import gl3n.linalg;
@@ -69,6 +68,7 @@ public:
     /// Construct a GLRenderer, loading the OpenGL library.
     this()
     {
+        DerelictGL3.load();
         DerelictGL.load();
     }
 
@@ -80,6 +80,7 @@ public:
         if(glInitialized_)
         {
             DerelictGL.unload();
+            DerelictGL3.unload();
             glInitialized_ = false;
         }
     }
@@ -346,14 +347,19 @@ protected:
         try
         {
             //Loads the newest available OpenGL version
-            glVersion_ = DerelictGL.loadClassicVersions(GLVersion.GL20);
-
-            DerelictGL.loadExtensions();
+            glVersion_ = DerelictGL3.reload();
         }
         catch(DerelictException e)
         {
             throw new RendererInitException
                 ("Could not load OpenGL: " ~ e.msg ~
+                 "\nPerhaps you need to install new graphics drivers?");
+        }
+
+        if(glVersion_ < GLVersion.GL20)
+        {
+            throw new RendererInitException
+                ("OpenGL initialization failed: OpenGL 2.0 not supported." ~
                  "\nPerhaps you need to install new graphics drivers?");
         }
 
@@ -388,6 +394,7 @@ private:
                 glDisable(GL_BLEND);
                 break;
             case BlendMode.Add:
+                alias derelict.opengl3.deprecatedConstants.GL_ONE GL_ONE;
                 glBlendFunc(GL_ONE, GL_ONE);
                 glEnable(GL_BLEND);
                 break;

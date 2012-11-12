@@ -13,7 +13,7 @@ import std.range;
 import std.stdio;
 import std.string;
 
-import derelict.opengl.gl;
+import derelict.opengl3.gl;
 import gl3n.linalg;
 
 import color;

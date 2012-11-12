@@ -8,7 +8,7 @@
 module video.gl2indexbuffer;
 
 
-import derelict.opengl.gl;
+import derelict.opengl3.gl;
 
 import memory.memory;
 import video.gl2bufferobject;

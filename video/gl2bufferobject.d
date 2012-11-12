@@ -9,7 +9,7 @@ module video.gl2bufferobject;
 
 import std.algorithm;
 
-import derelict.opengl.gl;
+import derelict.opengl3.gl;
 
 
 /// A simple GL buffer object (e.g. VBO or IBO) struct.

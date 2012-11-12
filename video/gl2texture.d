@@ -11,7 +11,7 @@ module video.gl2texture;
 import std.conv;
 import std.stdio;
 
-import derelict.opengl.gl;
+import derelict.opengl3.gl;
 import image;
 import video.exceptions;
 import video.glutils;

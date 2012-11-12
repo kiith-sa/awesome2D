@@ -8,7 +8,7 @@
 /// GLSL shader program.
 module video.glslshader;
 
-import derelict.opengl.gl;
+import derelict.opengl3.gl;
 import gl3n.linalg;
 
 import color;
