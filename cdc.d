@@ -175,10 +175,10 @@ void main(string[] args)
         auto no_contracts = ["-release", "-gc", "-ofdemo-no-contracts"];
         auto release      = ["-O", "-inline", "-release", "-gc", "-ofdemo-release"];
     }
-    auto dependencies = ["dependencies/derelict/DerelictSDL",
-                         "dependencies/derelict/DerelictGL",
-                         "dependencies/derelict/DerelictFT",
-                         "dependencies/derelict/DerelictUtil",
+    auto dependencies = ["dependencies/Derelict3/import/derelict/opengl3/",
+                         "dependencies/Derelict3/import/derelict/sdl2/",
+                         "dependencies/Derelict3/import/derelict/assimp/",
+                         "dependencies/Derelict3/import/derelict/util/",
                          "dependencies/gl3n",
                          "dependencies/dgamevfs/dgamevfs",
                          "dependencies/dyaml/dyaml"];
