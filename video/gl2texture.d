@@ -89,7 +89,7 @@ struct GL2TextureData
 
 private:
 
-/// boundTextureUnits_[x] is the handle of the texture bound to that texture unit (if any);
+/// boundTextures_[x] is the handle of the texture bound to that texture unit (if any);
 GLuint[256] boundTextures_;
 
 /// Destroy the texture.
@@ -105,11 +105,10 @@ void dtor(ref Texture self)
         return;
     }
     // Make sure the texture is not bound to any unit.
-    foreach(unit, texture; boundTextures_)
+    foreach(unit, ref texture; boundTextures_)
     {
-        assert(textureHandle_ != texture, 
-               "Trying to destroy texture " ~ to!string(textureHandle_) ~ 
-               " bound to texture unit " ~ to!string(unit));
+        glBindTexture(GL_TEXTURE0 + cast(uint)unit, 0);
+        texture = 0;
     }
     glDeleteTextures(1, &textureHandle_);
 }}
@@ -122,4 +121,5 @@ void bind(ref Texture self, const uint textureUnit)
 {
     glActiveTexture(GL_TEXTURE0 + textureUnit);
     glBindTexture(GL_TEXTURE_2D, textureHandle_);
+    boundTextures_[textureUnit] = textureHandle_;
 }}
