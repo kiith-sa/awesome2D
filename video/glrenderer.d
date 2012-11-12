@@ -19,6 +19,7 @@ import derelict.util.exception;
 
 import gl3n.linalg;
 
+import color;
 import image;
 import memory.memory;
 import video.blendmode;
@@ -86,14 +87,17 @@ public:
         struct TestVertex
         {
             vec3 position;
+            vec2 texCoord;
             vec3 color;
-            this(ref const vec3 position, ref const vec3 color)
+            this(ref const vec3 position, ref const vec2 texCoord, ref const vec3 color)
             {
                 this.position = position;
+                this.texCoord = texCoord;
                 this.color    = color;
             }
 
-            mixin VertexAttributes!(vec3, AttributeInterpretation.Position, 
+            mixin VertexAttributes!(vec3, AttributeInterpretation.Position,
+                                    vec2, AttributeInterpretation.TexCoord,
                                     vec3, AttributeInterpretation.Color);
         }
 
@@ -113,38 +117,46 @@ public:
         // Shader source code.
         string vertexShaderSource = 
             "attribute vec3 Position;\n" ~
+            "attribute vec2 TexCoord;\n" ~
             "attribute vec4 Color;\n" ~
             "\n" ~
+            "varying vec2 out_texcoord;\n" ~
             "varying vec4 out_color;\n" ~
             "\n" ~
             "uniform mat4 mvp_matrix;\n" ~
             "\n" ~
             "void main (void)\n" ~
             "{\n" ~
+            "    out_texcoord = TexCoord;\n" ~
             "    out_color = Color;\n" ~
             "    gl_Position = mvp_matrix * vec4(Position, 1);\n" ~
             "}\n";
 
         string vertexShaderSource2 = 
             "attribute vec3 Position;\n" ~
+            "attribute vec2 TexCoord;\n" ~
             "attribute vec4 Color;\n" ~
             "\n" ~
+            "varying vec2 out_texcoord;\n" ~
             "varying vec4 out_color;\n" ~
             "\n" ~
             "uniform mat4 mvp_matrix;\n" ~
             "\n" ~
             "void main (void)\n" ~
             "{\n" ~
+            "    out_texcoord = TexCoord;\n" ~
             "    out_color = vec4(Color.r, Color.g, 1.0, 1.0);\n" ~
             "    gl_Position = mvp_matrix * vec4(Position.x, 200.0 + Position.y, Position.z, 1);\n" ~
             "}\n";
 
         string fragmentShaderSource = 
+            "uniform sampler2D tex;\n" ~
+            "varying vec2 out_texcoord;\n" ~
             "varying vec4 out_color;\n" ~
             "\n" ~
             "void main (void)\n" ~
             "{\n" ~
-            "    gl_FragColor = out_color;\n" ~
+            "    gl_FragColor = texture2D(tex, out_texcoord) * out_color;\n" ~
             "}\n";
 
         // Init shader program.
@@ -156,10 +168,13 @@ public:
         // Init vertex buffer.
         auto vertexBuffer = createVertexBuffer!TestVertex(PrimitiveType.Triangles);
         alias TestVertex V;
-        vertexBuffer.addVertex(V(vec3(0.0f,   0.0f,   0.0f), vec3(1.0f, 0.0f, 0.0f)));
-        vertexBuffer.addVertex(V(vec3(0.0f,   100.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)));
-        vertexBuffer.addVertex(V(vec3(800.0f, 600.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f)));
-        vertexBuffer.addVertex(V(vec3(800.0f, 0.0f, 0.0f),   vec3(1.0f, 1.0f, 1.0f)));
+        with(*vertexBuffer)
+        {
+            addVertex(V(vec3(0.0f,   0.0f,   0.0f), vec2(0.0f, 0.0f), vec3(1.0f, 0.0f, 0.0f)));
+            addVertex(V(vec3(0.0f,   100.0f, 0.0f), vec2(0.0f, 1.0f), vec3(0.0f, 0.0f, 1.0f)));
+            addVertex(V(vec3(800.0f, 600.0f, 0.0f), vec2(1.9f, 1.9f), vec3(0.0f, 1.0f, 0.0f)));
+            addVertex(V(vec3(800.0f, 0.0f, 0.0f),   vec2(1.9f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
+        }
         vertexBuffer.lock();
 
         // Init index buffer.
@@ -171,6 +186,15 @@ public:
         indexBuffer.addIndex(2);
         indexBuffer.addIndex(3);
         indexBuffer.lock();
+
+
+        // Init texture.
+        auto image = Image(128, 128, ColorFormat.RGBA_8);
+        image.generateCheckers(16);
+        auto texture = 
+            createTexture(image, TextureParams().filtering(TextureFiltering.Nearest));
+        texture.bind(0);
+
 
         // Use vertex shader 1.
         shaderProgram.disableVertexShader(vertexShader2);
@@ -206,14 +230,12 @@ public:
 
 
         // Clean up.
+        free(texture);
         free(indexBuffer);
         free(vertexBuffer);
         free(shaderProgram);
 
         // TODO:
-        // -Texture (Do not do virtualization - that will be on top of renderer 
-        //           (as will font drawing - 1 texture page per font,
-        //           and we can generate permanent VBOs))
         // -BlendMode, etc setup/restore
     }
 
