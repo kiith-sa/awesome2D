@@ -23,6 +23,7 @@ import color;
 import image;
 import memory.memory;
 import video.blendmode;
+import video.depthtest;
 import video.exceptions;
 import video.glslshader;
 import video.gl2glslshader;
@@ -53,8 +54,10 @@ protected:
     /// Video mode bits per pixel.
     uint screenDepth_;
 
-    /// Currently enabled blending mode.
+    /// Currently used blending mode.
     BlendMode blendMode_;
+    /// Currently used depth test mode.
+    DepthTest depthTest_ = DepthTest.ReadWrite;
 
     /// Is the GL context initialized?
     bool glInitialized_ = false;
@@ -146,7 +149,7 @@ public:
             "{\n" ~
             "    out_texcoord = TexCoord;\n" ~
             "    out_color = vec4(Color.r, Color.g, 1.0, 1.0);\n" ~
-            "    gl_Position = mvp_matrix * vec4(Position.x, 200.0 + Position.y, Position.z, 1);\n" ~
+            "    gl_Position = mvp_matrix * vec4(Position.x, 200.0 + Position.y, Position.z - 0.1, 1);\n" ~
             "}\n";
 
         string fragmentShaderSource = 
@@ -236,13 +239,14 @@ public:
         free(shaderProgram);
 
         // TODO:
-        // -BlendMode, etc setup/restore
+        // -Depth test setup/restore
     }
 
     override void renderFrame(bool delegate(Renderer) drawPartial)
     {
         glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_DEPTH_BUFFER_BIT);
         setupViewport();
         // TODO (low-priority):
         // Use FBOs for drawing and suspend drawing if too slow
@@ -310,9 +314,14 @@ public:
         return vec2u(screenWidth_, screenHeight_);
     }
 
-    override void setBlendMode(const BlendMode blendMode)
+    override @property void blendMode(const BlendMode blendMode)
     {
         blendMode_ = blendMode;
+    }
+
+    override @property void depthTest(const DepthTest depthTest)
+    {
+        depthTest_ = depthTest;
     }
 
 protected:
@@ -392,6 +401,17 @@ private:
                 glEnable(GL_BLEND);
                 break;
         }
+
+        final switch(depthTest_)
+        {
+            case DepthTest.Disabled:
+                glDisable(GL_DEPTH_TEST);
+                break;
+            case DepthTest.ReadWrite:
+                glEnable(GL_DEPTH_TEST);
+                glDepthFunc(GL_LEQUAL);
+                break;
+        }
     }
 
     /// Restore GL state after drawing.
@@ -399,6 +419,7 @@ private:
     {
         glDisable(GL_CULL_FACE);
         glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
     }
 
     /// Set up OpenGL viewport.

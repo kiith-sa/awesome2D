@@ -41,9 +41,7 @@ void constructTextureGL2
             throw new TextureInitException(msg);
         }
 
-        //TODO might be needed for loading. Once loading works, try removing.
         glActiveTexture(GL_TEXTURE0);
-
         glGenTextures(1, &gl2_.textureHandle_);
         glBindTexture(GL_TEXTURE_2D, gl2_.textureHandle_);
 

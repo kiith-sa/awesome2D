@@ -19,6 +19,7 @@ import image;
 import memory.memory;
 
 import video.blendmode;
+import video.depthtest;
 import video.exceptions;
 import video.glslshader;
 import video.primitivetype;
@@ -125,7 +126,10 @@ abstract class Renderer
     @property vec2u viewportSize() const;
 
     /// Set blend mode to use for following draws.
-    void setBlendMode(const BlendMode blendMode);
+    @property void blendMode(const BlendMode blendMode);
+
+    /// Set depth test to use for following draws.
+    @property void depthTest(const DepthTest depthTest);
 
     /// Set video mode.
     ///
