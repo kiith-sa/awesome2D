@@ -19,7 +19,7 @@ are:
   various sets of pre-rendered data and compare them.
 
 A (PDF) presentation describing this project (in English) can be found
-`here <https://github.com/kiith-sa/awesome2D/raw/master/meta/presentation-2012-11-13.pdf>`_.
+`here <https://github.com/kiith-sa/awesome2D/raw/master/meta/presentation-2012-11-13/AdvancedLighting2D.pdf>`_.
 
 Another presentation (in Slovak) can be found
 `here <https://github.com/kiith-sa/awesome2D/raw/master/meta/pbs.pdf>`_.
