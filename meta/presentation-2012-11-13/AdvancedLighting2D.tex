@@ -21,7 +21,7 @@
 \item
   Attempting to create 2D lighing that "looks 3D"
 \item
-  Utilizing today's hardware advancements
+  Utilizing modern graphics hardware
 \item
   Making it reusable for other projects
 \item
@@ -79,6 +79,9 @@
 \item
   Can't light a complex object (no idea where ``front'' is)
 \end{itemize}
+\begin{center}
+\includegraphics[width=0.7\textwidth]{2dlight.png}
+\end{center}
 
 \end{frame}
 
@@ -156,14 +159,10 @@
   Common in real-time 3D (fast \& good image)
 \item
   Ambient, diffuse, specular
-\item
-  Resulting light: \raisebox{-1.8ex}{\includegraphics[scale=0.45]{phong1.png}}
-\item
-  Where R (reflection) is: \raisebox{-0.4ex}{\includegraphics[scale=0.45]{phong2.png}}
 \end{itemize}
 
 \begin{center}
-\includegraphics[width=0.6\textwidth]{ads.jpg}
+\includegraphics[width=0.7\textwidth]{ads.jpg}
 \end{center}
 
 \end{frame}
@@ -176,9 +175,7 @@
 
   \begin{itemize}
   \item
-    Vertex positions, colors, etc.
-  \item
-    Not important here
+      Vertex attributes (position, color, etc.)
   \end{itemize}
 \item
   Fragment shader (pixels or subpixels)
@@ -191,7 +188,7 @@
   \end{itemize}
 \end{itemize}
 \begin{center}
-\includegraphics[width=0.45\textwidth]{pipeline.png}
+\includegraphics[width=0.65\textwidth]{pipeline.png}
 \end{center}
 
 \end{frame}
@@ -337,9 +334,7 @@
 
   \begin{itemize}
   \item
-    VBuffers
-  \item
-    IBuffers
+    Vertex/Index Buffers
   \item
     Textures
   \item
