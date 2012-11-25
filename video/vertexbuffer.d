@@ -10,6 +10,7 @@ module video.vertexbuffer;
 
 
 import video.gl2vertexbuffer;
+public import video.vertexattribute;
 public import video.primitivetype;
 
 
