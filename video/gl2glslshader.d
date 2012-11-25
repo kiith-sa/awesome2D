@@ -41,6 +41,7 @@ void constructGLSLShaderGL2(ref GLSLShaderProgram shader) pure @safe nothrow
     shader.setUniformFloat_      = &setUniformFloat;
     shader.setUniformvec2_       = &setUniformvec2;
     shader.setUniformmat4_       = &setUniformmat4;
+    shader.setUniformmat3_       = &setUniformmat3;
     shader.setUniformColor_      = &setUniformColor;
     shader.getAttributeHandle_   = &getAttributeHandle;
     shader.getAttributeGLHandle_ = &getAttributeGLHandle;
@@ -661,6 +662,18 @@ void setUniformmat4
 {
     assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
     glUniformMatrix4fv(getUniformGLHandle(outerHandle), 1, GL_FALSE, 
+                       cast(const(float*))value.transposed.ptr);
+}}
+
+/// Set a 3x3 matrix uniform value.
+///
+/// Implements GLSLShaderProgram::setUniform.
+void setUniformmat3
+    (ref GLSLShaderProgram self, const uint outerHandle, ref const(mat3) value)
+{with(self.gl2_)
+{
+    assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
+    glUniformMatrix3fv(getUniformGLHandle(outerHandle), 1, GL_FALSE, 
                        cast(const(float*))value.transposed.ptr);
 }}
 

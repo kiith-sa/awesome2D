@@ -68,6 +68,8 @@ package:
     void function(ref Self, const uint, const vec2)          setUniformvec2_;
     // Pointer to setUniform mat4 overload implementation.
     void function(ref Self, const uint, ref const(mat4))     setUniformmat4_;
+    // Pointer to setUniform mat3 overload implementation.
+    void function(ref Self, const uint, ref const(mat3))     setUniformmat3_;
     // Pointer to setUniform Color overload implementation.
     void function(ref Self, const uint, const Color)         setUniformColor_;
     // Pointer to getAttributeHandle implementation.
@@ -230,6 +232,21 @@ public:
     void setUniform(const uint handle, ref const(mat4) value)
     {
         setUniformmat4_(this, handle, value);
+    }
+
+    /// Set a 3x3 matrix uniform value.
+    ///
+    /// Can only be called while the shader program is bound.
+    ///
+    /// Params: handle = Handle of the uniform to set. Must be previously 
+    ///                  returned by getUniformHandle(), must match the 
+    ///                  data type of the value, and must be present in 
+    ///                  the shader.
+    ///
+    /// Throws: GLSLUniformException on failure.
+    void setUniform(const uint handle, ref const(mat3) value)
+    {
+        setUniformmat3_(this, handle, value);
     }
 
     /// Set a color uniform value.
