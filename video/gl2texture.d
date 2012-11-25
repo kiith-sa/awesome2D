@@ -88,7 +88,7 @@ struct GL2TextureData
 private:
 
 /// boundTextures_[x] is the handle of the texture bound to that texture unit (if any);
-GLuint[256] boundTextures_;
+GLuint[32] boundTextures_;
 
 /// Destroy the texture.
 ///
@@ -103,7 +103,7 @@ void dtor(ref Texture self)
         return;
     }
     // Make sure the texture is not bound to any unit.
-    foreach(unit, ref texture; boundTextures_)
+    foreach(unit, ref texture; boundTextures_) if(texture == textureHandle_)
     {
         glBindTexture(GL_TEXTURE0 + cast(uint)unit, 0);
         texture = 0;
