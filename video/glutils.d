@@ -8,6 +8,9 @@
 module video.glutils;
 
 
+import std.algorithm;
+import std.array;
+
 import derelict.opengl3.gl;
 import gl3n.linalg;
 
@@ -114,4 +117,11 @@ bool glTextureSizeSupported(const vec2u size, const ColorFormat format)
     glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &height);
 
     return width != 0 && height != 0;
+}
+
+/// Determine if specified OpenGL extension is supported.
+bool isExtensionAvailable(const string name)
+{
+    auto extstr = to!string(glGetString(GL_EXTENSIONS));
+    return extstr.split(" ").canFind(name);
 }
