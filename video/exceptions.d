@@ -81,3 +81,12 @@ class TextureInitException : RendererException
         super(msg, file, line);
     }
 }
+
+/// Exception thrown at framebuffer initialization errors.
+class FrameBufferInitException : RendererException 
+{
+    public this(string msg, string file = __FILE__, int line = __LINE__)
+    {
+        super(msg, file, line);
+    }
+}
