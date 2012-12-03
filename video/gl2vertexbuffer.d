@@ -124,16 +124,14 @@ void drawVertexBufferGL2
         try
         {
             handle = shaderProgram.getAttributeGLHandle(outerHandle);
-            enabledAttributes[totalAttributes] = handle;
         }
         catch(GLSLAttributeException e)
         {
-            import std.stdio;
-            writeln("Missing vertex attribute in a shader: " ~ name);
-            writeln("Ignoring the draw call");
-            return;
+            // Ignore missing attributes
+            continue;
         }
 
+        enabledAttributes[totalAttributes] = handle;
         glVertexAttribPointer(handle, cast(int)attribute.type.attributeDimensions(), 
                               attribute.type.glAttributeType(), GL_FALSE, 
                               cast(int)vertexBytes_, cast(const(void*))attributeOffset);
