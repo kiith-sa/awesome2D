@@ -36,7 +36,7 @@ import video.vertexbuffer;
 import video.indexbuffer;
 
 
-/// A renderer based on OpenGL 2.0.
+/// A renderer based on OpenGL 2.1.
 ///
 /// Written to be as "forward-compatible" with future GL as possible, to make
 /// an eventual GL3/4 backend easier to implement.
