@@ -9,8 +9,10 @@
 module video.glrenderer;
 
 
-import std.stdio;
 import std.conv;
+import std.exception;
+import std.stdio;
+import std.typecons;
 
 import derelict.opengl3.gl3;
 import derelict.opengl3.gl;
@@ -24,7 +26,10 @@ import memory.memory;
 import video.blendmode;
 import video.depthtest;
 import video.exceptions;
+import video.framebuffer;
 import video.glslshader;
+import video.glutils;
+import video.gl2framebuffer;
 import video.gl2glslshader;
 import video.gl2indexbuffer;
 import video.gl2texture;
@@ -36,7 +41,7 @@ import video.vertexbuffer;
 import video.indexbuffer;
 
 
-/// A renderer based on OpenGL 2.1.
+/// A renderer based on OpenGL 2.1 (and ARB_framebuffer_object, for FBOs)
 ///
 /// Written to be as "forward-compatible" with future GL as possible, to make
 /// an eventual GL3/4 backend easier to implement.
@@ -267,6 +272,24 @@ public:
         }
     }
 
+    override FrameBuffer* createFrameBuffer
+        (const uint width, const uint height,
+         ColorFormat format = ColorFormat.RGBA_8, 
+         Flag!"useDepth" useDepth = Yes.useDepth)
+    {
+        auto result = alloc!FrameBuffer;
+        try
+        {
+            constructFrameBufferGL2(*result, width, height, format, useDepth);
+        }
+        catch(FrameBufferInitException e)
+        {
+            free(result);
+            return null;
+        }
+        return result;
+    }
+
     override IndexBuffer* createIndexBuffer()
     {
         auto result = alloc!IndexBuffer;
@@ -355,6 +378,9 @@ protected:
                 ("Could not load OpenGL: " ~ e.msg ~
                  "\nPerhaps you need to install new graphics drivers?");
         }
+        enforce(isExtensionAvailable("GL_ARB_framebuffer_object"),
+                new RendererInitException(
+                "Required GL extension GL_ARB_framebuffer_object is not supported"));
 
         if(glVersion_ < GLVersion.GL20)
         {

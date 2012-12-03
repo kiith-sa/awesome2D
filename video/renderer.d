@@ -11,6 +11,7 @@ module video.renderer;
 
 import std.conv;
 import std.stdio;
+import std.typecons;
 
 import gl3n.linalg;
 
@@ -21,12 +22,13 @@ import memory.memory;
 public import video.blendmode;
 public import video.depthtest;
 import video.exceptions;
+import video.framebuffer;
 import video.glslshader;
+import video.indexbuffer;
 import video.primitivetype;
 import video.texture;
 import video.vertexattribute;
 import video.vertexbuffer;
-import video.indexbuffer;
 
 
 /// Renderer API (central class of the video subsystem).
@@ -35,17 +37,28 @@ import video.indexbuffer;
 /// etc.
 abstract class Renderer
 {
-    // TODO screenshot (for output)
-    // TODO render to texture 
-    //      (start, setting a texture, then all draws go to that texture 
-    //       through a FBO, then end)
-
     /// Constructor.
     ///
     /// Throws: RendererInitException on failure.
     this()
     {
     }
+
+    /// Create a framebuffer object.
+    ///
+    /// The framebuffer must be destroyed by the user before the renderer is 
+    /// destroyed.
+    ///
+    /// Params:  width    = Width of the framebuffer in pixels.
+    ///          height   = Height of the framebuffer in pixels.
+    ///          format   = Color format of the framebuffer.
+    ///          useDepth = Should the framebuffer have a depth buffer attached?
+    ///                     (required to draw to the framebuffer with depth test).
+    ///
+    /// Returns: Pointer to the new framebuffer, or null on failure.
+    FrameBuffer* createFrameBuffer(const uint width, const uint height,
+                                   ColorFormat format = ColorFormat.RGBA_8,
+                                   Flag!"useDepth" = Yes.useDepth);
 
     /// Construct an empty index buffer and return a pointer to it.
     ///

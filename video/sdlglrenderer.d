@@ -22,7 +22,7 @@ import video.exceptions;
 import video.glrenderer;
 
 
-/// An OpenGL 2.0 backend using SDL 1.2 for OpenGL setup.
+/// An OpenGL 2.1 + GL_ARB_framebuffer_object backend using SDL 1.2 for OpenGL setup.
 class SDLGLRenderer : GLRenderer
 {
     /// Construct an SDLGLRenderer.
@@ -50,6 +50,8 @@ class SDLGLRenderer : GLRenderer
     ///         format     = Video mode color format.
     ///                      Only RGB_565 and RGBA_8 are supported.
     ///         fullscreen = Use a fullscreen video mode?
+    ///
+    /// Throws:  RendererInitException on failure.
     override void setVideoMode(const uint width, const uint height, 
                                const ColorFormat format, const bool fullscreen)
     {
@@ -96,7 +98,7 @@ class SDLGLRenderer : GLRenderer
             string msg = std.string.format("Could not set video mode: %d %d %dbpp",
                                            width, height, bitDepth);
             writeln(msg);
-            throw new RendererException(msg);
+            throw new RendererInitException(msg);
         }
 
         screenWidth_  = width;
