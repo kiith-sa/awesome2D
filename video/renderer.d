@@ -18,8 +18,8 @@ import color;
 import image;
 import memory.memory;
 
-import video.blendmode;
-import video.depthtest;
+public import video.blendmode;
+public import video.depthtest;
 import video.exceptions;
 import video.glslshader;
 import video.primitivetype;
