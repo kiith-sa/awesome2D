@@ -11,6 +11,7 @@ module video.gl2framebuffer;
 import std.typecons;
 
 import gl3n.linalg;
+import derelict.opengl3.gl;
 
 import color;
 import image;
@@ -32,13 +33,15 @@ void constructFrameBufferGL2
     result.release_    = &release;
     result.texture_    = &texture;
     result.toImage_    = &toImage;
-    //TODO initialize framebuffer data
+    //TODO initialize framebuffer data,
+    //handle, etc.
 }
 
 
 /// Data members for the GL2 framebuffer object backend.
 struct GL2FrameBufferData
 {
+    GLuint fbo_;
     //TODO
 }
 
@@ -51,7 +54,8 @@ private:
 void dtor(ref FrameBuffer self)
 {with(self.gl2_)
 {
-    assert(false, "TODO");
+    glDeleteFramebuffers(1, &fbo_);
+    assert(false, "TODO (delete texture, renderbuffer)");
 }}
 
 /// Bind the framebuffer object to be drawn to.
@@ -60,7 +64,7 @@ void dtor(ref FrameBuffer self)
 void bind(ref FrameBuffer self)
 {with(self.gl2_)
 {
-    assert(false, "TODO");
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo_);
 }}
 
 /// Release the framebuffer object to allow drawing to the screen.
@@ -69,7 +73,7 @@ void bind(ref FrameBuffer self)
 void release(ref FrameBuffer self)
 {with(self.gl2_)
 {
-    assert(false, "TODO");
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }}
 
 /// Return a pointer to the internal texture of the framebuffer.
