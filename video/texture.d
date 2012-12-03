@@ -101,6 +101,9 @@ public:
     /// supported on the machine, it will be silently ignored.
     /// You can determine the number of texture units supported by
     /// calling Renderer.textureUnitCount. It must always be at least 2.
+    ///
+    /// Textures are never "unbound" or "released"; a different texture 
+    /// can be bound to a unit, overriding the previous binding.
     void bind(const uint textureUnit)
     {
         bind_(this, textureUnit);
