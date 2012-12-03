@@ -91,7 +91,7 @@ GLenum glTextureType(const ColorFormat format)
     {
         case ColorFormat.RGB_565: return GL_UNSIGNED_SHORT_5_6_5;
         case ColorFormat.RGB_8:   return GL_UNSIGNED_BYTE;
-        case ColorFormat.RGBA_8:  return GL_UNSIGNED_INT_8_8_8_8;
+        case ColorFormat.RGBA_8:  return GL_UNSIGNED_BYTE;
         case ColorFormat.GRAY_8:  return GL_UNSIGNED_BYTE;
     }
 }
