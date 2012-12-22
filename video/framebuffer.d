@@ -33,8 +33,11 @@ package:
     // Is the framebuffer object bound for drawing?
     bool bound_;
 
+    // Texture of this framebuffer object.
+    Texture* texture_;
+
     // Is any framebuffer object bound?
-    static bool isAFragmeBufferBound_;
+    static bool isAFrameBufferBound_;
 
     // Alias for readability.
     alias FrameBuffer Self;
@@ -45,18 +48,21 @@ package:
     void function(ref Self)            bind_;
     // Pointer to the release implementation.
     void function(ref Self)            release_;
-    // Pointer to the texture implementation.
-    Texture* function(ref Self)        texture_;
+    // Pointer to the clear implementation.
+    void function(ref Self)            clear_;
     // Pointer to the toImage implementation.
     void function(ref Self, ref Image) toImage_;
 
 public:
     /// Destroy the framebuffer, freeing any resources.
     ///
+    /// The framebuffer must not be bound when this is called.
+    ///
     /// This also destroys the framebuffer's internal texture (that might have 
     /// been accessed through the texture() property).
     ~this()
     {
+        assert(!bound_, "Trying to destroy a bound FBO");
         dtor_(this);
     }
 
@@ -70,10 +76,10 @@ public:
     /// Any drawing operations after bind() will draw to the frame buffer.
     void bind()
     {
-        assert(!isAFragmeBufferBound_, 
+        assert(!isAFrameBufferBound_, 
                "Trying to bind a framebuffer object before releasing the previous one");
         bound_ = true;
-        isAFragmeBufferBound_ = true;
+        isAFrameBufferBound_ = true;
         bind_(this);
     }
 
@@ -85,7 +91,18 @@ public:
     {
         release_(this);
         bound_ = false;
-        isAFragmeBufferBound_ = false;
+        isAFrameBufferBound_ = false;
+    }
+
+    /// Clears data rendered into the framebuffer, making the entire framebuffer black.
+    ///
+    /// If depth buffer is used, it will be cleared as well.
+    ///
+    /// The FBO must be bound when this is called.
+    void clear()
+    {
+        assert(bound_, "Trying to clear a FrameBuffer that is not bound.");
+        clear_(this);
     }
 
     /// Return a pointer to the framebuffer's texture.
@@ -96,8 +113,8 @@ public:
     /// by the caller.
     @property Texture* texture()
     {
-        assert(bound_, "Trying to get the texture of a bound framebuffer object");
-        return texture_(this);
+        assert(!bound_, "Trying to get the texture of a bound framebuffer object");
+        return texture_;
     }
 
     /// Copy the framebuffer to an image.
