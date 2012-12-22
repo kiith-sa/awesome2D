@@ -18,3 +18,4 @@ cdc
 *.ebp.dir
 *.caw
 *.bkp
+meta/*
