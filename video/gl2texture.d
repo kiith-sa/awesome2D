@@ -12,6 +12,9 @@ import std.conv;
 import std.stdio;
 
 import derelict.opengl3.gl;
+import gl3n.linalg;
+
+import color;
 import image;
 import video.exceptions;
 import video.glutils;
@@ -58,10 +61,10 @@ void constructTextureGL2
         const loadFormat     = colorFormat.glTextureLoadFormat();
         const type           = colorFormat.glTextureType();
 
-        auto error = glGetError();
-        if(error != GL_NO_ERROR)
+        string errorMsg;
+        if(glErrorOccured(errorMsg))
         {
-            writeln("GL error before loading a texture: ", to!string(error));
+            writeln("GL error before loading a texture: ", errorMsg);
         }
 
         // Load the texture.
@@ -69,10 +72,73 @@ void constructTextureGL2
                      dimensions_.x, dimensions_.y, 0,
                      loadFormat, type, cast(void*)image.data.ptr);
 
-        error = glGetError();
-        if(error != GL_NO_ERROR)
+        if(glErrorOccured(errorMsg))
         {
-            writeln("GL error after loading a texture: ", to!string(error));
+            writeln("GL error after loading a texture: ", errorMsg);
+        }
+
+    }
+}
+
+/// Construct a GL2 texture to be used in a framebuffer object.
+///
+/// Params:  texture = Texture instance to initialize.
+///          width   = Width of the texture/FBO in pixels.
+///          height  = Width of the texture/FBO in pixels.
+///          format  = Color format of the texture/FBO.
+///
+/// Throws:  FrameBufferInitException on failure.
+void constructTextureGL2FBO
+    (ref Texture texture, const uint width, const uint height, const ColorFormat format)
+{
+    texture.gl2_        = GL2TextureData.init;
+    texture.dimensions_ = vec2u(width, height);
+    texture.params_     = TextureParams().filtering(TextureFiltering.Nearest);
+    texture.dtor_       = &dtor;
+    texture.bind_       = &bind;
+
+    with(texture)
+    {
+        const colorFormat = format;
+
+        if(!glTextureSizeSupported(dimensions_, format))
+        {
+            const msg = "FBO texture size/format combination not supported: " ~
+                        to!string(dimensions_) ~ ", " ~ to!string(colorFormat);
+            throw new FrameBufferInitException(msg);
+        }
+
+        glActiveTexture(GL_TEXTURE0);
+        glGenTextures(1, &gl2_.textureHandle_);
+        glBindTexture(GL_TEXTURE_2D, gl2_.textureHandle_);
+
+        // Set texture parameters.
+        const glFiltering = params_.filtering_.glTextureFiltering();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glFiltering);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glFiltering);
+        const glWrap = params_.wrap_.glTextureWrap();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrap);
+
+        // Texture loading parameters.
+        const internalFormat = colorFormat.glTextureInternalFormat();
+        const loadFormat     = colorFormat.glTextureLoadFormat();
+        const type           = colorFormat.glTextureType();
+
+        string errorMsg;
+        if(glErrorOccured(errorMsg))
+        {
+            writeln("GL error before creating a FBO texture: ", errorMsg);
+        }
+
+        // Create an empty texture (the null data pointer).
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
+                     dimensions_.x, dimensions_.y, 0,
+                     loadFormat, type, cast(void*) null);
+
+        if(glErrorOccured(errorMsg))
+        {
+            writeln("GL error after creating a FBO texture: ", errorMsg);
         }
     }
 }
@@ -105,7 +171,8 @@ void dtor(ref Texture self)
     // Make sure the texture is not bound to any unit.
     foreach(unit, ref texture; boundTextures_) if(texture == textureHandle_)
     {
-        glBindTexture(GL_TEXTURE0 + cast(uint)unit, 0);
+        glActiveTexture(GL_TEXTURE0 + cast(uint)unit); 
+        glBindTexture(GL_TEXTURE_2D, 0);
         texture = 0;
     }
     glDeleteTextures(1, &textureHandle_);

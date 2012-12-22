@@ -378,7 +378,7 @@ protected:
                 ("Could not load OpenGL: " ~ e.msg ~
                  "\nPerhaps you need to install new graphics drivers?");
         }
-        enforce(isExtensionAvailable("GL_ARB_framebuffer_object"),
+        enforce(glIsExtensionAvailable("GL_ARB_framebuffer_object"),
                 new RendererInitException(
                 "Required GL extension GL_ARB_framebuffer_object is not supported"));
 
@@ -391,10 +391,10 @@ protected:
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-        const error = glGetError();
-        if(error != GL_NO_ERROR)
+        string errorMsg;
+        if(glErrorOccured(errorMsg))
         {
-            writeln("GL error after GL initialization: ", to!string(error));
+            writeln("GL error after GL initialization: ", errorMsg);
         }
 
         glInitialized_ = true;

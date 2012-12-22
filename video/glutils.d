@@ -120,8 +120,30 @@ bool glTextureSizeSupported(const vec2u size, const ColorFormat format)
 }
 
 /// Determine if specified OpenGL extension is supported.
-bool isExtensionAvailable(const string name)
+bool glIsExtensionAvailable(const string name)
 {
     auto extstr = to!string(glGetString(GL_EXTENSIONS));
     return extstr.split(" ").canFind(name);
+}
+
+/// Has a GL error occured?
+///
+/// Returns true if a GL error has occured since the last call to glErrorOccured
+/// or glGetError. If an error occurs, msg is set to the name of the error.
+bool glErrorOccured(ref string msg)
+{
+    glFinish();
+    const error = glGetError();
+    if(error == GL_NO_ERROR){return false;}
+    switch(error)
+    {
+        case GL_NO_ERROR:                      msg = "GL_NO_ERROR";                      break;
+        case GL_INVALID_ENUM:                  msg = "GL_INVALID_ENUM";                  break;
+        case GL_INVALID_VALUE:                 msg = "GL_INVALID_VALUE";                 break;
+        case GL_INVALID_OPERATION:             msg = "GL_INVALID_OPERATION";             break;
+        case GL_INVALID_FRAMEBUFFER_OPERATION: msg = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
+        case GL_OUT_OF_MEMORY:                 msg = "GL_OUT_OF_MEMORY";                 break;
+        default:                               msg = "UNKNOWN_GL_ERROR";                 break;
+    }
+    return true;
 }
