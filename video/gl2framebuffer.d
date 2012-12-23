@@ -206,9 +206,18 @@ void clear(ref FrameBuffer self)
 void toImage(ref FrameBuffer self, ref Image image)
 {with(self.gl2_)
 {
-    assert(false, "TODO");
+    // If a different texture is currently bound, make sure
+    // we rebind it back when done.
+    const previousTexture = bindTexture(0, self.texture.gl2_.textureHandle_);
+    scope(exit){bindTexture(0, previousTexture);}
+    self.texture.bind(0);
+    const dim = self.dimensions;
+    const colorFormat = ColorFormat.RGBA_8;
+    image = Image(dim.x, dim.y, colorFormat);
+    glGetTexImage(GL_TEXTURE_2D, 0, glTextureLoadFormat(colorFormat),
+                  glTextureType(colorFormat),  image.dataUnsafe.ptr);
+    image.flipVertical();
 }}
-
 
 
 /// Framebuffer object currently bound to GL_FRAMEBUFFER.

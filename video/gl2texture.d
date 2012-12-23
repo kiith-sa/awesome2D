@@ -44,9 +44,11 @@ void constructTextureGL2
             throw new TextureInitException(msg);
         }
 
-        glActiveTexture(GL_TEXTURE0);
         glGenTextures(1, &gl2_.textureHandle_);
-        glBindTexture(GL_TEXTURE_2D, gl2_.textureHandle_);
+        // If we're constructing a texture while another texture is bound,
+        // make sure we rebind it.
+        const previous = bindTexture(0, gl2_.textureHandle_);
+        scope(exit) {bindTexture(0, previous);}
 
         // Set texture parameters.
         const glFiltering = params_.filtering_.glTextureFiltering();
@@ -108,9 +110,11 @@ void constructTextureGL2FBO
             throw new FrameBufferInitException(msg);
         }
 
-        glActiveTexture(GL_TEXTURE0);
         glGenTextures(1, &gl2_.textureHandle_);
-        glBindTexture(GL_TEXTURE_2D, gl2_.textureHandle_);
+        // If we're constructing a texture while another texture is bound,
+        // make sure we rebind it.
+        const previous = bindTexture(0, gl2_.textureHandle_);
+        scope(exit) {bindTexture(0, previous);}
 
         // Set texture parameters.
         const glFiltering = params_.filtering_.glTextureFiltering();
@@ -150,6 +154,24 @@ struct GL2TextureData
     GLuint textureHandle_;
 }
 
+/// Bind a texture to specified texture unit.
+///
+/// Params:  textureUnit = Texture unit to bind to.
+///          texture     = GL handle of the texture to bind.
+///
+/// Returns: Handle of the texture previously bound to this unit.
+///
+/// This should be used instead of glBindTexture to ensure we 
+/// rebind the last texture we called bind() method of after 
+/// doing operations that need us to bind a different texture to the unit.
+GLuint bindTexture(const uint textureUnit, const GLuint texture)
+{
+    glActiveTexture(GL_TEXTURE0 + textureUnit);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    const previous = boundTextures_[textureUnit];
+    boundTextures_[textureUnit] = texture;
+    return previous;
+}
 
 private:
 
@@ -169,10 +191,9 @@ void dtor(ref Texture self)
         return;
     }
     // Make sure the texture is not bound to any unit.
-    foreach(unit, ref texture; boundTextures_) if(texture == textureHandle_)
+    foreach(uint unit, ref texture; boundTextures_) if(texture == textureHandle_)
     {
-        glActiveTexture(GL_TEXTURE0 + cast(uint)unit); 
-        glBindTexture(GL_TEXTURE_2D, 0);
+        bindTexture(unit, 0u);
         texture = 0;
     }
     glDeleteTextures(1, &textureHandle_);
@@ -184,7 +205,5 @@ void dtor(ref Texture self)
 void bind(ref Texture self, const uint textureUnit)
 {with(self.gl2_)
 {
-    glActiveTexture(GL_TEXTURE0 + textureUnit);
-    glBindTexture(GL_TEXTURE_2D, textureHandle_);
-    boundTextures_[textureUnit] = textureHandle_;
+    bindTexture(textureUnit, textureHandle_);
 }}
