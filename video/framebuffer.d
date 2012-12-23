@@ -119,10 +119,14 @@ public:
 
     /// Copy the framebuffer to an image.
     ///
+    /// Can only be called when the framebuffer is not bound.
+    ///
     /// Contents of the passed image will be completely replaced by the 
-    /// data from framebuffer.
+    /// data from framebuffer. Data in the image will be in the RGBA_8
+    /// color format.
     void toImage(ref Image image)
     {
+        assert(!bound_, "Trying to get image data of a bound framebuffer object");
         toImage_(this, image);
     }
 }
