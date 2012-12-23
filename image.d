@@ -167,6 +167,14 @@ struct Image
                         setPixelGray8(x, y, 255);
                         break;
                 }
+                else switch(format_)
+                {
+                    case ColorFormat.RGBA_8:
+                        setPixelRGBA8(x, y, Color.black);
+                        break;
+                    default:
+                        // If alpha is disabled, black is the default.
+                }
             }
         }
 
