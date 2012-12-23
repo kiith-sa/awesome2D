@@ -182,7 +182,7 @@ void main(string[] args)
                          "dependencies/gl3n",
                          "dependencies/dgamevfs/dgamevfs",
                          "dependencies/dyaml/dyaml"];
-    auto sources      = ["awesome2D", "formats/", "math/", 
+    auto sources      = ["awesome2D", "containers/", "formats/", "math/", 
                          "memory/", "platform/", "time/", "util/", "video/", 
                          "color.d", "demo.d", "image.d"];
 
