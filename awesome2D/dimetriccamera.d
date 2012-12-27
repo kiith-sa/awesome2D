@@ -46,9 +46,9 @@ public:
     ///                   area will be projected; outside objects will not.
     void setProjection(const vec2 offset, const vec2 size, const float depth) @safe pure nothrow
     {
-        orthoMatrix_ = mat4.orthographic(offset.x,          offset.x + size.x, 
-                                         offset.y, offset.y + size.y,
-                                         depth * -0.5f,      depth * (0.5f));
+        orthoMatrix_ = mat4.orthographic(offset.x,      offset.x + size.x, 
+                                         offset.y,      offset.y + size.y,
+                                         depth * -0.5f, depth * (0.5f));
     }
 
     /// Set the vertical angle of the projection in radians.
