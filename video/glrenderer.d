@@ -98,7 +98,7 @@ public:
             vec3 position;
             vec2 texCoord;
             vec3 color;
-            this(ref const vec3 position, ref const vec2 texCoord, ref const vec3 color)
+            this(const vec3 position, const vec2 texCoord, const vec3 color)
             {
                 this.position = position;
                 this.texCoord = texCoord;
