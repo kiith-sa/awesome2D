@@ -9,29 +9,30 @@ module dgamevfs.util;
 
 
 import std.algorithm;
+import std.array;
 import std.path;
 
 import dgamevfs.exceptions;
 
 
 //Is a file/directory name valid (i.e. no directory or package separators)?
-bool noSeparators(string name)
+bool noSeparators(string name) pure @trusted nothrow
 {
     return !name.canFind("/") && !name.canFind("::");
 }
 
 //Are there no package separators in the path?
-bool noPackageSeparators(string path)
+bool noPackageSeparators(string path) pure @trusted nothrow
 {
     return !path.canFind("::");
 }
 
-//Clean any leading "./" and trailing "/" from a filesystem path.
-string cleanFSPath(string path) pure
+//Clean any leading "./" and trailing "/" from a filesystem path, and replace "\" by "/".
+string cleanFSPath(string path)
 {
     while(path.startsWith("./")){path = path[2 .. $];}
     while(path.endsWith("/")){path = path[0 .. $ - 1];}
-    return path;
+    return path.replace("\\", "/");
 }
 
 /*
@@ -44,13 +45,13 @@ string cleanFSPath(string path) pure
  *
  * Returns: Package the path starts with, if any. null otherwise.
  */
-string expectPackage(string path, out string rest)
+string expectPackage(string path, out string rest) pure @trusted nothrow
 {
     auto parts = path.findSplit("::");
     //No package separator.
     if(parts[2].length == 0){return null;}
     //Package separator, but in a subdir.
-    if(parts[0].canFind('/')){return null;}
+    if(parts[0].canFind("/")){return null;}
 
     rest = parts[2];
     return parts[0];
@@ -68,7 +69,7 @@ string expectPackage(string path, out string rest)
  *
  * Throws:  VFSInvalidPathException if a package separator is found in the directory name.
  */
-string expectSubdir(string path, out string rest)
+string expectSubdir(string path, out string rest) @trusted
 {
     auto parts = path.findSplit("/");
     //No directory separator.
@@ -93,7 +94,7 @@ string expectSubdir(string path, out string rest)
  *
  * Returns: True on match or if glob is null; false otherwise.
  */
-bool subPathMatch(string path, string parentPath, string glob)
+bool subPathMatch(string path, string parentPath, string glob) pure @safe
 {
     if(glob is null){return true;}
     auto relative = path;

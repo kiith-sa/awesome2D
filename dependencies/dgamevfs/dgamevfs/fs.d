@@ -37,7 +37,7 @@ class FSDir : VFSDir
 
         //Is this directory writable?
         Flag!"writable" writable_;
-        
+
     public:
         /**
          * Construct an $(D FSDir).
@@ -128,6 +128,7 @@ class FSDir : VFSDir
                 auto relative = e.name;
                 relative.skipOver(physicalPath_);
                 relative.skipOver("/");
+                relative.skipOver("\\");
                 if(glob is null || globMatch(relative, glob)) 
                 {
                     files.insert(new FSFile(this, relative, e.name));
@@ -152,6 +153,7 @@ class FSDir : VFSDir
                 auto relative = e.name;
                 relative.skipOver(physicalPath_);
                 relative.skipOver("/");
+                relative.skipOver("\\");
                 if(glob is null || globMatch(relative, glob)) 
                 {
                     dirs.insert(new FSDir(this, relative, e.name, writable_));
@@ -159,6 +161,20 @@ class FSDir : VFSDir
             }
 
             return dirsRange(dirs);
+        }
+
+        override void remove()
+        {
+            if(!exists){return;}
+            try
+            {
+                rmdirRecurse(physicalPath_);
+            }
+            catch(FileException e)
+            {
+                throw ioError("Failed to remove filesystem directory ", path,
+                              " with physical path ", physicalPath_);
+            }
         }
 
     protected:
@@ -285,7 +301,7 @@ class FSFile : VFSFile
             return target[0 .. fread(target.ptr, 1, target.length, file_)];
         }
 
-        override void write(in void[] data)
+        override void write(const void[] data)
         {
             assert(mode_ == Mode.Write || mode_ == Mode.Append, 
                    "Trying to write to a file not opened for writing/appending: " ~ path);
