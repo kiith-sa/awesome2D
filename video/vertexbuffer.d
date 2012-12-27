@@ -96,6 +96,14 @@ public:
         ++backend_.vertexCount_;
     }
 
+    /// Ditto.
+    void addVertex(const V vertex)
+    {
+        assert(!backend_.locked_, "Trying to add a vertex to a locked vertex buffer");
+        backend_.addVertex_(backend_, cast(void*)(&vertex));
+        ++backend_.vertexCount_;
+    }
+
     /// Lock the buffer.
     ///
     /// Must be called before using the buffer for drawing.
