@@ -2335,6 +2335,10 @@ struct Quaternion(type) {
         assert((q2 * v1).vector == [-2.0f, 36.0f, 38.0f]);
     }
 
+    bool opEquals(const Quaternion qu) const {
+        return quaternion == qu.quaternion;
+    }
+
     bool opEquals(ref const Quaternion qu) const {
         return quaternion == qu.quaternion;
     }
