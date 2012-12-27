@@ -76,7 +76,7 @@ public:
                 "void main (void)"                                                 ,
                 "{"                                                                ,
                 "    frag_TexCoord = TexCoord;"                                    ,
-                "    mat4 ModelViewProjection = ModelView * Projection;"           ,
+                "    mat4 ModelViewProjection = Projection * ModelView;"           ,
                 "    gl_Position = ModelViewProjection * vec4(Position, 1.0);"     ,
                 "}"                                                                ,
                 ].join("\n");
