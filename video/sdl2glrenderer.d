@@ -59,10 +59,8 @@ public:
     {
         assert(!glInitialized_,
                "Trying to set video mode of an SDLGLVideoDriver more than once");
-        assert(width >= 80 && width <= 65536, 
-               "Can't set video mode with such ridiculous width");
-        assert(height >= 60 && width <= 49152, 
-               "Can't set video mode with such ridiculous height");
+        assert(width <= 65536, "Can't set video mode with such ridiculous width");
+        assert(height <= 49152, "Can't set video mode with such ridiculous height");
 
         // Determine bit depths of color channels.
         int red, green, blue, alpha, depth;
