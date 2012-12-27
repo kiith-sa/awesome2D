@@ -1,3 +1,6 @@
+/dependencies/dgamevfs/cdc.obj
+/dependencies/dgamevfs/unittest
+/dependencies/dgamevfs/unittest.obj
 *.sw*
 *.sv*
 *~
