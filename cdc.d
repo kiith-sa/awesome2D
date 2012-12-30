@@ -165,15 +165,15 @@ void main(string[] args)
     //No debugging symbols to avoid an OPTLINK bug on Windows.
     version(Windows)
     {
-        auto dbg          = ["-unittest", "-debug", "-ofdemo-debug"];
-        auto no_contracts = ["-release", "-ofdemo-no-contracts"];
-        auto release      = ["-O", "-inline", "-release", "-ofdemo-release"];
+        auto dbg          = ["-unittest", "-debug", "-ofprerenderer-debug"];
+        auto no_contracts = ["-release", "-ofprerenderer-no-contracts"];
+        auto release      = ["-O", "-inline", "-release", "-ofprerenderer-release"];
     }
     else
     {
-        auto dbg          = ["-unittest", "-gc", "-debug", "-ofdemo-debug"];
-        auto no_contracts = ["-release", "-gc", "-ofdemo-no-contracts"];
-        auto release      = ["-O", "-inline", "-release", "-gc", "-ofdemo-release"];
+        auto dbg          = ["-unittest", "-gc", "-debug", "-ofprerenderer-debug"];
+        auto no_contracts = ["-release", "-gc", "-ofprerenderer-no-contracts"];
+        auto release      = ["-O", "-inline", "-release", "-gc", "-ofprerenderer-release"];
     }
     auto dependencies = ["dependencies/Derelict3/import/derelict/opengl3/",
                          "dependencies/Derelict3/import/derelict/sdl2/",
@@ -184,7 +184,7 @@ void main(string[] args)
                          "dependencies/dyaml/dyaml"];
     auto sources      = ["awesome2D", "containers/", "formats/", "math/", 
                          "memory/", "platform/", "time/", "util/", "video/", 
-                         "color.d", "demo.d", "image.d"];
+                         "color.d", "prerenderer.d", "image.d"];
 
     void compile_(string[] args, string[] files)
     {
@@ -245,12 +245,12 @@ void help()
         "Optionally, build target can be specified, 'debug' is default.\n"
         "Available build targets:\n"
         "    debug           Debug information, unittests, contracts built in.\n"
-        "                    No optimizations. Target binary name: 'demo-debug'\n"
+        "                    No optimizations. Target binary name: 'prerenderer-debug'\n"
         "    no-contracts    Debug information, no unittests, contracts, optimizations.\n"
-        "                    Target binary name: 'demo-no-contracts'\n"
+        "                    Target binary name: 'prerenderer-no-contracts'\n"
         "    release         Debug information, no unittests, contracts.\n"
         "                    Optimizations, inlining enabled.\n"
-        "                    Target binary name: 'demo-release'\n"
+        "                    Target binary name: 'prerenderer-release'\n"
         "    all             All of the above.\n"
         "\n"
         "Available options:\n"

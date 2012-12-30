@@ -1,5 +1,3 @@
 video:
-  width:      800
-  height:     600
   depth:      32
   fullscreen: false
