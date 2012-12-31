@@ -128,9 +128,9 @@ void drawVertexBufferGL2
         catch(GLSLAttributeException e)
         {
             // Ignore missing attributes
+            attributeOffset += attribute.type.attributeSize();
             continue;
         }
-
         enabledAttributes[totalAttributes] = handle;
         glVertexAttribPointer(handle, cast(int)attribute.type.attributeDimensions(), 
                               attribute.type.glAttributeType(), GL_FALSE, 

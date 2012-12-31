@@ -139,7 +139,13 @@ public:
                 renderLayers_[params.layer] = 
                     new DiffuseColorRenderLayer(renderer_.createGLSLShader());
                 renderLayer = params.layer in renderLayers_;
-                assert(renderLayer !is null, "Render layer is null after creation");
+                assert(renderLayer !is null, "Diffuse render layer is null after creation");
+                break;
+            case "normal":
+                renderLayers_[params.layer] = 
+                    new NormalRenderLayer(renderer_.createGLSLShader());
+                renderLayer = params.layer in renderLayers_;
+                assert(renderLayer !is null, "Normal render layer is null after creation");
                 break;
             default:
                 assert(false, "Unknown render layer: " ~ params.layer);
@@ -151,23 +157,23 @@ public:
         camera_.setProjection(- 0.5 * cameraSize, cameraSize, 100);
         camera_.verticalAngleRadians = params.verticalAngle / 180.0 * PI;
 
-        // Model transform.
-        auto modelView  = mat4.zrotation(params.rotation / 180.0 * PI);
+        const view = camera_.view;
 
-        // Rotate so Z is "up-down", not "in-out of the screen".
-        modelView       = mat4.xrotation(-PI / 2) * modelView;
+        // Model transform.
+        const model        = mat4.zrotation(params.rotation / 180.0 * PI);
 
         // Calculate the normal matrix from the modelview matrix.
-        const normalMatrix = mat3(modelView).inverse().transposed();
+        const normalMatrix = mat3(view * model).inverse().transposed();
 
         // Bind the texture to texture unit 0.
         texture_.bind(0);
-        const projection             = camera_.projection;
+        const projection   = camera_.projection;
 
         // Pass the matrices to the shader.
         renderLayer.projectionMatrix = projection;
         renderLayer.normalMatrix     = normalMatrix;
-        renderLayer.modelViewMatrix  = modelView;
+        renderLayer.modelMatrix      = model;
+        renderLayer.viewMatrix       = view;
 
         // Rendering itself.
         renderLayer.startRender();
@@ -207,7 +213,6 @@ private:
             (filename.toStringz,
              aiPostProcessSteps.CalcTangentSpace |      // For normal mapping (future)
              aiPostProcessSteps.Triangulate |           // We can only draw triangles
-             aiPostProcessSteps.JoinIdenticalVertices | // Why not?
              aiPostProcessSteps.GenUVCoords |           // Generate UV if mapping is non-UV (e.g. spherical)
              aiPostProcessSteps.TransformUVCoords |     // Don't want do transform UVs in shader
              aiPostProcessSteps.SortByPType);           // Should put free lines/points to the end

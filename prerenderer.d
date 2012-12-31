@@ -122,9 +122,8 @@ void help()
         "                             data, e.g. color or normals.",
         "                             Data for each layer is rendered into a separate",
         "                             image.",
-        "                             Currently, the only layer type supported is",
-        "                             'diffuse', which renders the texture color without",
-        "                             any lighting.",
+        "                             Supported layer types: 'diffuse' (texture color),",
+        "                             'normal' (world space normals)",
         "                             Default: 'diffuse'",
         "    Example:",
         "      prerender render --texture=box.png --width=48 --height=20 box.obj",
@@ -290,7 +289,7 @@ private:
                 layers = args[0].split(",");
                 foreach(layer; layers)
                 {
-                    enforce(["diffuse"].canFind(layer),
+                    enforce(["diffuse", "normal"].canFind(layer),
                             new Awesome2DCLIException("Unknown render layer: " ~ layer));
                 }
                 break;

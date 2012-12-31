@@ -21,10 +21,10 @@ private:
     ///
     /// O is horizontal, PI/4 is isometric, PI/2 is top-down.
     float verticalAngleRadians_;
-    /// Plain orthographic projection, without any rotation.
-    mat4 orthoMatrix_;
-    /// Rotation matrix. Rotates orthoMatrix_ to get the final projection.
-    mat4 rotationMatrix_;
+    /// Projection matrix. Plain orthographic projection.
+    mat4 projection_;
+    /// View matrix.
+    mat4 view_;
 
 public:
     /// Construct a dimetric camera.
@@ -46,7 +46,7 @@ public:
     ///                   area will be projected; outside objects will not.
     void setProjection(const vec2 offset, const vec2 size, const float depth) @safe pure nothrow
     {
-        orthoMatrix_ = mat4.orthographic(offset.x,      offset.x + size.x, 
+        projection_ = mat4.orthographic(offset.x,      offset.x + size.x, 
                                          offset.y,      offset.y + size.y,
                                          depth * -0.5f, depth * (0.5f));
     }
@@ -57,7 +57,7 @@ public:
     @property void verticalAngleRadians(const float rhs) @safe pure nothrow 
     {
         verticalAngleRadians_ = rhs;
-        rotationMatrix_ = mat4.zrotation(0) * mat4.xrotation(rhs) * mat4.yrotation(-PI / 4/*-rhs*/);
+        view_ = mat4.zrotation(0) * mat4.xrotation(rhs) * mat4.yrotation(-PI / 4/*-rhs*/);
     }
 
     /// Get the vertical angle of the projection in radians.
@@ -71,6 +71,13 @@ public:
     /// Get a GL-compatible projection matrix for this camera.
     @property mat4 projection() @safe const pure nothrow 
     {
-        return orthoMatrix_ * rotationMatrix_;
+        return projection_;
+    }
+
+    /// Get a GL-compatible view matrix for this camera.
+    @property mat4 view() @safe const pure nothrow 
+    {
+        // Rotate so Z is "up-down", not "in-out of the screen".
+        return view_ * mat4.xrotation(-PI / 2);
     }
 }
