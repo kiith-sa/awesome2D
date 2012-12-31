@@ -46,6 +46,7 @@ void constructFrameBufferGL2
     result.clear_      = &clear;
     result.toImage_    = &toImage;
     result.texture_    = alloc!Texture;
+    result.format_     = format;
     scope(failure){free(result.texture_);}
 
     with(result.gl2_)
@@ -212,7 +213,7 @@ void toImage(ref FrameBuffer self, ref Image image)
     scope(exit){bindTexture(0, previousTexture);}
     self.texture.bind(0);
     const dim = self.dimensions;
-    const colorFormat = ColorFormat.RGBA_8;
+    const colorFormat = self.format_;
     image = Image(dim.x, dim.y, colorFormat);
     glGetTexImage(GL_TEXTURE_2D, 0, glTextureLoadFormat(colorFormat),
                   glTextureType(colorFormat),  image.dataUnsafe.ptr);

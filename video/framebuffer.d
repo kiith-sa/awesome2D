@@ -10,6 +10,7 @@ module video.framebuffer;
 
 import gl3n.linalg;
 
+import color;
 import image;
 import video.gl2framebuffer;
 import video.texture;
@@ -35,6 +36,9 @@ package:
 
     // Texture of this framebuffer object.
     Texture* texture_;
+
+    // Color format of the framebuffer.
+    ColorFormat format_;
 
     // Is any framebuffer object bound?
     static bool isAFrameBufferBound_;

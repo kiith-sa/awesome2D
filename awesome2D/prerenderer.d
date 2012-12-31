@@ -136,7 +136,15 @@ public:
 
 
             // Create FBO to draw to.
-            auto fbo = renderer_.createFrameBuffer(params.width, params.height);
+            ColorFormat colorFormat;
+            switch(params.layer)
+            {
+                case "diffuse": colorFormat = ColorFormat.RGBA_8; break;
+                case "normal":  colorFormat = ColorFormat.RGB_8;  break;
+                default:        assert(false, "Unknown color format " ~ params.layer);
+            }
+
+            auto fbo = renderer_.createFrameBuffer(params.width, params.height, colorFormat);
             scope(exit){free(fbo);}
 
             // Bind FBO and draw.
