@@ -20,13 +20,15 @@ import video.glslshader;
 abstract class RenderLayer
 {
     /// Called before rendering to set the projection matrix, if used by the layer's shader.
-    @property void projectionMatrix(ref const mat4 rhs) @safe pure nothrow;
+    @property void projectionMatrix(ref const mat4 rhs) @safe pure nothrow {};
     /// Called before rendering to set the model matrix, if used by the layer's shader.
-    @property void modelMatrix(ref const mat4 rhs) @safe pure nothrow;
+    @property void modelMatrix(ref const mat4 rhs) @safe pure nothrow {};
     /// Called before rendering to set the view matrix, if used by the layer's shader.
-    @property void viewMatrix(ref const mat4 rhs) @safe pure nothrow;
+    @property void viewMatrix(ref const mat4 rhs) @safe pure nothrow {};
     /// Called before rendering to set the normal matrix, if used by the layer's shader.
-    @property void normalMatrix(ref const mat3 rhs) @safe pure nothrow;
+    @property void normalMatrix(ref const mat3 rhs) @safe pure nothrow {};
+    /// Called before rendering to set the maximum distance of a vertex from origin.
+    @property void maxExtentFromOrigin(const float rhs) pure nothrow {}
     /// Get a reference to the internal shader program (for vertex buffer drawing).
     @property GLSLShaderProgram* shaderProgram() @safe pure nothrow;
 
@@ -90,8 +92,6 @@ public:
         viewMatrix_ = rhs;
     }
 
-    override @property void normalMatrix(ref const mat3 rhs) @safe pure nothrow {}
-
     final override @property GLSLShaderProgram* shaderProgram() @safe pure nothrow
     {
         return shaderProgram_;
@@ -110,7 +110,6 @@ public:
         shaderProgram_.release();
     }
 }
-
 
 /// Render layer that renders RGBA diffuse color.
 class DiffuseColorRenderLayer: ShaderRenderLayer
@@ -194,31 +193,31 @@ public:
 
             string vertexShaderSource =
                 [
-                "attribute vec3 Position;",
-                "attribute vec3 Normal;",
-                "",
-                "uniform mat4 Model, View, Projection;",
-                "uniform mat3 NormalMatrix;",
-                "",
-                "varying vec3 frag_Normal;",
-                "void main(void)",
-                "{",
-                "    mat4 ModelViewProjection = Projection * View * Model;",
-                "    frag_Normal   = normalize(NormalMatrix * Normal);"
-                "    gl_Position = ModelViewProjection * vec4(Position, 1.0);",
-                "}",
+                "attribute vec3 Position;\n",
+                "attribute vec3 Normal;\n",
+                "\n",
+                "uniform mat4 Model, View, Projection;\n",
+                "uniform mat3 NormalMatrix;\n",
+                "\n",
+                "varying vec3 frag_Normal;\n",
+                "void main(void)\n",
+                "{\n",
+                "    mat4 ModelViewProjection = Projection * View * Model;\n",
+                "    frag_Normal   = normalize(NormalMatrix * Normal);\n"
+                "    gl_Position = ModelViewProjection * vec4(Position, 1.0);\n",
+                "}\n"
                 ].join("\n");
 
             string fragmentShaderSource =
                 [
-                "varying vec3 frag_Normal;",
-                "",
-                "void main(void)",
-                "{",
-                "    vec3 normalDirection = normalize(frag_Normal);",
+                "varying vec3 frag_Normal;\n",
+                "\n",
+                "void main(void)\n",
+                "{\n",
+                "    vec3 normalDirection = normalize(frag_Normal);\n",
                 // Normals can be negative; so we map their coordinates to (0.0-1.0).
-                "    gl_FragColor = vec4((vec3(1.0, 1.0, 1.0) + normalDirection) * 0.5, 1.0);",
-                "}",
+                "    gl_FragColor = vec4((vec3(1.0, 1.0, 1.0) + normalDirection) * 0.5, 1.0);\n",
+                "}\n",
                 ].join("\n");
 
             const vertexShader   = shaderProgram.addVertexShader(vertexShaderSource);
@@ -233,7 +232,7 @@ public:
         }
     }
 
-    override @property void normalMatrix(ref const mat3 rhs) @safe pure nothrow 
+    final override @property void normalMatrix(ref const mat3 rhs) @safe pure nothrow 
     {
         normalMatrix_ = rhs;
     }
@@ -245,4 +244,80 @@ public:
     }
 }
 
-//TODO OffsetLayer
+
+/// Render layer that renders offsets relative to the model's position.
+class OffsetRenderLayer: ShaderRenderLayer
+{
+private:
+    /// Handle to the maximum extent uniform.
+    uint maxExtentFromOriginUniform_;
+    /// Maximum distance of a vertex from origin.
+    ///
+    /// In the rendered offset output, the minimum value (0) for each
+    /// axis (X, Y, Z being R, G, B, respectively) maps to -maxExtentFromOrigin_,
+    /// while the maximum value (255) maps to +maxExtentFromOrigin_.
+    float maxExtentFromOrigin_;
+
+public:
+    /// Construct a NormalRenderLayer using specified shader program.
+    ///
+    /// Params:  shaderProgram = Shader program to use. 
+    ///                          The program must be empty (just constructed),
+    ///                          and will be owned by the render layer, which
+    ///                          will destroy it at its destruction.
+    this(GLSLShaderProgram* shaderProgram)
+    {
+        try
+        {
+            shaderProgram_ = shaderProgram;
+
+            string vertexShaderSource =
+                [
+                "attribute vec4 Position;\n",
+                "varying vec3 frag_Position;\n",
+                "uniform mat4 Model, View, Projection;\n",
+                "\n",
+                "void main()\n",
+                "{\n",
+                "    frag_Position = vec3(Model * Position);\n",
+                "    mat4 ModelViewProjection = Projection * View * Model;\n",
+                "    gl_Position = ModelViewProjection * Position;\n",
+                "}\n"
+                ].join("\n");
+
+            string fragmentShaderSource =
+                [
+                "varying vec3 frag_Position;\n",
+                "uniform mat4 Model, View, Projection;\n",
+                "uniform float MaxExtentFromOrigin;\n",
+                "\n",
+                "void main()\n",
+                "{\n",
+                // Map [-maxExtentFromOrigin_ .. maxExtentFromOrigin_] to [0 .. 1]
+                "    gl_FragColor = vec4((frag_Position / (2.0 * MaxExtentFromOrigin)) + 1.0, 1.0);\n",
+                "}\n"
+                ].join("\n");
+
+            const vertexShader   = shaderProgram.addVertexShader(vertexShaderSource);
+            const fragmentShader = shaderProgram.addFragmentShader(fragmentShaderSource);
+            shaderProgram.lock();
+            maxExtentFromOriginUniform_ = shaderProgram.getUniformHandle("MaxExtentFromOrigin");
+            super(shaderProgram);
+        }
+        catch(GLSLException e)
+        {
+            assert(false, "Builtin diffuse shader compilation or linking failed");
+        }
+    }
+
+    final override @property void maxExtentFromOrigin(const float rhs) pure nothrow 
+    {
+        maxExtentFromOrigin_ = rhs;
+    }
+
+    override void startRender()
+    {
+        super.startRender();
+        shaderProgram_.setUniform(maxExtentFromOriginUniform_, maxExtentFromOrigin_);
+    }
+}

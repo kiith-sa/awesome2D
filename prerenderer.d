@@ -123,7 +123,8 @@ void help()
         "                             Data for each layer is rendered into a separate",
         "                             image.",
         "                             Supported layer types: 'diffuse' (texture color),",
-        "                             'normal' (world space normals)",
+        "                             'normal' (world space normals), 'offset'",
+        "                             (3D position at each pixel relative to origin)",
         "                             Default: 'diffuse'",
         "    Example:",
         "      prerender render --texture=box.png --width=48 --height=20 box.obj",
@@ -289,7 +290,7 @@ private:
                 layers = args[0].split(",");
                 foreach(layer; layers)
                 {
-                    enforce(["diffuse", "normal"].canFind(layer),
+                    enforce(["diffuse", "normal", "offset"].canFind(layer),
                             new Awesome2DCLIException("Unknown render layer: " ~ layer));
                 }
                 break;

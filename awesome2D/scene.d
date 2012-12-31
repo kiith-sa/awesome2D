@@ -75,6 +75,8 @@ private:
 
     // Vertex buffer storing the rendered model as triangles.
     VertexBuffer!Vertex* model_;
+    // Maximum distance of any vertex in the model from origin. Used for offset rendering.
+    float maxDistanceFromOrigin_;
     // Texture used with the model. If none is specified by user, a placeholder is generated.
     Texture* texture_;
     // Directory to load the texture and model from.
@@ -120,6 +122,8 @@ public:
         loadTexture(textureFileName);
         // (Loaded transform is not yet used.)
         model_ = modelAndTransform[0];
+        maxDistanceFromOrigin_ = modelAndTransform[1];
+        writeln("maxDistanceFromOrigin_: ", maxDistanceFromOrigin_);
 
         camera_ = new DimetricCamera();
 
@@ -147,6 +151,12 @@ public:
                 renderLayer = params.layer in renderLayers_;
                 assert(renderLayer !is null, "Normal render layer is null after creation");
                 break;
+            case "offset":
+                renderLayers_[params.layer] = 
+                    new OffsetRenderLayer(renderer_.createGLSLShader());
+                renderLayer = params.layer in renderLayers_;
+                assert(renderLayer !is null, "Offset render layer is null after creation");
+                break;
             default:
                 assert(false, "Unknown render layer: " ~ params.layer);
         }
@@ -170,10 +180,11 @@ public:
         const projection   = camera_.projection;
 
         // Pass the matrices to the shader.
-        renderLayer.projectionMatrix = projection;
-        renderLayer.normalMatrix     = normalMatrix;
-        renderLayer.modelMatrix      = model;
-        renderLayer.viewMatrix       = view;
+        renderLayer.projectionMatrix    = projection;
+        renderLayer.normalMatrix        = normalMatrix;
+        renderLayer.modelMatrix         = model;
+        renderLayer.viewMatrix          = view;
+        renderLayer.maxExtentFromOrigin = maxDistanceFromOrigin_;
 
         // Rendering itself.
         renderLayer.startRender();
@@ -203,7 +214,10 @@ private:
     //                     supported by Assimp.
     // 
     // Throws:  SceneInitException on failure.
-    Tuple!(VertexBuffer!V*, mat4) loadModel(V)(const string filename)
+    //
+    // Returns:  A tuple of a vertex buffer containing the model, maximum distance 
+    //           of any vertex in the model from origin, and the model's transform matrix.
+    Tuple!(VertexBuffer!V*, float, mat4) loadModel(V)(const string filename)
     {
         // Load the scene found in the file.
         //
@@ -244,6 +258,8 @@ private:
                             d1, d2, d3, d4);
             }
         }
+
+        float maxDistanceFromOrigin = 0.0f;
 
         // Process the scene's nodes recursively.
         //
@@ -295,7 +311,9 @@ private:
                         auto p = mesh.mVertices[index];
                         auto t = mesh.mTextureCoords[0][index];
                         auto n = mesh.mNormals[index];
-                        auto v = V(vec3(p.x, p.y, p.z), vec2(t.x, t.y), vec3(n.x, n.y, n.z));
+                        const pos = vec3(p.x, p.y, p.z);
+                        maxDistanceFromOrigin = max(maxDistanceFromOrigin, pos.length);
+                        auto v = V(pos, vec2(t.x, t.y), vec3(n.x, n.y, n.z));
                         model.addVertex(v);
                     }
                 }
@@ -319,7 +337,7 @@ private:
         // Done loading the model.
         model.lock();
         aiReleaseImport(scene);
-        return tuple(model, modelTransform);
+        return tuple(model, maxDistanceFromOrigin, modelTransform);
     }
 
     // Load the texture to use with the model.

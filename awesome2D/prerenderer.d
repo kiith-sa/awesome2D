@@ -141,6 +141,7 @@ public:
             {
                 case "diffuse": colorFormat = ColorFormat.RGBA_8; break;
                 case "normal":  colorFormat = ColorFormat.RGB_8;  break;
+                case "offset":  colorFormat = ColorFormat.RGB_8;  break;
                 default:        assert(false, "Unknown color format " ~ params.layer);
             }
 
@@ -148,10 +149,12 @@ public:
             scope(exit){free(fbo);}
 
             // Bind FBO and draw.
-            fbo.bind();
-            fbo.clear();
-            scene_.draw(params);
-            fbo.release();
+            {
+                fbo.bind();
+                scope(exit){fbo.release();}
+                fbo.clear();
+                scene_.draw(params);
+            }
 
             // Write to an image file.
             Image fboImage;
