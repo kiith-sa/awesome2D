@@ -36,8 +36,8 @@ abstract class RenderLayer
     void endRender();
 }
 
-/// Render layer that renders RGBA diffuse color.
-class DiffuseColorRenderLayer: RenderLayer
+/// Base class for shader-based render layer, with common uniforms, etc.
+abstract class ShaderRenderLayer: RenderLayer
 {
 private:
     /// Shader program doing the rendering.
@@ -57,84 +57,42 @@ private:
     mat4 viewMatrix_;
 
 public:
-    /// Construct a DiffuseColorRenderLayer using specified shader program.
+    /// Construct the ShaderRenderLayer.
     ///
-    /// Params:  shaderProgram = Shader program to use. 
-    ///                          The program must be empty (just constructed),
-    ///                          and will be owned by the render layer, which
-    ///                          will destroy it at its destruction.
+    /// Params:  shaderProgram = Shader program used by the layer. Must be already initialized
+    ///                          with vertex and fragment shaders.
     this(GLSLShaderProgram* shaderProgram)
     {
-        try
-        {
-            shaderProgram_ = shaderProgram;
-            string vertexShaderSource =
-                [
-                "attribute vec3 Position;"                                         ,
-                "attribute vec2 TexCoord;"                                         ,
-                ""                                                                 ,
-                "varying vec2 frag_TexCoord;"                                      ,
-                ""                                                                 ,
-                "uniform mat4 Model;"                                          ,
-                "uniform mat4 View;"                                          ,
-                "uniform mat4 Projection;"                                         ,
-                ""                                                                 ,
-                "void main (void)"                                                 ,
-                "{"                                                                ,
-                "    frag_TexCoord = TexCoord;"                                    ,
-                "    mat4 ModelViewProjection = Projection * View * Model;"           ,
-                "    gl_Position = ModelViewProjection * vec4(Position, 1.0);"     ,
-                "}"                                                                ,
-                ].join("\n");
-
-            string fragmentShaderSource =
-                [
-                "uniform sampler2D tex;"                                           ,
-                "varying vec2 frag_TexCoord;"                                      ,
-                ""                                                                 ,
-                "void main (void)"                                                 ,
-                "{"                                                                ,
-                "    gl_FragColor = texture2D(tex, frag_TexCoord);"                ,
-                "}"                                                                ,
-                ].join("\n");
-
-            const vertexShader   = shaderProgram_.addVertexShader(vertexShaderSource);
-            const fragmentShader = shaderProgram_.addFragmentShader(fragmentShaderSource);
-            shaderProgram_.lock();
-            modelUniform_      = shaderProgram_.getUniformHandle("Model");
-            viewUniform_       = shaderProgram_.getUniformHandle("View");
-            projectionUniform_ = shaderProgram_.getUniformHandle("Projection");
-        }
-        catch(GLSLException e)
-        {
-            assert(false, "Builtin diffuse shader compilation or linking failed");
-        }
+        shaderProgram_     = shaderProgram;
+        modelUniform_      = shaderProgram_.getUniformHandle("Model");
+        viewUniform_       = shaderProgram_.getUniformHandle("View");
+        projectionUniform_ = shaderProgram_.getUniformHandle("Projection");
     }
 
-    /// Destroy the RenderLayer, freeing up used resources.
+    /// Destroy the ShaderRenderLayer, freeing up used resources.
     ~this()
     {
         free(shaderProgram_);
     }
 
-    override @property void projectionMatrix(ref const mat4 rhs) @safe pure nothrow
+    final override @property void projectionMatrix(ref const mat4 rhs) @safe pure nothrow
     {
         projectionMatrix_ = rhs;
     }
 
-    override @property void modelMatrix(ref const mat4 rhs) @safe pure nothrow
+    final override @property void modelMatrix(ref const mat4 rhs) @safe pure nothrow
     {
         modelMatrix_ = rhs;
     }
 
-    override @property void viewMatrix(ref const mat4 rhs) @safe pure nothrow
+    final override @property void viewMatrix(ref const mat4 rhs) @safe pure nothrow
     {
         viewMatrix_ = rhs;
     }
 
     override @property void normalMatrix(ref const mat3 rhs) @safe pure nothrow {}
 
-    override @property GLSLShaderProgram* shaderProgram() @safe pure nothrow
+    final override @property GLSLShaderProgram* shaderProgram() @safe pure nothrow
     {
         return shaderProgram_;
     }
@@ -153,27 +111,71 @@ public:
     }
 }
 
+
+/// Render layer that renders RGBA diffuse color.
+class DiffuseColorRenderLayer: ShaderRenderLayer
+{
+public:
+    /// Construct a DiffuseColorRenderLayer using specified shader program.
+    ///
+    /// Params:  shaderProgram = Shader program to use. 
+    ///                          The program must be empty (just constructed),
+    ///                          and will be owned by the render layer, which
+    ///                          will destroy it at its destruction.
+    this(GLSLShaderProgram* shaderProgram)
+    {
+        try
+        {
+            shaderProgram_ = shaderProgram;
+            string vertexShaderSource =
+                [
+                "attribute vec3 Position;"                                         ,
+                "attribute vec2 TexCoord;"                                         ,
+                ""                                                                 ,
+                "varying vec2 frag_TexCoord;"                                      ,
+                ""                                                                 ,
+                "uniform mat4 Model;"                                              ,
+                "uniform mat4 View;"                                               ,
+                "uniform mat4 Projection;"                                         ,
+                ""                                                                 ,
+                "void main (void)"                                                 ,
+                "{"                                                                ,
+                "    frag_TexCoord = TexCoord;"                                    ,
+                "    mat4 ModelViewProjection = Projection * View * Model;"        ,
+                "    gl_Position = ModelViewProjection * vec4(Position, 1.0);"     ,
+                "}"                                                                ,
+                ].join("\n");
+
+            string fragmentShaderSource =
+                [
+                "uniform sampler2D tex;"                                           ,
+                "varying vec2 frag_TexCoord;"                                      ,
+                ""                                                                 ,
+                "void main (void)"                                                 ,
+                "{"                                                                ,
+                "    gl_FragColor = texture2D(tex, frag_TexCoord);"                ,
+                "}"                                                                ,
+                ].join("\n");
+
+            const vertexShader   = shaderProgram.addVertexShader(vertexShaderSource);
+            const fragmentShader = shaderProgram.addFragmentShader(fragmentShaderSource);
+            shaderProgram.lock();
+            super(shaderProgram);
+        }
+        catch(GLSLException e)
+        {
+            assert(false, "Builtin diffuse shader compilation or linking failed");
+        }
+    }
+}
+
 /// Render layer that renders normals as RGB coords.
-class NormalRenderLayer: RenderLayer
+class NormalRenderLayer: ShaderRenderLayer
 {
 private:
-    /// Shader program doing the rendering.
-    GLSLShaderProgram* shaderProgram_;
-    /// Handle to the projection matrix uniform.
-    uint projectionUniform_;
-    /// Handle to the model matrix uniform.
-    uint modelUniform_;
-    /// Handle to the view matrix uniform.
-    uint viewUniform_;
     /// Handle to the normal matrix uniform.
     uint normalMatrixUniform_;
 
-    /// Currently set projection (camera) matrix.
-    mat4 projectionMatrix_;
-    /// Currently set model matrix.
-    mat4 modelMatrix_;
-    /// Currently set view matrix.
-    mat4 viewMatrix_;
     /// Currently set normal matrix.
     mat3 normalMatrix_;
 
@@ -219,13 +221,11 @@ public:
                 "}",
                 ].join("\n");
 
-            const vertexShader   = shaderProgram_.addVertexShader(vertexShaderSource);
-            const fragmentShader = shaderProgram_.addFragmentShader(fragmentShaderSource);
-            shaderProgram_.lock();
-            modelUniform_        = shaderProgram_.getUniformHandle("Model");
-            viewUniform_         = shaderProgram_.getUniformHandle("View");
-            projectionUniform_   = shaderProgram_.getUniformHandle("Projection");
-            normalMatrixUniform_ = shaderProgram_.getUniformHandle("NormalMatrix");
+            const vertexShader   = shaderProgram.addVertexShader(vertexShaderSource);
+            const fragmentShader = shaderProgram.addFragmentShader(fragmentShaderSource);
+            shaderProgram.lock();
+            super(shaderProgram);
+            normalMatrixUniform_ = shaderProgram.getUniformHandle("NormalMatrix");
         }
         catch(GLSLException e)
         {
@@ -233,49 +233,15 @@ public:
         }
     }
 
-    /// Destroy the RenderLayer, freeing up used resources.
-    ~this()
-    {
-        free(shaderProgram_);
-    }
-
-    override @property void projectionMatrix(ref const mat4 rhs) @safe pure nothrow
-    {
-        projectionMatrix_ = rhs;
-    }
-
-    override @property void modelMatrix(ref const mat4 rhs) @safe pure nothrow
-    {
-        modelMatrix_ = rhs;
-    }
-
-    override @property void viewMatrix(ref const mat4 rhs) @safe pure nothrow
-    {
-        viewMatrix_ = rhs;
-    }
-
     override @property void normalMatrix(ref const mat3 rhs) @safe pure nothrow 
     {
         normalMatrix_ = rhs;
     }
 
-    override @property GLSLShaderProgram* shaderProgram() @safe pure nothrow
-    {
-        return shaderProgram_;
-    }
-
     override void startRender()
     {
-        shaderProgram_.bind();
-        shaderProgram_.setUniform(modelUniform_,        modelMatrix_);
-        shaderProgram_.setUniform(viewUniform_,         viewMatrix_);
-        shaderProgram_.setUniform(projectionUniform_,   projectionMatrix_);
+        super.startRender();
         shaderProgram_.setUniform(normalMatrixUniform_, normalMatrix_);
-    }
-
-    override void endRender()
-    {
-        shaderProgram_.release();
     }
 }
 
