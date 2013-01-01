@@ -5,7 +5,7 @@
 
 
 /// Camera with a dimetric projection.
-module awesome2d.dimetriccamera;
+module prerenderer.dimetriccamera;
 
 
 import gl3n.linalg;

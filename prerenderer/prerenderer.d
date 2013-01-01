@@ -6,7 +6,7 @@
 
 
 /// "Main class" of the Awesome2D prerenderer.
-module awesome2d.prerenderer;
+module prerenderer.prerenderer;
 
 import std.algorithm;
 import std.path;
@@ -15,7 +15,7 @@ import std.string;
 
 import dgamevfs._;
 
-import awesome2d.scene;
+import prerenderer.scene;
 import color;
 import platform.platform;
 import platform.sdl2platform;

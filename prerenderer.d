@@ -22,7 +22,7 @@ import std.typecons;
 
 import dgamevfs._;
 
-import awesome2d.prerenderer;
+import prerenderer.prerenderer;
 import memory.memory;
 import util.unittests;
 import util.yaml;

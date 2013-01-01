@@ -5,7 +5,7 @@
 
 
 /// Handles rendering of a single layer of pre-rendered output.
-module awesome2d.renderlayer;
+module prerenderer.renderlayer;
 
 
 import gl3n.linalg;

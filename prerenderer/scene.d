@@ -1,11 +1,11 @@
-//   jkn      Copyright Ferdinand Majerech 2012.
+//          Copyright Ferdinand Majerech 2012.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 
 /// Graphics scene of the demo.
-module awesome2d.scene;
+module prerenderer.scene;
 
 
 import core.stdc.string;
@@ -22,9 +22,9 @@ import derelict.util.exception;
 import dgamevfs._;
 import gl3n.linalg;
 
-import awesome2d.prerenderer;
-import awesome2d.dimetriccamera;
-import awesome2d.renderlayer;
+import prerenderer.prerenderer;
+import prerenderer.dimetriccamera;
+import prerenderer.renderlayer;
 import color;
 import formats.image;
 import image;
