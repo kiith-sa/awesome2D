@@ -30,7 +30,7 @@ import util.yaml;
 
 
 /// Exception thrown at CLI errors.
-class Awesome2DCLIException : Exception 
+class PrerendererCLIException : Exception 
 {
     public this(string msg, string file = __FILE__, int line = __LINE__)
     {
@@ -44,10 +44,10 @@ class Awesome2DCLIException : Exception
 ///          process = Function to process the option. Takes
 ///                    the option and its arguments.
 /// 
-/// Throws:  Awesome2DCLIException if arg is not an option, and anything process() throws.
+/// Throws:  PrerendererCLIException if arg is not an option, and anything process() throws.
 void processOption(string arg, void delegate(string, string[]) process)
 {
-    enforce(arg.startsWith("--"), new Awesome2DCLIException("Unknown argument: " ~ arg));
+    enforce(arg.startsWith("--"), new PrerendererCLIException("Unknown argument: " ~ arg));
     auto argParts = arg[2 .. $].split("=");
     process(argParts[0], argParts[1 .. $]);
 }
@@ -144,8 +144,8 @@ void help()
     foreach(line; help) {writeln(line);}
 }
 
-/// Parses Awesome2D CLI commands, composes them into an action to execute, and executes it.
-struct Awesome2DCLI
+/// Parses Prerenderer CLI commands, composes them into an action to execute, and executes it.
+struct PrerendererCLI
 {
 private:
     // Name of the user (read-write) data directory.
@@ -159,7 +159,7 @@ private:
     // When a command is encountered, it is set to that command's 
     // local arguments parser function.
     //
-    // May throw Awesome2DCLIException or ConvException.
+    // May throw PrerendererCLIException or ConvException.
     void delegate(string) processArg_;
 
     // Action to execute (determined by command line arguments).
@@ -208,7 +208,7 @@ private:
     }
 
 public:
-    /// Construct an Awesome2DCLI with specified command-line arguments and parse them.
+    /// Construct an PrerendererCLI with specified command-line arguments and parse them.
     this(string[] cliArgs)
     {
         processArg_ = &globalOrCommand;
@@ -261,13 +261,13 @@ private:
         if(!arg.startsWith("--"))
         {
             enforce(modelFileName is null,
-                    new Awesome2DCLIException("Specifying model filename more than once"));
+                    new PrerendererCLIException("Specifying model filename more than once"));
             modelFileName = arg;
             return;
         }
         processOption(arg, (opt, args){
         enforce(!args.empty, 
-                new Awesome2DCLIException("--" ~ opt ~ " needs an argument"));
+                new PrerendererCLIException("--" ~ opt ~ " needs an argument"));
 
         switch(opt)
         {
@@ -276,11 +276,11 @@ private:
                 break;
             case "width":  
                 renderWidth  = to!int(args[0]);
-                enforce(renderWidth > 0, new Awesome2DCLIException("Invalid --width parameter"));
+                enforce(renderWidth > 0, new PrerendererCLIException("Invalid --width parameter"));
                 break;
             case "height": 
                 renderHeight = to!int(args[0]);
-                enforce(renderHeight > 0, new Awesome2DCLIException("Invalid --height parameter"));
+                enforce(renderHeight > 0, new PrerendererCLIException("Invalid --height parameter"));
                 break;
             case "angle":
                 verticalAngle = to!float(args[0]);
@@ -290,18 +290,18 @@ private:
                 break;
             case "zoom":
                 zoom = to!float(args[0]);
-                enforce(zoom != 0, new Awesome2DCLIException("Can't set --zoom to 0"));
+                enforce(zoom != 0, new PrerendererCLIException("Can't set --zoom to 0"));
                 break;
             case "layer":
                 layers = args[0].split(",");
                 foreach(layer; layers)
                 {
                     enforce(["diffuse", "normal", "offset"].canFind(layer),
-                            new Awesome2DCLIException("Unknown render layer: " ~ layer));
+                            new PrerendererCLIException("Unknown render layer: " ~ layer));
                 }
                 break;
             default:
-                throw new Awesome2DCLIException("Unrecognized render option: --" ~ opt);
+                throw new PrerendererCLIException("Unrecognized render option: --" ~ opt);
         }
         });
     }
@@ -316,7 +316,7 @@ private:
                 action_ = &actionRender;
                 break;
             default: 
-                throw new Awesome2DCLIException("Unknown command: " ~ arg);
+                throw new PrerendererCLIException("Unknown command: " ~ arg);
         }
     }
 
@@ -337,11 +337,11 @@ private:
             case "help":  help(); return;
             case "user_data":
                 enforce(!args.empty,
-                        new Awesome2DCLIException("Option --user_data needs an argument (directory)"));
+                        new PrerendererCLIException("Option --user_data needs an argument (directory)"));
                 userDirectoryName = args[0];
                 break;
             default:
-                throw new Awesome2DCLIException("Unrecognized global option: --" ~ opt);
+                throw new PrerendererCLIException("Unrecognized global option: --" ~ opt);
         }
         });
     }
@@ -433,14 +433,14 @@ int main(string[] args)
 
     runUnitTests();
 
-    try{return Awesome2DCLI(args).execute();}
+    try{return PrerendererCLI(args).execute();}
     catch(ConvException e)
     {
         writeln("String conversion error. Maybe a CLI argument is in incorrect format?\n" ~
                 "ERROR: ", e.msg);
         return -1;
     }
-    catch(Awesome2DCLIException e)
+    catch(PrerendererCLIException e)
     {
         writeln("ERROR: ", e.msg);
         return -1;
