@@ -19,8 +19,11 @@ import std.traits;
 import dgamevfs._;
 
 import dyaml.constructor;
+import dyaml.dumper;
 import dyaml.loader;
+import dyaml.representer;
 import dyaml.resolver;
+import dyaml.style;
 
 public import dyaml.exception;
 public import dyaml.node : YAMLNode = Node;
@@ -29,7 +32,7 @@ import color;
 
 
 /**
- * Load a YAML file with support for ICE data types.
+ * Load a YAML file with support for some custom data types.
  *
  * Params:  file = File to load from.
  *
@@ -53,6 +56,49 @@ YAMLNode loadYAML(VFSFile file)
     loader.resolver    = resolver;
 
     return loader.load(); 
+}
+
+/**
+ * Save to a YAML file with support for some custom data types.
+ *
+ * Params:  file = File to save to.
+ *          yaml = YAML document to save.
+ */
+void saveYAML(VFSFile file, ref YAMLNode yaml)
+{
+    auto stream        = VFSStream(file.output);
+    auto dumper        = Dumper(stream);
+    dumper.resolver    = iceResolver();
+    dumper.representer = iceRepresenter();
+    dumper.dump(yaml);
+}
+
+/// Return a YAML constructor supporting some of our data types.
+Constructor iceConstructor()
+{
+    auto constructor = new Constructor;
+    constructor.addConstructorScalar("!color", &constructColorFromYAMLScalar);
+    constructor.addConstructorScalar("!rotDeg", &constructDegreesRotation);
+    return constructor;
+}
+
+/// Return a YAML resolver supporting some of our data types.
+Resolver iceResolver()
+{
+    auto resolver = new Resolver;
+    resolver.addImplicitResolver("!color", std.regex.regex(colorYAMLRegex),
+                                 colorYAMLStartChars);
+    resolver.addImplicitResolver("!rotDeg", std.regex.regex(rotationDegreesRegex),
+                                 rotationDegreesStartChars);
+    return resolver;
+}
+
+/// Return a YAML representer customized for this project.
+Representer iceRepresenter()
+{
+    auto representer   = new Representer();
+    representer.defaultCollectionStyle = CollectionStyle.Block;
+    return representer;
 }
 
 ///Thrown when a YAML value is out of range or invalid.
