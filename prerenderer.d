@@ -80,9 +80,12 @@ void help()
         "                             The camera used for rendering will be looking at",
         "                             coordinates [0,0,0]. Camera zoom can be set by",
         "                             the --zoom option.",
-        "                             The output images will be PNGs, with names based",
-        "                             on model name and rendering parameters for",
-        "                             each image.",
+        "                             The output images will be PNGs, written to ",
+        "                             a subdirectory MODELBASENAME_prerender, where",
+        "                             MODELBASENAME is the name of the model without",
+        "                             the file extenstion. A YAML metadata file, ",
+        "                             MODELBASENAME_sprite_metadata.yaml, will also be",
+        "                             to this directory.",
         "    Required arguments:",
         "      <model>                Filename of the model to render.",
         "                             Many formats are supported (using Assimp)",
@@ -356,7 +359,10 @@ private:
         }
         try
         {
+            const modelBaseName = stripExtension(baseName(modelFileName));
             YAMLNode[] imagesMeta;
+            outputDir_ = outputDir_.dir(modelBaseName ~ "_prerender");
+            outputDir_.create();
             auto prerender = 
                 new Prerenderer(utilDir_, outputDir_, 
                                 renderWidth, renderHeight, 
@@ -394,7 +400,6 @@ private:
             auto spriteMeta = YAMLNode(spriteMetaKeys, spriteMetaValues);
             YAMLNode meta = YAMLNode(["sprite", "images"], [spriteMeta, YAMLNode(imagesMeta)]);
 
-            const modelBaseName = stripExtension(baseName(modelFileName));
             string fileName = format("%s_sprite_metadata.yaml", modelBaseName);
             try
             {
