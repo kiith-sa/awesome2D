@@ -9,20 +9,23 @@
 module main.prerenderer;
 
 
-import core.stdc.stdlib: exit;     
+import core.stdc.stdlib: exit;
 import std.algorithm;
 import std.array;
 import std.conv;
 import std.exception;
 import std.math;
+import std.path;
 import std.stdio: writeln;
+import std.string;
 import std.typecons;
 
 import dgamevfs._;
 
 import awesome2d.prerenderer;
-import util.unittests;
 import memory.memory;
+import util.unittests;
+import util.yaml;
 
 
 
@@ -307,45 +310,7 @@ private:
         {
             case "render":
                 processArg_ = &localRender;
-                action_ = ()
-                {
-                    if(modelFileName is null)
-                    {
-                        writeln("\nNo model file name specified.");
-                        help();
-                        return -1;
-                    }
-                    try
-                    {
-                        auto prerender = 
-                            new Prerenderer(utilDir_, outputDir_, 
-                                            renderWidth, renderHeight, 
-                                            modelFileName, textureFileName);
-                        writeln("Initialized prerender...");
-                        scope(exit){clear(prerender);}
-                        RenderParams params;
-                        params.width         = renderWidth;
-                        params.height        = renderHeight;
-                        params.verticalAngle = verticalAngle;
-                        params.zoom          = zoom;
-                        // One image per rotation per layer
-                        foreach(rot; rotationAngles_)
-                        {
-                            params.rotation = rot;
-                            foreach(layer; layers)
-                            {
-                                params.layer = layer;
-                                prerender.prerender(params);
-                            }
-                        }
-                    }
-                    catch(StartupException e)
-                    {
-                        writeln("prerender failed to start: ", e.msg);
-                        return -1;
-                    }
-                    return 0;
-                };
+                action_ = &actionRender;
                 break;
             default: 
                 throw new Awesome2DCLIException("Unknown command: " ~ arg);
@@ -377,6 +342,83 @@ private:
         }
         });
     }
+
+    // Action executed for the "render" command.
+    //
+    // Returns:  0 on success, -1 on failure.
+    int actionRender()
+    {
+        if(modelFileName is null)
+        {
+            writeln("\nNo model file name specified.");
+            help();
+            return -1;
+        }
+        try
+        {
+            YAMLNode[] imagesMeta;
+            auto prerender = 
+                new Prerenderer(utilDir_, outputDir_, 
+                                renderWidth, renderHeight, 
+                                modelFileName, textureFileName);
+            writeln("Initialized prerender...");
+            scope(exit){clear(prerender);}
+            RenderParams params;
+            params.width         = renderWidth;
+            params.height        = renderHeight;
+            params.verticalAngle = verticalAngle;
+            params.zoom          = zoom;
+            // One image per rotation per layer
+            foreach(rot; rotationAngles_)
+            {
+                YAMLNode[] layersMeta;
+                params.rotation = rot;
+                foreach(layer; layers)
+                {
+                    params.layer = layer;
+                    const fileName = prerender.prerender(params);
+                    layersMeta ~= YAMLNode([layer], [fileName]);
+                }
+                imagesMeta ~= YAMLNode(["zRotation", "layers"],
+                                       [YAMLNode(rot), YAMLNode(layersMeta)]);
+            }
+
+            // Write YAML metadata about the sprite.
+            string[] spriteMetaKeys;
+            YAMLNode[] spriteMetaValues;
+            spriteMetaKeys   ~= "verticalAngle";
+            spriteMetaValues ~= YAMLNode(verticalAngle);
+            spriteMetaKeys   ~= "size";
+            spriteMetaValues ~= YAMLNode([renderWidth, renderHeight]);
+            prerender.sceneMeta(spriteMetaKeys, spriteMetaValues);
+            auto spriteMeta = YAMLNode(spriteMetaKeys, spriteMetaValues);
+            YAMLNode meta = YAMLNode(["sprite", "images"], [spriteMeta, YAMLNode(imagesMeta)]);
+
+            const modelBaseName = stripExtension(baseName(modelFileName));
+            string fileName = format("%s_sprite_metadata.yaml", modelBaseName);
+            try
+            {
+                auto file = outputDir_.file(fileName);
+                saveYAML(file, meta);
+            }
+            catch(VFSException e)
+            {
+                writeln("Failed to write sprite metadata file ", fileName, ": ", e.msg);
+                return -1;
+            }
+            catch(YAMLException e)
+            {
+                writeln("Failed to write sprite metadata file ", fileName, ": ", e.msg);
+                return -1;
+            }
+        }
+        catch(StartupException e)
+        {
+            writeln("prerender failed to start: ", e.msg);
+            return -1;
+        }
+        return 0;
+    };
 }
 
 /// Program entry point.

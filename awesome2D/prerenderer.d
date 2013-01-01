@@ -9,6 +9,7 @@
 module awesome2d.prerenderer;
 
 import std.algorithm;
+import std.path;
 import std.stdio;
 import std.string;
 
@@ -114,21 +115,31 @@ public:
        destroyPlatform();
     }
 
+    /// Get metadata about the graphics rendered in the scene as YAML.
+    @property void sceneMeta(ref string[] keys, ref YAMLNode[] values) @safe
+    {
+        scene_.sceneMeta(keys, values);
+    }
+
     /// Render the scene with specified parameters and write the result to an image file.
     ///
-    /// Output filename will depend on
+    /// Output filename will be based on the model filename and render parameters.
     ///
     /// May not throw, although file output might fail, in which case an
     /// error will be written to stdout.
-    void prerender(ref const RenderParams params)
+    ///
+    /// Returns:  Filename of the output file.
+    string prerender(ref const RenderParams params)
     {
+        const modelBaseName = stripExtension(baseName(modelFileName_));
+        string fileName = 
+            format("%s_%s_%s.png", modelBaseName, params.layer, params.rotation);
+
         // Contains all rendering done in a single frame. 
         //
         // Returns true when the frame is done.
         bool frame(Renderer renderer)
         {
-            import std.path;
-
             import formats.image;
             import image;
             import memory.memory;
@@ -159,10 +170,6 @@ public:
             // Write to an image file.
             Image fboImage;
             fbo.toImage(fboImage);
-
-            const modelBaseName = stripExtension(baseName(modelFileName_));
-            string fileName = 
-                format("%s_%s_%s.png", modelBaseName, params.layer, params.rotation);
             try
             {
                 auto file = outputDir_.file(fileName);
@@ -183,6 +190,8 @@ public:
             return true;
         }
         renderer_.renderFrame(&frame);
+
+        return fileName;
     }
 
 private:

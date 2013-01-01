@@ -29,6 +29,7 @@ import color;
 import formats.image;
 import image;
 import memory.memory;
+import util.yaml;
 import video.framebuffer;
 import video.glslshader;
 import video.renderer;
@@ -123,11 +124,32 @@ public:
         // (Loaded transform is not yet used.)
         model_ = modelAndTransform[0];
         maxDistanceFromOrigin_ = modelAndTransform[1];
-        writeln("maxDistanceFromOrigin_: ", maxDistanceFromOrigin_);
 
         camera_ = new DimetricCamera();
 
         sceneInitialized_ = true;
+    }
+
+    /// Get metadata about the graphics rendered in the scene as YAML.
+    @property void sceneMeta(ref string[] keys, ref YAMLNode[] values) @safe
+    in
+    {
+        assert(keys.length == values.length, 
+               "Lengths of arrays specifying a YAML mapping don't match'");
+    }
+    out
+    {
+        assert(keys.length == values.length, 
+               "Lengths of arrays specifying a YAML mapping don't match'");
+    }
+    body
+    {
+        const ext = maxDistanceFromOrigin_;
+        YAMLNode extents = 
+            YAMLNode(["xMin", "xMax", "yMin", "yMax", "zMin", "zMax"],
+                     [-ext,   ext,    -ext,   ext,    -ext,   ext]);
+        keys   ~= "posExtents";
+        values ~= extents;
     }
 
     /// Draw the scene with specified rendering parameters.
