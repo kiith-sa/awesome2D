@@ -114,7 +114,7 @@ version(GNU){string compiler = "gdmd";}
 version(LDC){string compiler = "ldmd";}
 
 version(Windows)
-{   
+{
     ///Valid object file extensions. 
     const string[] obj_ext = ["obj", "o"]; 
     ///Library extension.
@@ -125,7 +125,7 @@ version(Windows)
     char file_separator ='\\';
 }
 else
-{    
+{
     ///Valid object file extensions. 
     const string[] obj_ext = ["o"];
     ///Library extension.
@@ -161,20 +161,11 @@ void main(string[] args)
     }
 
     if(targets.length == 0){targets = ["debug"];}
-    
-    //No debugging symbols to avoid an OPTLINK bug on Windows.
-    version(Windows)
-    {
-        auto dbg          = ["-unittest", "-debug", "-ofprerenderer-debug"];
-        auto no_contracts = ["-release", "-ofprerenderer-no-contracts"];
-        auto release      = ["-O", "-inline", "-release", "-ofprerenderer-release"];
-    }
-    else
-    {
-        auto dbg          = ["-unittest", "-gc", "-debug", "-ofprerenderer-debug"];
-        auto no_contracts = ["-release", "-gc", "-ofprerenderer-no-contracts"];
-        auto release      = ["-O", "-inline", "-release", "-gc", "-ofprerenderer-release"];
-    }
+
+    auto dbg          = ["-unittest", "-gc", "-debug"];
+    auto no_contracts = ["-release", "-gc"];
+    auto release      = ["-O", "-inline", "-release", "-gc"];
+
     auto dependencies = ["dependencies/Derelict3/import/derelict/opengl3/",
                          "dependencies/Derelict3/import/derelict/sdl2/",
                          "dependencies/Derelict3/import/derelict/assimp/",
@@ -182,16 +173,17 @@ void main(string[] args)
                          "dependencies/gl3n",
                          "dependencies/dgamevfs/dgamevfs",
                          "dependencies/dyaml/dyaml"];
-    auto sources      = ["prerenderer", "containers/", "formats/", "math/", 
+    auto sources      = ["containers/", "formats/", "math/", 
                          "memory/", "platform/", "time/", "util/", "video/", 
-                         "color.d", "prerenderer.d", "image.d"];
+                         "color.d", "image.d"];
 
-    void compile_(string[] args, string[] files)
+    void compile_(string[] args, string[] files, string binaryName)
     {
-        compile(args ~ extra_args, files);
+        compile(args ~ extra_args ~ ("-of" ~ binaryName), files);
     }
 
-    auto files = dependencies ~ sources;
+    auto filesPrerenderer = dependencies ~ sources ~ ["prerenderer/", "prerenderer.d"];
+    auto filesDemo        = dependencies ~ sources ~ ["demo/", "demo.d"];
 
     void build(string[] targets ...)
     {
@@ -201,18 +193,24 @@ void main(string[] args)
             switch(target)
             {
                 case "debug":
-                    compile_(dbg, files);
+                    compile_(dbg, filesPrerenderer, "prerenderer-debug");
+                    compile_(dbg, filesDemo, "demo-debug");
                     break;
                 case "no-contracts":
-                    compile_(no_contracts, files);
+                    compile_(no_contracts, filesPrerenderer, "-ofprerenderer-no-contracts");
+                    compile_(no_contracts, filesDemo, "-ofdemo-no-contracts");
                     break;
                 case "release":
-                    compile_(release, files);
+                    compile_(release, filesPrerenderer, "-ofprerenderer-release");
+                    compile_(release, filesDemo, "-ofdemo-release");
                     break;
                 case "all":
-                    compile_(dbg, files);
-                    compile_(no_contracts, files);
-                    compile_(release, files);
+                    compile_(dbg, filesPrerenderer, "prerenderer-debug");
+                    compile_(no_contracts, filesPrerenderer, "-ofprerenderer-no-contracts");
+                    compile_(release, filesPrerenderer, "-ofprerenderer-release");
+                    compile_(dbg, filesDemo, "demo-debug");
+                    compile_(no_contracts, filesDemo, "-ofdemo-no-contracts");
+                    compile_(release, filesDemo, "-ofdemo-release");
                     break;
                 default:
                     writeln("unknown target: ", target);
@@ -245,12 +243,15 @@ void help()
         "Optionally, build target can be specified, 'debug' is default.\n"
         "Available build targets:\n"
         "    debug           Debug information, unittests, contracts built in.\n"
-        "                    No optimizations. Target binary name: 'prerenderer-debug'\n"
+        "                    No optimizations. Target binary names: 'prerenderer-debug',\n"
+        "                    'demo-debug'.\n"
         "    no-contracts    Debug information, no unittests, contracts, optimizations.\n"
-        "                    Target binary name: 'prerenderer-no-contracts'\n"
+        "                    Target binary name: 'prerenderer-no-contracts',\n"
+        "                    'demo-no-contracts'.\n"
         "    release         Debug information, no unittests, contracts.\n"
         "                    Optimizations, inlining enabled.\n"
-        "                    Target binary name: 'prerenderer-release'\n"
+        "                    Target binary name: 'prerenderer-release',\n"
+        "                    'demo-release'.\n"
         "    all             All of the above.\n"
         "\n"
         "Available options:\n"
@@ -279,7 +280,7 @@ void help()
  * TODO Add a dry run option to just return an array of commands to execute. 
  */
 void compile(string[] options, string[] paths)
-{    
+{
     //Convert src and lib paths to files
     string[] sources, libs, ddocs;
     foreach(src; paths)
@@ -319,7 +320,7 @@ void compile(string[] options, string[] paths)
 
     //Create modules.ddoc and add it to array of ddocs
     if(co.generate_doc)
-    {    
+    {
         string modules = "MODULES = \n";
         sources.sort;
         foreach(src; sources)
@@ -333,7 +334,7 @@ void compile(string[] options, string[] paths)
         write("modules.ddoc", modules);
         ddocs ~= "modules.ddoc";
     }
-    
+
     string[] arguments = options ~ sources ~ ddocs ~ libs;
 
     //Compile
@@ -390,7 +391,7 @@ void compile(string[] options, string[] paths)
     }
     //Compilers other than gdc 
     else
-    {    
+    {
         execute_compiler(compiler, arguments);        
         //Move all html files in doc_path to the doc output folder 
         //and rename them with the "package.module" naming convention.
@@ -584,7 +585,7 @@ class CompileException : Exception
  *          arguments = Compiler arguments.
  */
 void execute_compiler(string compiler, string[] arguments)
-{    
+{
     try
     {
         version(Windows)
@@ -603,7 +604,7 @@ void execute_compiler(string compiler, string[] arguments)
             execute(compiler ~ " ", ["@compile"]);
         } 
         else{execute(compiler, arguments);}
-    } 
+    }
     catch(ProcessException e)
     {
         writeln("Compiler failed: " ~ e.msg);
@@ -622,7 +623,7 @@ class ProcessException : Exception {this(in string message){super(message);}};
  * Throws: ProcessException on failure or status code 1.
  */
 void execute(string command, string[] args)
-{    
+{
     version(Windows)
     {
         if(command.startsWith("./")){command = command[2 .. $];}
@@ -648,7 +649,7 @@ void execute(string command, string[] args)
  * Bugs:    LDC fails to return any results. 
  */
 string[] scan(string directory, string extensions ...)
-{    
+{
     string[] result;
     foreach(string name; dirEntries(directory, SpanMode.depth))
     {
