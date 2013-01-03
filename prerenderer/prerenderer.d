@@ -89,30 +89,29 @@ public:
     this(VFSDir utilDir, VFSDir outputDir, const uint width, const uint height,
          string modelFileName, string textureFileName)
     {
-       utilDir_   = utilDir;
-       outputDir_ = outputDir;
-       writeln("Initializing Prerenderer...");
-       scope(failure){writeln("Initializing Awesome2D...");}
-       modelFileName_ = modelFileName;
+        utilDir_   = utilDir;
+        outputDir_ = outputDir;
+        writeln("Initializing Prerenderer...");
+        modelFileName_ = modelFileName;
 
-       initConfig();
-       initPlatform();
-       writeln("Initialized Platform");
-       scope(failure){destroyPlatform();}
-       initRenderer(width, height);
-       writeln("Initialized Video");
-       scope(failure){destroyRenderer();}
-       initScene(modelFileName, textureFileName);
-       scope(failure){destroyScene();}
+        initConfig();
+        initPlatform();
+        writeln("Initialized Platform");
+        scope(failure){destroyPlatform();}
+        initRenderer(width, height);
+        writeln("Initialized Video");
+        scope(failure){destroyRenderer();}
+        initScene(modelFileName, textureFileName);
+        scope(failure){destroyScene();}
     }
 
     /// Destroy the prerenderer.
     ~this()
     {
-       writeln("Destroying Prerenderer...");
-       destroyScene();
-       destroyRenderer();
-       destroyPlatform();
+        writeln("Destroying Prerenderer...");
+        destroyScene();
+        destroyRenderer();
+        destroyPlatform();
     }
 
     /// Get metadata about the graphics rendered in the scene as YAML.
