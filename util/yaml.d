@@ -17,6 +17,7 @@ import std.math;
 import std.traits;
 
 import dgamevfs._;
+import gl3n.linalg;
 
 import dyaml.constructor;
 import dyaml.dumper;
@@ -117,7 +118,7 @@ class InvalidYAMLValueException : YAMLException
  * positive). 
  *
  *
- * Currently supported types: float, double, real
+ * Currently supported types: float and integer types, vec2, vec2u, vec3.
  *
  * For floating point types, NaN values are automatically considered invalid.
  *
@@ -136,20 +137,36 @@ T fromYAML(T, string cond = "")(ref YAMLNode yaml, string context = "")
         T val = yaml.as!T;
         enforce(!isNaN(val), new E("NaN YAML value. Context: " ~ context));
     }
-    else static if(is(T == Rectf))
+    else static if(isIntegral!T)
     {
-        enforce(yaml.length == 4,
-                new E("Rectangle with an unexpected number of components. "
-                      "Context: " ~ context));
-        T val = Rectf(fromYAML!float(yaml[0], context), 
-                      fromYAML!float(yaml[1], context),
-                      fromYAML!float(yaml[2], context),
-                      fromYAML!float(yaml[3], context));
-        enforce(val.valid,
-                new E("Invalid rectangle (minimum x or y greater than" ~
-                      "maximum). Context: " ~ context));
+        T val = yaml.as!T;
     }
-    else static assert(false, "Unsupported type for fromYAML" ~ T.stringof);
+    else static if(is(T == vec2))
+    {
+        enforce(yaml.length == 2,
+                new E("2D vector with an unexpected number of components. "
+                      "Context: " ~ context));
+        T val = vec2(fromYAML!float(yaml[0], context), 
+                     fromYAML!float(yaml[1], context));
+    }
+    else static if(is(T == vec2u))
+    {
+        enforce(yaml.length == 2,
+                new E("2D vector with an unexpected number of components. "
+                      "Context: " ~ context));
+        T val = vec2u(fromYAML!uint(yaml[0], context), 
+                      fromYAML!uint(yaml[1], context));
+    }
+    else static if(is(T == vec3))
+    {
+        enforce(yaml.length == 3,
+                new E("3D vector with an unexpected number of components. "
+                      "Context: " ~ context));
+        T val = vec3(fromYAML!float(yaml[0], context),
+                     fromYAML!float(yaml[1], context),
+                     fromYAML!float(yaml[2], context));
+    }
+    else static assert(false, "Unsupported type for fromYAML: " ~ T.stringof);
 
     static if(cond != "")
     {
