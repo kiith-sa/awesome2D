@@ -188,7 +188,7 @@ struct Vector(T, Allocator = DirectAllocator)
     /* Disable for non-copyable data types 
      *
      * We also require T.init here, but we already require that
-     * for the FixedArray itself.
+     * for the Vector itself.
      */
     static if(__traits(compiles, Vector!T().data_[0] = T.init))
     {
