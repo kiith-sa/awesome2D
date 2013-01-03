@@ -377,16 +377,19 @@ private:
             // One image per rotation per layer
             foreach(rot; rotationAngles_)
             {
-                YAMLNode[] layersMeta;
+                string[] layersMetaKeys;
+                string[] layersMetaValues;
                 params.rotation = rot;
                 foreach(layer; layers)
                 {
                     params.layer = layer;
                     const fileName = prerender.prerender(params);
-                    layersMeta ~= YAMLNode([layer], [fileName]);
+                    layersMetaKeys ~= layer;
+                    layersMetaValues ~= fileName;
                 }
                 imagesMeta ~= YAMLNode(["zRotation", "layers"],
-                                       [YAMLNode(rot), YAMLNode(layersMeta)]);
+                                       [YAMLNode(rot), 
+                                        YAMLNode(layersMetaKeys, layersMetaValues)]);
             }
 
             // Write YAML metadata about the sprite.

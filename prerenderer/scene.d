@@ -146,8 +146,8 @@ public:
     {
         const ext = maxDistanceFromOrigin_;
         YAMLNode extents = 
-            YAMLNode(["xMin", "xMax", "yMin", "yMax", "zMin", "zMax"],
-                     [-ext,   ext,    -ext,   ext,    -ext,   ext]);
+            YAMLNode(["min", "max"], 
+                     [YAMLNode([-ext, -ext, -ext]), YAMLNode([ext, ext, ext])]);
         keys   ~= "posExtents";
         values ~= extents;
     }
