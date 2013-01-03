@@ -181,6 +181,7 @@ private:
             auto demo = new Demo(dataDir_);
             writeln("Initialized demo...");
             demo.run();
+            clear(demo);
         }
         catch(StartupException e)
         {
