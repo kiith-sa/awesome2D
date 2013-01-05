@@ -38,8 +38,10 @@ void constructGLSLShaderGL2(ref GLSLShaderProgram shader) pure @safe nothrow
     shader.bind_                 = &bind;
     shader.release_              = &release;
     shader.getUniformHandle_     = &getUniformHandle;
+    shader.setUniformInt_        = &setUniformInt;
     shader.setUniformFloat_      = &setUniformFloat;
     shader.setUniformvec2_       = &setUniformvec2;
+    shader.setUniformvec3_       = &setUniformvec3;
     shader.setUniformmat4_       = &setUniformmat4;
     shader.setUniformmat3_       = &setUniformmat3;
     shader.setUniformColor_      = &setUniformColor;
@@ -631,6 +633,17 @@ uint getUniformHandle(ref GLSLShaderProgram self, const string name)
     return getUniformOuterHandle(name);
 }}
 
+/// Set an integer uniform value.
+///
+/// Implements GLSLShaderProgram::setUniform.
+void setUniformInt
+    (ref GLSLShaderProgram self, const uint outerHandle, const int value)
+{with(self.gl2_)
+{
+    assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
+    glUniform1i(getUniformGLHandle(outerHandle), value);
+}}
+
 /// Set a float uniform value.
 ///
 /// Implements GLSLShaderProgram::setUniform.
@@ -651,6 +664,17 @@ void setUniformvec2
 {
     assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
     glUniform2f(getUniformGLHandle(outerHandle), value.x, value.y);
+}}
+
+/// Set a 3D vector uniform value.
+///
+/// Implements GLSLShaderProgram::setUniform.
+void setUniformvec3
+    (ref GLSLShaderProgram self, const uint outerHandle, const vec3 value)
+{with(self.gl2_)
+{
+    assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
+    glUniform3f(getUniformGLHandle(outerHandle), value.x, value.y, value.z);
 }}
 
 /// Set a 4x4 matrix uniform value.
