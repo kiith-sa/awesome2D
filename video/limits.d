@@ -13,7 +13,7 @@ package:
 /// Maximum number of vertex attributes.
 enum MAX_ATTRIBUTES = 8;
 /// Maximum number of uniform variables.
-enum MAX_UNIFORMS = 16;
+enum MAX_UNIFORMS = 32;
 /// Maximum number of vertex shaders (enabled or disabled) in the program.
 enum MAX_VERTEX_SHADERS = 16;
 /// Maximum number of fragment shaders (enabled or disabled) in the program.
