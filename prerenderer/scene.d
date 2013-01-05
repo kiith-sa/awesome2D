@@ -185,17 +185,18 @@ public:
 
         // Set up the camera.
         const zoom = params.zoom;
-        const cameraSize = vec2(1.0f / zoom, 1.0f / zoom * (cast(float)params.height / params.width));
+        const cameraSize =
+            vec2(1.0f / zoom, 1.0f / zoom * (cast(float)params.height / params.width));
         camera_.setProjection(- 0.5 * cameraSize, cameraSize, 100);
         camera_.verticalAngleRadians = params.verticalAngle / 180.0 * PI;
 
         const view = camera_.view;
 
         // Model transform.
-        const model        = mat4.zrotation(params.rotation / 180.0 * PI);
+        const model = mat4.zrotation(params.rotation / 180.0 * PI);
 
         // Calculate the normal matrix from the modelview matrix.
-        const normalMatrix = mat3(view * model).inverse().transposed();
+        const normalMatrix = mat3(model).inverse().transposed();
 
         // Bind the texture to texture unit 0.
         texture_.bind(0);
