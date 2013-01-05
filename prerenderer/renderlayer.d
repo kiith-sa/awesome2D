@@ -294,7 +294,7 @@ public:
                 "void main()\n",
                 "{\n",
                 // Map [-maxExtentFromOrigin_ .. maxExtentFromOrigin_] to [0 .. 1]
-                "    gl_FragColor = vec4((frag_Position / (2.0 * MaxExtentFromOrigin)) + 1.0, 1.0);\n",
+                "    gl_FragColor = vec4((frag_Position / (2.0 * MaxExtentFromOrigin)) + 0.5, 1.0);\n",
                 "}\n"
                 ].join("\n");
 
