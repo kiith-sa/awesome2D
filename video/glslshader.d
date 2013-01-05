@@ -64,8 +64,12 @@ package:
     uint function(ref Self, const string)                    getUniformHandle_;
     // Pointer to setUniform float overload implementation.
     void function(ref Self, const uint, const float)         setUniformFloat_;
+    // Pointer to setUniform int overload implementation.
+    void function(ref Self, const uint, const int)           setUniformInt_;
     // Pointer to setUniform vec2 overload implementation.
     void function(ref Self, const uint, const vec2)          setUniformvec2_;
+    // Pointer to setUniform vec3 overload implementation.
+    void function(ref Self, const uint, const vec3)          setUniformvec3_;
     // Pointer to setUniform mat4 overload implementation.
     void function(ref Self, const uint, ref const(mat4))     setUniformmat4_;
     // Pointer to setUniform mat3 overload implementation.
@@ -189,6 +193,21 @@ public:
         return getUniformHandle_(this, name);
     }
 
+    /// Set an integer uniform value.
+    ///
+    /// Can only be called while the shader program is bound.
+    ///
+    /// Params: handle = Handle of the uniform to set. Must be previously
+    ///                  returned by getUniformHandle(), must match the
+    ///                  data type of the value, and must be present in
+    ///                  the shader.
+    ///
+    /// Throws: GLSLUniformException on failure.
+    void setUniform(const uint handle, const int value)
+    {
+        setUniformInt_(this, handle, value);
+    }
+
     /// Set a floating-point uniform value.
     ///
     /// Can only be called while the shader program is bound.
@@ -217,6 +236,21 @@ public:
     void setUniform(const uint handle, const vec2 value)
     {
         setUniformvec2_(this, handle, value);
+    }
+
+    /// Set a 3D vector uniform value.
+    ///
+    /// Can only be called while the shader program is bound.
+    ///
+    /// Params: handle = Handle of the uniform to set. Must be previously 
+    ///                  returned by getUniformHandle(), must match the 
+    ///                  data type of the value, and must be present in 
+    ///                  the shader.
+    ///
+    /// Throws: GLSLUniformException on failure.
+    void setUniform(const uint handle, const vec3 value)
+    {
+        setUniformvec3_(this, handle, value);
     }
 
     /// Set a 4x4 matrix uniform value.
