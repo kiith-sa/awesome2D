@@ -84,8 +84,7 @@ void help()
         "                             a subdirectory MODELBASENAME_prerender, where",
         "                             MODELBASENAME is the name of the model without",
         "                             the file extenstion. A YAML metadata file, ",
-        "                             MODELBASENAME_sprite_metadata.yaml, will also be",
-        "                             to this directory.",
+        "                             sprite.yaml, will also be written to this directory.",
         "    Required arguments:",
         "      <model>                Filename of the model to render.",
         "                             Many formats are supported (using Assimp)",
@@ -391,6 +390,10 @@ private:
                                        [YAMLNode(rot), 
                                         YAMLNode(layersMetaKeys, layersMetaValues)]);
             }
+            // If we had 1 unit == 1 pixel, params.width would be projection width.
+            // Our projection width is 1.0f / zoom. Multiplying offsets by this scale maps 
+            // offsets to 1 pixel == 1 unit.
+            const offsetScale = renderWidth / (1.0f / zoom);
 
             // Write YAML metadata about the sprite.
             string[] spriteMetaKeys;
@@ -399,11 +402,13 @@ private:
             spriteMetaValues ~= YAMLNode(verticalAngle);
             spriteMetaKeys   ~= "size";
             spriteMetaValues ~= YAMLNode([renderWidth, renderHeight]);
+            spriteMetaKeys   ~= "offsetScale";
+            spriteMetaValues ~= YAMLNode(offsetScale);
             prerender.sceneMeta(spriteMetaKeys, spriteMetaValues);
             auto spriteMeta = YAMLNode(spriteMetaKeys, spriteMetaValues);
             YAMLNode meta = YAMLNode(["sprite", "images"], [spriteMeta, YAMLNode(imagesMeta)]);
 
-            string fileName = format("%s_sprite_metadata.yaml", modelBaseName);
+            string fileName = "sprite.yaml";
             try
             {
                 auto file = outputDir_.file(fileName);
