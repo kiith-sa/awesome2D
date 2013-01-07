@@ -16,6 +16,12 @@ import std.traits;
 import util.unittests;
 
 
+/// Multiplying an angle in degrees by this converts it to radians.
+const degToRad = PI / 180.0;
+/// Multiplying an angle in radians by this converts it to degrees.
+const radToDeg = 180.0 / PI;
+
+
 ///Get epsilon value for a numeric type.
 template epsilon(T)
 {
