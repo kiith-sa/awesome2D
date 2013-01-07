@@ -40,9 +40,12 @@ mat4 zRotation(in float angle)
 
 void main (void)
 {
-    // We start with a position of the sprite in world space and the 
+    // We start with a 3D position of the sprite in world space and the 
     // vertical angle of the dimetric view, which is 90 for top-down and 
     // about 45 for isometric, and 30 for the low view RTSs like RA2.
+    //
+    // While the sprite itself is 2D, as its position is 3D we need the view
+    // matrix to transform it to camera space.
     //
     // In world space, Y points up and X points right.
     //
