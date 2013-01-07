@@ -45,6 +45,8 @@ void constructGLSLShaderGL2(ref GLSLShaderProgram shader) pure @safe nothrow
     shader.setUniformmat4_       = &setUniformmat4;
     shader.setUniformmat3_       = &setUniformmat3;
     shader.setUniformColor_      = &setUniformColor;
+    shader.setUniformArrayfloat_ = &setUniformArrayFloat;
+    shader.setUniformArrayvec3_  = &setUniformArrayvec3;
     shader.getAttributeHandle_   = &getAttributeHandle;
     shader.getAttributeGLHandle_ = &getAttributeGLHandle;
 }
@@ -712,6 +714,29 @@ void setUniformColor
     enum mult = 1.0f / 256.0f;
     glUniform4f(getUniformGLHandle(outerHandle),
                 value.r * mult, value.g * mult, value.b * mult, value.a * mult);
+}}
+
+/// Set a float uniform array.
+///
+/// Implements GLSLShaderProgram::setUniformArray.
+void setUniformArrayFloat
+    (ref GLSLShaderProgram self, const uint outerHandle, const float[] values)
+{with(self.gl2_)
+{
+    assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
+    glUniform1fv(getUniformGLHandle(outerHandle), cast(int)values.length, values.ptr);
+}}
+
+/// Set a 3D vector uniform array.
+///
+/// Implements GLSLShaderProgram::setUniformArray.
+void setUniformArrayvec3
+    (ref GLSLShaderProgram self, const uint outerHandle, const vec3[] values)
+{with(self.gl2_)
+{
+    assert(state_ == State.Bound, "Trying to set uniforms for an unbound shader program");
+    glUniform3fv(getUniformGLHandle(outerHandle), cast(int)values.length, 
+                 cast(GLfloat*)values.ptr);
 }}
 
 /// Get (external, not underlying GL) handle to an attribute. (Used by Renderer).

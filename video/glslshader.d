@@ -76,6 +76,10 @@ package:
     void function(ref Self, const uint, ref const(mat3))     setUniformmat3_;
     // Pointer to setUniform Color overload implementation.
     void function(ref Self, const uint, const Color)         setUniformColor_;
+    // Pointer to setUniformArray float overload implementation.
+    void function(ref Self, const uint, const float[])       setUniformArrayfloat_;
+    // Pointer to setUniformArray vec3 overload implementation.
+    void function(ref Self, const uint, const vec3[])        setUniformArrayvec3_;
     // Pointer to getAttributeHandle implementation.
     uint function(ref Self, const string)                    getAttributeHandle_;
     // Pointer to getAttributeGLHandle implementation.
@@ -296,6 +300,42 @@ public:
     void setUniform(const uint handle, const Color value)
     {
         setUniformColor_(this, handle, value);
+    }
+
+    /// Set a float uniform array.
+    ///
+    /// Can only be called while the shader program is bound.
+    ///
+    /// Params: handle = Handle of the uniform to set. Must be previously 
+    ///                  returned by getUniformHandle(), must match the 
+    ///                  data type of the value, and must be present in 
+    ///                  the shader.
+    ///         values = Contents of the array to set. The size of this array
+    ///                  must be the same for every call, and must match the 
+    ///                  size of the array in GLSL source code.
+    ///
+    /// Throws: GLSLUniformException on failure.
+    void setUniformArray(const uint handle, const float[] values)
+    {
+        setUniformArrayfloat_(this, handle, values);
+    }
+
+    /// Set a 3D vector uniform array.
+    ///
+    /// Can only be called while the shader program is bound.
+    ///
+    /// Params: handle = Handle of the uniform to set. Must be previously 
+    ///                  returned by getUniformHandle(), must match the 
+    ///                  data type of the value, and must be present in 
+    ///                  the shader.
+    ///         values = Contents of the array to set. The size of this array
+    ///                  must be the same for every call, and must match the 
+    ///                  size of the array in GLSL source code.
+    ///
+    /// Throws: GLSLUniformException on failure.
+    void setUniformArray(const uint handle, const vec3[] values)
+    {
+        setUniformArrayvec3_(this, handle, values);
     }
 
 package:
