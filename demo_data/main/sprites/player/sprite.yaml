@@ -1,0 +1,198 @@
+﻿%YAML 1.1
+---
+sprite:
+  verticalAngle: 30.000000
+  size:
+  - 160
+  - 128
+  offsetScale: 10.400000
+  posExtents:
+    min:
+    - -6.909442
+    - -6.909442
+    - -6.909442
+    max:
+    - 6.909442
+    - 6.909442
+    - 6.909442
+images:
+- zRotation: 0.000000
+  layers:
+    normal: testModel_normal_0.png
+    diffuse: testModel_diffuse_0.png
+    offset: testModel_offset_0.png
+- zRotation: 10.000000
+  layers:
+    normal: testModel_normal_10.png
+    diffuse: testModel_diffuse_10.png
+    offset: testModel_offset_10.png
+- zRotation: 20.000000
+  layers:
+    normal: testModel_normal_20.png
+    diffuse: testModel_diffuse_20.png
+    offset: testModel_offset_20.png
+- zRotation: 30.000000
+  layers:
+    normal: testModel_normal_30.png
+    diffuse: testModel_diffuse_30.png
+    offset: testModel_offset_30.png
+- zRotation: 40.000000
+  layers:
+    normal: testModel_normal_40.png
+    diffuse: testModel_diffuse_40.png
+    offset: testModel_offset_40.png
+- zRotation: 50.000000
+  layers:
+    normal: testModel_normal_50.png
+    diffuse: testModel_diffuse_50.png
+    offset: testModel_offset_50.png
+- zRotation: 60.000000
+  layers:
+    normal: testModel_normal_60.png
+    diffuse: testModel_diffuse_60.png
+    offset: testModel_offset_60.png
+- zRotation: 70.000000
+  layers:
+    normal: testModel_normal_70.png
+    diffuse: testModel_diffuse_70.png
+    offset: testModel_offset_70.png
+- zRotation: 80.000000
+  layers:
+    normal: testModel_normal_80.png
+    diffuse: testModel_diffuse_80.png
+    offset: testModel_offset_80.png
+- zRotation: 90.000000
+  layers:
+    normal: testModel_normal_90.png
+    diffuse: testModel_diffuse_90.png
+    offset: testModel_offset_90.png
+- zRotation: 100.000000
+  layers:
+    normal: testModel_normal_100.png
+    diffuse: testModel_diffuse_100.png
+    offset: testModel_offset_100.png
+- zRotation: 110.000000
+  layers:
+    normal: testModel_normal_110.png
+    diffuse: testModel_diffuse_110.png
+    offset: testModel_offset_110.png
+- zRotation: 120.000000
+  layers:
+    normal: testModel_normal_120.png
+    diffuse: testModel_diffuse_120.png
+    offset: testModel_offset_120.png
+- zRotation: 130.000000
+  layers:
+    normal: testModel_normal_130.png
+    diffuse: testModel_diffuse_130.png
+    offset: testModel_offset_130.png
+- zRotation: 140.000000
+  layers:
+    normal: testModel_normal_140.png
+    diffuse: testModel_diffuse_140.png
+    offset: testModel_offset_140.png
+- zRotation: 150.000000
+  layers:
+    normal: testModel_normal_150.png
+    diffuse: testModel_diffuse_150.png
+    offset: testModel_offset_150.png
+- zRotation: 160.000000
+  layers:
+    normal: testModel_normal_160.png
+    diffuse: testModel_diffuse_160.png
+    offset: testModel_offset_160.png
+- zRotation: 170.000000
+  layers:
+    normal: testModel_normal_170.png
+    diffuse: testModel_diffuse_170.png
+    offset: testModel_offset_170.png
+- zRotation: 180.000000
+  layers:
+    normal: testModel_normal_180.png
+    diffuse: testModel_diffuse_180.png
+    offset: testModel_offset_180.png
+- zRotation: 190.000000
+  layers:
+    normal: testModel_normal_190.png
+    diffuse: testModel_diffuse_190.png
+    offset: testModel_offset_190.png
+- zRotation: 200.000000
+  layers:
+    normal: testModel_normal_200.png
+    diffuse: testModel_diffuse_200.png
+    offset: testModel_offset_200.png
+- zRotation: 210.000000
+  layers:
+    normal: testModel_normal_210.png
+    diffuse: testModel_diffuse_210.png
+    offset: testModel_offset_210.png
+- zRotation: 220.000000
+  layers:
+    normal: testModel_normal_220.png
+    diffuse: testModel_diffuse_220.png
+    offset: testModel_offset_220.png
+- zRotation: 230.000000
+  layers:
+    normal: testModel_normal_230.png
+    diffuse: testModel_diffuse_230.png
+    offset: testModel_offset_230.png
+- zRotation: 240.000000
+  layers:
+    normal: testModel_normal_240.png
+    diffuse: testModel_diffuse_240.png
+    offset: testModel_offset_240.png
+- zRotation: 250.000000
+  layers:
+    normal: testModel_normal_250.png
+    diffuse: testModel_diffuse_250.png
+    offset: testModel_offset_250.png
+- zRotation: 260.000000
+  layers:
+    normal: testModel_normal_260.png
+    diffuse: testModel_diffuse_260.png
+    offset: testModel_offset_260.png
+- zRotation: 270.000000
+  layers:
+    normal: testModel_normal_270.png
+    diffuse: testModel_diffuse_270.png
+    offset: testModel_offset_270.png
+- zRotation: 280.000000
+  layers:
+    normal: testModel_normal_280.png
+    diffuse: testModel_diffuse_280.png
+    offset: testModel_offset_280.png
+- zRotation: 290.000000
+  layers:
+    normal: testModel_normal_290.png
+    diffuse: testModel_diffuse_290.png
+    offset: testModel_offset_290.png
+- zRotation: 300.000000
+  layers:
+    normal: testModel_normal_300.png
+    diffuse: testModel_diffuse_300.png
+    offset: testModel_offset_300.png
+- zRotation: 310.000000
+  layers:
+    normal: testModel_normal_310.png
+    diffuse: testModel_diffuse_310.png
+    offset: testModel_offset_310.png
+- zRotation: 320.000000
+  layers:
+    normal: testModel_normal_320.png
+    diffuse: testModel_diffuse_320.png
+    offset: testModel_offset_320.png
+- zRotation: 330.000000
+  layers:
+    normal: testModel_normal_330.png
+    diffuse: testModel_diffuse_330.png
+    offset: testModel_offset_330.png
+- zRotation: 340.000000
+  layers:
+    normal: testModel_normal_340.png
+    diffuse: testModel_diffuse_340.png
+    offset: testModel_offset_340.png
+- zRotation: 350.000000
+  layers:
+    normal: testModel_normal_350.png
+    diffuse: testModel_diffuse_350.png
+    offset: testModel_offset_350.png
