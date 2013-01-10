@@ -15,7 +15,7 @@ class Camera2D
 {
 private:
     // Position of the center of the camera (the point we're looking at).
-    vec2u center_ = vec2u(0, 0);
+    vec2i center_ = vec2u(0, 0);
 
     // Size of the viewport.
     vec2u size_ = vec2u(640, 480);
@@ -34,11 +34,14 @@ public:
     }
 
     /// Set position of the center of the camera (the point we're looking at).
-    @property void center(const vec2u rhs) pure nothrow 
+    @property void center(const vec2i rhs) @safe pure nothrow 
     {
         center_ = rhs;
         updateProjection();
     }
+
+    /// Get the position of the center of the camera.
+    @property vec2i center() @safe const pure nothrow {return center_;}
 
     /// Set camera zoom. 
     ///
@@ -52,8 +55,11 @@ public:
         updateProjection();
     }
 
+    /// Get camera zoom.
+    @property float zoom() @safe const pure nothrow {return zoom_;}
+
     /// Set the size of the viewport. Both dimensions must be greater than zero.
-    @property void size(const vec2u rhs) pure nothrow 
+    @property void size(const vec2u rhs) @safe pure nothrow 
     {
         assert(rhs.x > 0 && rhs.y > 0, "Camera can't have zero size'");
         size_ = rhs;
