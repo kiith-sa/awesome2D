@@ -118,6 +118,9 @@ public:
     ///          spriteDir = Directory to load images of the sprite from.
     ///          yaml      = YAML node to load sprite metadata from.
     ///          name      = Name of the sprite used for debugging.
+    ///
+    /// Throws:  SpriteInitException on failure (e.g. if one of the sprite's
+    ///          images could not be read).
     this(Renderer renderer, VFSDir spriteDir, ref YAMLNode yaml, string name)
     {
         name_ = name;
@@ -392,6 +395,8 @@ public:
     ///                          to load shaders from).
     ///          verticalAngle = Vertical view angle.
     ///          camera        = Reference to the camera used for viewing.
+    ///
+    /// Throws:  SpriteRendererInitException on failure.
     this(Renderer renderer, VFSDir dataDir, 
          float verticalAngle, Camera2D camera)
     {
