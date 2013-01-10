@@ -3,17 +3,27 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+
 /// Awesome2D 2D lighting demo.
 module demo.demo;
 
 
 import std.algorithm;
+import std.conv;
+import std.math;
 import std.stdio;
 
 import dgamevfs._;
+import gl3n.linalg;
 
 import color;
+import demo.camera2d;
+import demo.light;
+import demo.sprite;
+import memory.memory;
 import platform.platform;
+import time.eventcounter;
+import time.gametime;
 import platform.sdl2platform;
 import util.yaml;
 import video.exceptions;
@@ -47,6 +57,41 @@ private:
     // Continue running?
     bool continue_ = true;
 
+    // Camera used to view the scene.
+    Camera2D camera_;
+    // Handles rendering sprites with lighting.
+    SpriteRenderer spriteRenderer_;
+
+    // Ensures game updates happen with a fixed time step while drawing can happen at any FPS.
+    GameTime gameTime_;
+    // FPS counter.
+    EventCounter fpsCounter_;
+    // Mouse position. Used for camera movement.
+    vec2u mousePosition_;
+
+
+
+    // Demo data follows.
+
+    // Sprite used to draw the "player".
+    Sprite* sprite_;
+
+    // Z rotation of the "player".
+    float playerRotationZ_ = 0.0f;
+
+    // 3D position of the "player".
+    vec3 playerPosition_ = vec3(0, 0, 0);
+
+    // Test directional light 1.
+    DirectionalLight directional1;
+    // Test directional light 2.
+    DirectionalLight directional2;
+
+    // Test point light 1.
+    PointLight point1;
+    // Test point light 2.
+    PointLight point2;
+
 public:
     /// Construct Demo with specified data directory.
     ///
@@ -60,16 +105,75 @@ public:
         initPlatform();
         writeln("Initialized Platform");
         scope(failure){destroyPlatform();}
-        //TODO resolution from config
-        initRenderer(800, 600);
+        initRenderer();
         writeln("Initialized Video");
         scope(failure){destroyRenderer();}
+
+        gameTime_ = new GameTime();
+
+        // Initialize camera.
+        camera_ = new Camera2D();
+        scope(failure){destroy(camera_); camera_ = null;}
+        camera_.size = renderer_.viewportSize;
+
+        // Update FPS display every second.
+        fpsCounter_ = EventCounter(1.0);
+        fpsCounter_.update.connect((real fps){platform_.windowCaption = "FPS: " ~ to!string(fps);});
+
+
+        // Initialize the demo itself.
+
+        // Initialize the sprite renderer.
+        try
+        {
+            spriteRenderer_ = new SpriteRenderer(renderer_, dataDir_, 30.0f, camera_);
+        }
+        catch(SpriteRendererInitException e)
+        {
+            throw new StartupException("Failed to initialize sprite renderer: " ~ e.msg);
+        }
+        scope(failure){destroy(spriteRenderer_); spriteRenderer_ = null;}
+        
+        // Initialize the test sprite.
+        try
+        {
+            auto spriteDir = dataDir_.dir("sprites").dir("player");
+            auto spriteMeta = loadYAML(spriteDir.file("sprite.yaml"));
+            sprite_ = alloc!Sprite(renderer_, spriteDir, spriteMeta, "player sprite");
+        }
+        catch(VFSException e)
+        {
+            throw new StartupException("Failed to initialize test sprite: " ~ e.msg);
+        }
+        catch(YAMLException e)
+        {
+            throw new StartupException("Failed to initialize test sprite: " ~ e.msg);
+        }
+        catch(SpriteInitException e)
+        {
+            throw new StartupException("Failed to initialize test sprite: " ~ e.msg);
+        }
+        scope(failure){free(sprite_); sprite_ = null;}
+
+        // Create and register light sources.
+        directional1 = DirectionalLight(vec3(1.0, 0.0, 0.1), rgb!"C0C0F0");
+        directional2 = DirectionalLight(vec3(1.0, 1.0, 0.0), rgb!"202020");
+        point1 = PointLight(vec3(0.0, 200.0, 12.5), rgb!"FF0000", 2.5f);
+        point2 = PointLight(vec3(200.0, 0.0, 25.0), rgb!"FFFF00", 1.25f);
+        spriteRenderer_.registerDirectionalLight(&directional1);
+        spriteRenderer_.registerDirectionalLight(&directional2);
+        spriteRenderer_.registerPointLight(&point1);
+        spriteRenderer_.registerPointLight(&point2);
+        spriteRenderer_.ambientLight = vec3(0.1, 0.1, 0.1);
     }
 
-    // Deinitialize the demo.
+    /// Deinitialize the demo.
     ~this()
     {
         writeln("Destroying Demo...");
+        if(sprite_ !is null){free(sprite_);}
+        if(spriteRenderer_ !is null){destroy(spriteRenderer_);}
+        if(camera_ !is null){destroy(camera_);}
         destroyRenderer();
         destroyPlatform();
     }
@@ -84,12 +188,24 @@ public:
         }
 
         platform_.key.connect(&keyHandler);
+        platform_.mouseMotion.connect(&mouseMotionHandler);
 
         while(platform_.run() && continue_)
         {
+            // Game logic has a locked time step. Rendering does not.
+            gameTime_.doGameUpdates
+            ({
+                handleCameraMovement();
+                return false;
+            });
+
             bool frame(Renderer renderer)
             {
-                //TODO
+                fpsCounter_.event();
+                spriteRenderer_.startDrawing();
+                spriteRenderer_.drawSprite(sprite_, vec3(playerPosition_), 
+                                        vec3(0.0f, 0.0f, playerRotationZ_));
+                spriteRenderer_.stopDrawing();
                 return true;
             }
             renderer_.renderFrame(&frame);
@@ -131,17 +247,18 @@ private:
     }
 
     /// Initialize the renderer. Throws StartupException on failure.
-    void initRenderer(const uint width, const uint height)
+    void initRenderer()
     {
         try{rendererContainer_ = new RendererContainer();}
         catch(RendererInitException e)
         {
-            throw new StartupException("Failed to initialize renderer "
-                                       "dependencies: " ~ e.msg);
+            throw new StartupException("Failed to initialize renderer dependencies: " ~ e.msg);
         }
 
         // Load config options (not sure if anyone will use this...).
         auto video       = config_["video"];
+        const width      = video["width"].as!uint;
+        const height     = video["height"].as!uint;
         const depth      = video["depth"].as!uint;
         const format     = depth == 16 ? ColorFormat.RGB_565 : ColorFormat.RGBA_8;
         const fullscreen = video["fullscreen"].as!bool;
@@ -153,7 +270,7 @@ private:
         }
 
         renderer_ = rendererContainer_.produce!SDL2GLRenderer
-                    (width, height, format, fullscreen);
+                    (platform_, width, height, format, fullscreen);
 
         // Failed to initialize renderer, clean up.
         if(renderer_ is null)
@@ -192,10 +309,55 @@ private:
     ///          unicode = Unicode value of the key.
     void keyHandler(KeyState state, Key key, dchar unicode)
     {
-        if(state == KeyState.Pressed) switch(key)
+        // Rotate a 2D vector by specified angle and return it as a 3D vector (with Z == 0).
+        static vec3 rotate(vec2 rhs, float angle) pure @safe nothrow
         {
-            case Key.Escape: exit(); break;
+            const cs = cos(angle);
+            const sn = sin(angle);
+            return vec3(rhs.x * cs - rhs.y * sn, rhs.x * sn + rhs.y * cs, 0.0);
+        }
+        const angle = playerRotationZ_;
+        if(state == KeyState.Pressed) switch(key) with(Key)
+        {
+            case Escape: exit(); break;
+            // "Player" movement.
+            case Left:  playerRotationZ_ += 0.1;             break;
+            case Right: playerRotationZ_ -= 0.1;             break;
+            case Up, K_w:   playerPosition_ += rotate(vec2(8.0f, 0.0f), angle); break;
+            case Down, K_s: playerPosition_ -= rotate(vec2(8.0f, 0.0f), angle); break;
+            case K_a:       playerPosition_ -= rotate(vec2(0.0f, 8.0f), angle); break;
+            case K_d:       playerPosition_ += rotate(vec2(0.0f, 8.0f), angle); break;
+            case K_q:       playerPosition_ += vec3(0.0f, 0.0f, 8.0f); break;
+            case K_e:       playerPosition_ -= vec3(0.0f, 0.0f, 8.0f); break;
+
+            // Camera zoom.
+            case Plus, NP_Plus:   camera_.zoom = camera_.zoom * 1.25; break;
+            case Minus, NP_Minus: camera_.zoom = camera_.zoom * 0.8;  break;
             default: break;
         }
+    }
+
+    /// Process mouse motion.
+    ///
+    /// Params:  position = Mouse position (in pixels).
+    ///          change   = Position change since the last mouseMotionHandler() call.
+    void mouseMotionHandler(vec2u position, vec2i change)
+    {
+        mousePosition_ = position;
+    }
+
+    /// Move the camera if mouse is on a window edge.
+    void handleCameraMovement() @safe pure nothrow
+    {
+        const bounds = renderer_.viewportSize;
+        const borderWidth = 48;
+        // 600 pixels per second.
+        const cameraMovement = cast(int)(600 * gameTime_.timeStep);
+        vec2i offset = vec2i(0, 0);
+        if(mousePosition_.x < borderWidth)           {offset.x = -cameraMovement;}
+        if(mousePosition_.x > bounds.x - borderWidth){offset.x = cameraMovement;}
+        if(mousePosition_.y < borderWidth)           {offset.y = cameraMovement;}
+        if(mousePosition_.y > bounds.y - borderWidth){offset.y = -cameraMovement;}
+        camera_.center = camera_.center + offset;
     }
 }

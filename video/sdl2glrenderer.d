@@ -16,6 +16,8 @@ import derelict.opengl3.gl;
 import derelict.sdl2.sdl;
 
 import color;
+import platform.platform;
+import platform.sdl2platform;
 import video.exceptions;
 import video.glrenderer;
 
@@ -24,16 +26,20 @@ import video.glrenderer;
 class SDL2GLRenderer : GLRenderer
 {
 private:
-    /// Game window.
-    SDL_Window* window_;
     /// GL context of the game.
     SDL_GLContext glContext_;
+    /// Reference to platform, used to e.g. create/destroy the window.
+    SDL2Platform platform_;
 
 public:
     /// Construct an SDLGLRenderer.
-    this()
+    ///
+    /// Params:  platform = Platform handling window management. Must be an SDL2Platform.
+    this(Platform platform)
     {
         writeln("Initializing SDLGLRenderer");
+        platform_ = cast(SDL2Platform)platform;
+        assert(platform_ !is null, "Non-SDL2 platform used with SDL2GLRenderer");
         super();
     }
 
@@ -41,8 +47,8 @@ public:
     ~this()
     {
         writeln("Destroying SDLGLRenderer");
-        SDL_GL_DeleteContext(glContext_);  
-        SDL_DestroyWindow(window_);
+        SDL_GL_DeleteContext(glContext_);
+        platform_.destroyWindow();
     }
 
     /// Set video mode.
@@ -91,15 +97,9 @@ public:
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,   depth);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-        auto flags = SDL_WINDOW_OPENGL/*TODO |SDL_WINDOW_RESIZABLE*/;
-        if(fullscreen){flags |= SDL_WINDOW_FULLSCREEN;}
-        // Create a window. Window mode MUST include SDL_WINDOW_OPENGL for use with OpenGL.
-        window_ = SDL_CreateWindow
-            ("Awesome2D Demo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
-             width, height, flags);
-        assert(window_ !is null, "Failed to create window");
+        platform_.initWindow(fullscreen, width, height);
 
-        glContext_ = SDL_GL_CreateContext(window_);
+        glContext_ = platform_.createGLContext();
         assert(glContext_ !is null, "Failed to create GL context");
 
         // Print the GL screen pixel format.
@@ -121,6 +121,6 @@ public:
     override void swapBuffers()
     {
         const error = glGetError();
-        SDL_GL_SwapWindow(window_);
+        platform_.swapWindow();
     }
 }

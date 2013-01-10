@@ -1,3 +1,5 @@
 video:
+  width:      1024
+  height:     768
   depth:      32
   fullscreen: false

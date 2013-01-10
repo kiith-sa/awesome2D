@@ -19,6 +19,7 @@ import color;
 import image;
 import memory.memory;
 
+import platform.platform;
 public import video.blendmode;
 public import video.depthtest;
 import video.exceptions;
@@ -190,21 +191,24 @@ class RendererContainer
         /**
          * Initialize renderer of specified type and return a reference to it.
          *
-         * Params:  width      = Width of initial video mode.
+         * Params:  platform   = Platform handling window management. Must match
+         *                       the renderer type, e.g. SDL2Platform for 
+         *                       SDL2GLRenderer.
+         *          width      = Width of initial video mode.
          *          height     = Height of initial video mode.
          *          format     = Color format of initial video mode.
          *          fullscreen = Should initial video mode be fullscreen?
          *
          * Returns: Produced renderer or null on error.
          */
-        Renderer produce(R)(const uint width, const uint height, 
+        Renderer produce(R)(Platform platform, const uint width, const uint height, 
                             const ColorFormat format, const bool fullscreen)
             if(is(R: Renderer))
         {
             auto typeString = typeid(R).toString();
             try
             {
-                renderer_ = new R();
+                renderer_ = new R(platform);
                 renderer_.setVideoMode(width, height, format, fullscreen);
             }
             catch(RendererInitException e)
