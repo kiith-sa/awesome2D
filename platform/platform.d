@@ -75,7 +75,7 @@ abstract class Platform
 
             singletonDtor();
         }
-        
+
         ///Collect input and determine if the game should continue to run.
         bool run() {return run_;}
 
