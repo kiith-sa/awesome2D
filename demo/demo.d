@@ -29,14 +29,14 @@ class StartupException : Exception
     }
 }
 
-/// Awesome2D 2D lighting demo.
+/// Main class of the Awesome2D 2D lighting demo.
 class Demo
 {
 private:
     // Directory to load data and configuration from.
     VFSDir dataDir_;
 
-    /// Platform used for user input.
+    // Platform used for user input.
     Platform platform_;
     // Renderer.
     Renderer renderer_;
