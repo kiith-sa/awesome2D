@@ -128,7 +128,7 @@ abstract class Renderer
     /// Are GLSL shaders supported?
     /// 
     /// Shaders are required, but alternative backends might support e.g. HLSL in future.
-    bool isGLSLSupported() const;
+    bool isGLSLSupported() @safe pure nothrow const;
 
     /// Get the number of texture units on the machine.
     ///
@@ -136,7 +136,7 @@ abstract class Renderer
     @property uint textureUnitCount() const;
 
     /// Get viewport size in pixels.
-    @property vec2u viewportSize() const;
+    @property vec2u viewportSize() @safe pure nothrow const;
 
     /// Set blend mode to use for following draws.
     @property void blendMode(const BlendMode blendMode);

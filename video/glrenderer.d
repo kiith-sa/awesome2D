@@ -320,7 +320,7 @@ public:
         return result;
     }
 
-    override bool isGLSLSupported() const
+    override bool isGLSLSupported() @safe pure nothrow const
     {
         return true;
     }
@@ -332,7 +332,7 @@ public:
         return textureUnitCount;
     }
 
-    override @property vec2u viewportSize() const
+    override @property vec2u viewportSize() @safe pure nothrow const
     {
         return vec2u(screenWidth_, screenHeight_);
     }
