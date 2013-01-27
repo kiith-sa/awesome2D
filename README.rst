@@ -18,6 +18,8 @@ are:
 * Optional: Create multiple lighting models (and demo applications) using
   various sets of pre-rendered data and compare them.
 
+An article about the project can be found `here <https://github.com/kiith-sa/awesome2D/raw/master/meta/article_01_2013/article.pdf>`_.
+
 A (PDF) presentation describing this project (in English) can be found
 `here <https://github.com/kiith-sa/awesome2D/raw/master/meta/presentation-2012-11-13/AdvancedLighting2D.pdf>`_.
 
