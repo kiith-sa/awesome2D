@@ -108,6 +108,12 @@ public:
     {
         bind_(this, textureUnit);
     }
+
+    /// Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
+    @property size_t memoryBytes() @safe const pure nothrow 
+    {
+        return this.sizeof;
+    }
 }
 
 
