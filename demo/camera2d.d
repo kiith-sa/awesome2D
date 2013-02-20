@@ -14,7 +14,7 @@ import gl3n.linalg;
 class Camera2D
 {
 private:
-    // Position of the center of the camera (the point we're looking at).
+    // Position of the center of the camera in pixels (the point we're looking at).
     vec2i center_ = vec2u(0, 0);
 
     // Size of the viewport.
@@ -33,14 +33,14 @@ public:
         updateProjection();
     }
 
-    /// Set position of the center of the camera (the point we're looking at).
+    /// Set position of the center of the camera in pixels (the point we're looking at).
     @property void center(const vec2i rhs) @safe pure nothrow 
     {
         center_ = rhs;
         updateProjection();
     }
 
-    /// Get the position of the center of the camera.
+    /// Get the position of the center of the camera in pixels.
     @property vec2i center() @safe const pure nothrow {return center_;}
 
     /// Set camera zoom. 
@@ -58,13 +58,16 @@ public:
     /// Get camera zoom.
     @property float zoom() @safe const pure nothrow {return zoom_;}
 
-    /// Set the size of the viewport. Both dimensions must be greater than zero.
+    /// Set size of the viewport in pixels. Both dimensions must be greater than zero.
     @property void size(const vec2u rhs) @safe pure nothrow 
     {
         assert(rhs.x > 0 && rhs.y > 0, "Camera can't have zero size'");
         size_ = rhs;
         updateProjection();
     }
+
+    /// Get size of the viewport in pixels.
+    @property vec2u size() const pure nothrow {return size_;}
 
     /// Return a GLSL-compatible projection matrix.
     @property ref const(mat4) projection() @safe const pure nothrow {return projection_;}
