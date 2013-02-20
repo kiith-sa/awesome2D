@@ -11,6 +11,7 @@ module demo.sprite;
 import std.algorithm;
 import std.exception;
 import std.math;
+import std.stdio;
 import std.string;
 
 import dgamevfs._;
@@ -100,6 +101,13 @@ private:
                    diffuse !is null &&
                    ((normal is null) == (offset is null));
         }
+
+        /// Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
+        @property size_t memoryBytes() @safe const pure nothrow 
+        {
+            return this.sizeof + 
+                   diffuse.memoryBytes + normal.memoryBytes + offset.memoryBytes;
+        }
     }
 
     // Manually allocated array of facings.
@@ -181,6 +189,7 @@ public:
                 // The loading might fail half-way; free everything that was
                 // loaded in that case.
                 free(facings_);
+                facings_ = null;
                 foreach(ref facing; facings_)
                 {
                     if(facing.diffuse !is null){free(facing.diffuse);}
@@ -251,7 +260,6 @@ public:
     /// Return size of the sprite in pixels.
     @property vec2u size() const pure nothrow {return size_;}
 
-private:
     /// Get a pointer to the facing of the sprite closest to specified rotation value.
     Facing* closestFacing(vec3 rotation)
     {
@@ -278,6 +286,46 @@ private:
         }
         return closest;
     }
+
+    /// Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
+    @property size_t memoryBytes() @trusted const
+    {
+        return this.sizeof + name_.length + vertexBuffer_.memoryBytes +
+               facings_.map!((ref const Facing t) => t.memoryBytes).reduce!"a + b";
+    }
+}
+
+/// A convenience function to load a Sprite, handling possible errors.
+///
+/// Params:  renderer = Renderer to create textures.
+///          gameDir  = Game data directory.
+///          name     = Name of the subdirectory of gameDir containing the sprite images and 
+///                     metadata file (sprite.yaml).
+///
+/// Returns: Pointer to the sprite on success, null on failure.
+Sprite* loadSprite(Renderer renderer, VFSDir gameDir, string name)
+{
+    try
+    {
+        auto spriteDir = gameDir.dir(name);
+        auto spriteMeta = loadYAML(spriteDir.file("sprite.yaml"));
+        return alloc!Sprite(renderer, spriteDir, spriteMeta, name);
+    }
+    catch(VFSException e)
+    {
+        writeln("Filesystem error loading sprite \"", name, "\" : ", e.msg);
+        return null;
+    }
+    catch(YAMLException e)
+    {
+        writeln("YAML error loading sprite \"", name, "\" : ", e.msg);
+        return null;
+    }
+    catch(SpriteInitException e)
+    {
+        writeln("Sprite initialization error loading sprite \"", name, "\" : ", e.msg);
+        return null;
+    }
 }
 
 /// Exception thrown when SpriteRenderer fails to initialize.
@@ -289,7 +337,7 @@ class SpriteRendererInitException : Exception
     }
 }
 
-/// Manages rendering of sprites with lighting.
+/// Manages sprite rendering with lighting.
 ///
 /// Lights can be added and removed (registered and unregistered).
 /// Sprites are drawn using drawSprite(). Any sprite draws must happen between 
@@ -462,12 +510,15 @@ public:
     ///
     /// Must be called before any calls to drawSprite().
     ///
-    /// Binds SpriteRenderer's sprite shader. No other shader can be bound until 
-    /// stopDrawing() is called.
+    /// Binds SpriteRenderer's sprite shader, and enables alpha blending.
+    /// No other shader can be bound until stopDrawing() is called, 
+    /// and if alpha blending is disabled between sprite draws, it must be reenabled 
+    /// before the next sprite draw.
     void startDrawing()
     {
         assert(!drawing_, "SpriteRenderer.startDrawing() called when already drawing");
         drawing_ = true;
+        renderer_.pushBlendMode(BlendMode.Alpha);
         spriteShader_.bind();
     }
 
@@ -479,7 +530,11 @@ public:
     void stopDrawing()
     {
         assert(drawing_, "SpriteRenderer.stopDrawing() called without calling startDrawing()");
+        assert(renderer_.blendMode == BlendMode.Alpha,
+               "Non-alpha blend mode before stopping sprite drawing");
+
         spriteShader_.release();
+        renderer_.popBlendMode();
         drawing_ = false;
     }
 
@@ -496,6 +551,8 @@ public:
     void drawSprite(Sprite* sprite, vec3 position, const vec3 rotation)
     {
         assert(drawing_, "SpriteRenderer.drawSprite() called without calling startDrawing()");
+        assert(renderer_.blendMode == BlendMode.Alpha,
+               "Non-alpha blend mode when drawing a sprite");
         // Get on a whole-pixel boundary to avoid blurriness.
         position.x = cast(int)(position.x);
         position.y = cast(int)(position.y);
