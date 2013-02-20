@@ -24,6 +24,7 @@ import core.bitop;
 import gl3n.linalg;
 
 import std.algorithm;
+import std.conv;
 import std.exception;
 import std.string;
 
@@ -184,8 +185,8 @@ struct PNGDecoder
                         break;
                     default:
                         size_t type = chunk.type;
-                        enforceEx!PNGException((bt(&type, cast(size_t)6) < 0), 
-                                  "Unrecognized critical chunk");
+                        enforceEx!PNGException((bt(&type, cast(size_t)6) != 0), 
+                                  "Unrecognized critical chunk: " ~ to!string(type));
                         break;
                 }
             }
