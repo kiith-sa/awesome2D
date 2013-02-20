@@ -109,7 +109,7 @@ struct Vector(T, Allocator = DirectAllocator)
         }
 
         ///Append an element to the vector. (operator ~=)
-        void opCatAssign(U : T)(U element) 
+        void opCatAssign(U : T)(U element) @trusted
                if(isImplicitlyConvertible!(T, U))
         {
             //if out of space, reallocate.
@@ -119,7 +119,7 @@ struct Vector(T, Allocator = DirectAllocator)
         }
 
         ///Append contents of a vector or an array to the vector.
-        void opCatAssign(A)(ref A array)
+        void opCatAssign(A)(ref A array) @trusted
             if(is(typeof(A.init.ptr)) && is(typeof(A.init.length)) &&
                isImplicitlyConvertible!(T, ElementType!A))
         in
@@ -181,7 +181,7 @@ struct Vector(T, Allocator = DirectAllocator)
          *
          * Returns: Element at the specified index.
          */
-        auto ref inout(T) opIndex(const size_t index) inout pure nothrow
+        auto ref inout(T) opIndex(const size_t index) @safe inout pure nothrow
         in{assert(index < used_, "Vector index out of bounds");}
         body{return data_[index];}
 
@@ -190,7 +190,7 @@ struct Vector(T, Allocator = DirectAllocator)
      * We also require T.init here, but we already require that
      * for the Vector itself.
      */
-    static if(__traits(compiles, Vector!T().data_[0] = T.init))
+    static if(__traits(compiles, "T a = T.init"))
     {
         /**
          * Set element at the specified index.
@@ -226,7 +226,7 @@ struct Vector(T, Allocator = DirectAllocator)
         }
 
         ///Set all elements in the vector to specified value.
-        void opSliceAssign(T value) nothrow
+        void opSliceAssign(T value)
         {
             data_[0 .. used_] = value;
         }
@@ -238,7 +238,7 @@ struct Vector(T, Allocator = DirectAllocator)
          * Params:  start = Start of the slice.
          *          end   = End of the slice.
          */
-        inout(T[]) opSlice(const size_t start, const size_t end) inout pure nothrow
+        inout(T[]) opSlice(const size_t start, const size_t end) @safe inout pure nothrow
         in
         {
             assert(end <= used_, "Vector slice index out of bounds");
@@ -250,13 +250,13 @@ struct Vector(T, Allocator = DirectAllocator)
         inout(T[]) opSlice() inout pure nothrow {return this[0 .. used_];}
 
         ///Access the first element of the vector.
-        ref inout(T) front() inout pure nothrow {return this[0];}
+        ref inout(T) front() @safe inout pure nothrow {return this[0];}
 
         ///Access the last element of the vector.
-        ref inout(T) back() inout pure nothrow {return this[this.length - 1];}
+        ref inout(T) back() @safe inout pure nothrow {return this[this.length - 1];}
 
         ///Remove the last element of the vector.
-        void popBack() {length = length - 1;}
+        void popBack() @trusted {length = length - 1;}
 
         /**
          * Access vector contents through a const pointer.
@@ -275,10 +275,10 @@ struct Vector(T, Allocator = DirectAllocator)
         T* ptrUnsafe() pure nothrow {return data_.ptr;}
 
         ///Get number of elements in the vector.
-        @property size_t length() const pure nothrow {return used_;}
+        @property size_t length() @safe const pure nothrow {return used_;}
 
         ///Is the vector empty?
-        @property bool empty() const pure nothrow {return length == 0;}
+        @property bool empty() @safe const pure nothrow {return length == 0;}
 
         /**
          * Change length of the vector.
