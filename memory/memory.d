@@ -573,6 +573,7 @@ private:
     ///Write out allocator statistics at program exit.
     static ~this()
     {
+        writeln("Allocator stats output");
         scope(failure){writeln("Error logging memory usage");}
         // Output dir not specified, e.g. due to aborted initialization.
         // Don't write out anything.
@@ -587,7 +588,7 @@ private:
         if(allocations_.length > 0)
         {
             writeln("WARNING: MEMORY LEAK DETECTED, FOR MORE INFO SEE:\n"
-                     "user_data::main::logs/memory.log");
+                     "user_data::main::logs/memoryLog.yaml");
         }
     }
 
