@@ -58,8 +58,6 @@ protected:
     /// Video mode bits per pixel.
     uint screenDepth_;
 
-    /// Currently used blending mode.
-    BlendMode blendMode_;
     /// Currently used depth test mode.
     DepthTest depthTest_ = DepthTest.ReadWrite;
 
@@ -110,7 +108,7 @@ public:
                                     vec3, AttributeInterpretation.Color);
         }
 
-        blendMode = BlendMode.Alpha;
+        pushBlendMode(BlendMode.Alpha);
 
         // Set up the modelViewProjection matrix.
         const viewOffset = vec2(0.0f, 0.0f);
@@ -239,6 +237,7 @@ public:
         drawVertexBuffer(vertexBuffer, indexBuffer, shaderProgram);
         shaderProgram.release();
 
+        popBlendMode();
 
         // Clean up.
         free(texture);
@@ -337,11 +336,6 @@ public:
         return vec2u(screenWidth_, screenHeight_);
     }
 
-    override @property void blendMode(const BlendMode blendMode)
-    {
-        blendMode_ = blendMode;
-    }
-
     override @property void depthTest(const DepthTest depthTest)
     {
         depthTest_ = depthTest;
@@ -361,6 +355,11 @@ protected:
         setupGLState();
         backend.drawVertexBufferGL2(indexBuffer, *shaderProgram);
         restoreGLState();
+    }
+
+    override @property void blendModeChange(const BlendMode blendMode) @trusted
+    {
+        // We don't need to do anything here for now.
     }
 
     /// Initialize OpenGL context.
@@ -414,7 +413,7 @@ private:
     {
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
-        final switch(blendMode_)
+        final switch(blendModeStack_.back)
         {
             case BlendMode.None:
                 glDisable(GL_BLEND);

@@ -19,6 +19,7 @@ import color;
 import image;
 import memory.memory;
 
+import containers.vector;
 import platform.platform;
 public import video.blendmode;
 public import video.depthtest;
@@ -38,11 +39,17 @@ import video.vertexbuffer;
 /// etc.
 abstract class Renderer
 {
+protected:
+    /// Vector of blend modes used as a stack. The last item is the current blend mode.
+    containers.vector.Vector!BlendMode blendModeStack_;
+
+public:
     /// Constructor.
     ///
     /// Throws: RendererInitException on failure.
     this()
     {
+        pushBlendMode(BlendMode.None);
     }
 
     /// Create a framebuffer object.
@@ -139,8 +146,28 @@ abstract class Renderer
     /// Get viewport size in pixels.
     @property vec2u viewportSize() @safe pure nothrow const;
 
-    /// Set blend mode to use for following draws.
-    @property void blendMode(const BlendMode blendMode);
+    /// Push a blend mode to use for following draws to the stack.
+    ///
+    /// The default blend mode is BlendMode.None.
+    ///
+    /// popBlendMode() will return to the previous blend mode.
+    final void pushBlendMode(const BlendMode blendMode) @safe
+    {
+        blendModeStack_ ~= blendMode;
+        blendModeChange(blendMode);
+    }
+
+    /// Pop a blend mode from the blend mode stack, reverting to the previous blend mode.
+    final void popBlendMode() @safe
+    {
+        assert(blendModeStack_.length >= 1,
+               "Trying to pop the bottommost blend mode from the blend mode stack");
+        blendModeStack_.popBack();
+        blendModeChange(blendModeStack_.back);
+    }
+
+    /// Get the currently set blend mode.
+    final @property BlendMode blendMode() const pure nothrow {return blendModeStack_.back;}
 
     /// Set depth test to use for following draws.
     @property void depthTest(const DepthTest depthTest);
@@ -169,6 +196,9 @@ protected:
     void drawVertexBufferBackend(ref VertexBufferBackend backend,
                                  IndexBuffer* indexBuffer, 
                                  GLSLShaderProgram* shaderProgram);
+
+    /// Called when the blend mode changes to specified blend mode.
+    @property void blendModeChange(const BlendMode blendMode) @trusted;
 }
 
 ///Class managing lifetime and dependencies of video driver.
