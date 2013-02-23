@@ -58,7 +58,7 @@ struct Vector(T, Allocator = DirectAllocator)
         }
 
         ///Compute a hash.
-        hash_t toHash() const @trusted
+        hash_t toHash() const nothrow @safe
         {
             static type = typeid(T);
             return type.getHash(&data_[0 .. used_]);
