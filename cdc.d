@@ -182,8 +182,9 @@ void main(string[] args)
         compile(args ~ extra_args ~ ("-of" ~ binaryName), files);
     }
 
-    auto filesPrerenderer = dependencies ~ sources ~ ["prerenderer/", "prerenderer.d"];
-    auto filesDemo        = dependencies ~ sources ~ ["demo/", "demo.d"];
+    auto filesPrerenderer   = dependencies ~ sources ~ ["prerenderer/", "prerenderer.d"];
+    auto filesDemo          = dependencies ~ sources ~ ["demo/", "demo.d"];
+    auto filesTileGenerator = ["demo/tileshape.d", "tilegenerator/"];
 
     void build(string[] targets ...)
     {
@@ -195,14 +196,17 @@ void main(string[] args)
                 case "debug":
                     compile_(dbg, filesPrerenderer, "prerenderer-debug");
                     compile_(dbg, filesDemo, "demo-debug");
+                    compile_(dbg, filesTileGenerator, "tilegenerator-debug");
                     break;
                 case "no-contracts":
                     compile_(no_contracts, filesPrerenderer, "-ofprerenderer-no-contracts");
                     compile_(no_contracts, filesDemo, "-ofdemo-no-contracts");
+                    compile_(no_contracts, filesTileGenerator, "tilegenerator-no-contracts");
                     break;
                 case "release":
                     compile_(release, filesPrerenderer, "-ofprerenderer-release");
                     compile_(release, filesDemo, "-ofdemo-release");
+                    compile_(release, filesTileGenerator, "tilegenerator-release");
                     break;
                 case "all":
                     compile_(dbg, filesPrerenderer, "prerenderer-debug");
@@ -211,6 +215,9 @@ void main(string[] args)
                     compile_(dbg, filesDemo, "demo-debug");
                     compile_(no_contracts, filesDemo, "-ofdemo-no-contracts");
                     compile_(release, filesDemo, "-ofdemo-release");
+                    compile_(dbg, filesTileGenerator, "tilegenerator-debug");
+                    compile_(no_contracts, filesTileGenerator, "tilegenerator-no-contracts");
+                    compile_(release, filesTileGenerator, "tilegenerator-release");
                     break;
                 default:
                     writeln("unknown target: ", target);
