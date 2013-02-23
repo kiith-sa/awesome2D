@@ -94,7 +94,7 @@ public:
     /// Construct a Scene.
     ///
     /// Params:  loadDir         = Directory to load the model and texture from.
-    ///          renderer        = 
+    ///          renderer        = Renderer used to draw the scene.
     ///          modelFileName   = Filename of the model to use. The model format must
     ///                            be supported by Assimp (lots of formats).
     ///          textureFileName = Filename of the texture to use with the model.
