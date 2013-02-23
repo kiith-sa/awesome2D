@@ -53,7 +53,9 @@ void processOption(string arg, void delegate(string, string[]) process)
 }
 
 /// Print help information.
-void help()
+///
+/// Params:  commandName = Name of the command used to launch the TileGenerator.
+void help(string commandName)
 {
     // Don't ever print help twice.
     static bool helpGiven = false;
@@ -65,7 +67,7 @@ void help()
         "Pre-renders 2D lighting data from 3D models.",
         "Copyright (C) 2012-2013 Ferdinand Majerech",
         "",
-        "Usage: prerender [--help] [--user_data] <command> [local-args ...]",
+        "Usage: " ~ commandName ~ " [--help] [--user_data] <command> [local-args ...]",
         "",
         "Global options:",
         "  --help                     Print this help information.",
@@ -132,7 +134,7 @@ void help()
         "                             (3D position at each pixel relative to origin)",
         "                             Default: 'diffuse'",
         "    Example:",
-        "      prerender render --texture=box.png --width=48 --height=20 box.obj",
+        "      " ~ commandName ~ " render --texture=box.png --width=48 --height=20 box.obj",
         "                             Renders model box.obj with texture box.png with the",
         "                             default 8 rotations and a 45 degree vertical angle.",
         "                             The rendered images will be 48x20 pixels. Only the",
@@ -168,6 +170,10 @@ private:
     //
     // May not throw.
     int delegate() action_;
+
+    // Name of the command used to launch the Prerenderer 
+    // (usually the filename of the binary).
+    string prerendererCommandName_;
 
     // Directory to read configuration files from and write logs to.
     StackDir utilDir_;
@@ -207,10 +213,11 @@ private:
     }
 
 public:
-    /// Construct an PrerendererCLI with specified command-line arguments and parse them.
+    /// Construct a PrerendererCLI with specified command-line arguments and parse them.
     this(string[] cliArgs)
     {
         processArg_ = &globalOrCommand;
+        prerendererCommandName_ = cliArgs[0];
         foreach(arg; cliArgs[1 .. $]) {processArg_(arg);}
     }
 
@@ -225,7 +232,7 @@ public:
             userFS.create();
 
             auto userStack = new StackDir("user_data");
-            utilDir_   = new StackDir("root");
+            utilDir_ = new StackDir("root");
 
             auto userMain = userFS.dir("main");
             userMain.create();
@@ -245,7 +252,7 @@ public:
         if(action_ is null)
         {
             writeln("No command given");
-            help();
+            help(prerendererCommandName_);
             return -1;
         }
 
@@ -333,7 +340,7 @@ private:
         processOption(arg, (opt, args){
         switch(opt)
         {
-            case "help":  help(); return;
+            case "help":  help(prerendererCommandName_); return;
             case "user_data":
                 enforce(!args.empty,
                         new PrerendererCLIException("Option --user_data needs an argument (directory)"));
@@ -353,7 +360,7 @@ private:
         if(modelFileName is null)
         {
             writeln("\nNo model file name specified.");
-            help();
+            help(prerendererCommandName_);
             return -1;
         }
         try
@@ -363,7 +370,7 @@ private:
             outputDir_ = outputDir_.dir(modelBaseName ~ "_prerender");
             outputDir_.create();
             auto prerender = 
-                new Prerenderer(utilDir_, outputDir_, 
+                new Prerenderer(utilDir_, outputDir_, new FSDir("loadDir", "."),
                                 renderWidth, renderHeight, 
                                 modelFileName, textureFileName);
             writeln("Initialized prerender...");
