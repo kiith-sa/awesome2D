@@ -53,7 +53,9 @@ void processOption(string arg, void delegate(string, string[]) process)
 }
 
 /// Print help information.
-void help()
+///
+/// Params:  commandName = Name of the command used to launch the Demo.
+void help(string commandName)
 {
     // Don't ever print help twice.
     static bool helpGiven = false;
@@ -65,7 +67,7 @@ void help()
         "Demonstration of advanced 2D lighting",
         "Copyright (C) 2012-2013 Ferdinand Majerech",
         "",
-        "Usage: demo [--help] [--user_data]",
+        "Usage: " ~ commandName ~ " [--help] [--user_data]",
         "",
         "Global options:",
         "  --help                     Print this help information.",
@@ -100,12 +102,17 @@ private:
     // Directory to read configuration files from and write logs to.
     StackDir dataDir_;
 
+    // Name of the command used to launch the Demo
+    // (usually the filename of the binary).
+    string demoCommandName_;
+
 public:
     /// Construct an DemoCLI with specified command-line arguments and parse them.
     this(string[] cliArgs)
     {
         processArg_ = &global;
         action_     = &actionDemo;
+        demoCommandName_ = cliArgs[0];
         foreach(arg; cliArgs[1 .. $]) {processArg_(arg);}
     }
 
@@ -137,8 +144,7 @@ public:
         }
         if(action_ is null)
         {
-            writeln("No command given");
-            help();
+            help(demoCommandName_);
             return -1;
         }
 
@@ -159,7 +165,7 @@ private:
         processOption(arg, (opt, args){
         switch(opt)
         {
-            case "help":  help(); return;
+            case "help":  help(demoCommandName_); action_ = null; return;
             case "data":
                 enforce(!args.empty,
                         new DemoCLIException("Option --data needs an argument (directory)"));
