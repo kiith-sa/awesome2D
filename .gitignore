@@ -2,6 +2,8 @@
 /dependencies/dgamevfs/cdc.obj
 /dependencies/dgamevfs/unittest
 /dependencies/dgamevfs/unittest.obj
+*_tile/*
+*_prerender/*
 *.sw*
 *.sv*
 *~
