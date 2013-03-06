@@ -1,0 +1,23 @@
+﻿%YAML 1.1
+---
+sprite:
+  verticalAngle: 30.000000
+  size:
+  - 128
+  - 96
+  offsetScale: 45.439999
+  posExtents:
+    min:
+    - -1.472389
+    - -1.472389
+    - -1.472389
+    max:
+    - 1.472389
+    - 1.472389
+    - 1.472389
+images:
+- zRotation: 0.000000
+  layers:
+    diffuse: grass01_diffuse_0.png
+    normal: grass01_normal_0.png
+    offset: grass01_offset_0.png
