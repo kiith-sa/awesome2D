@@ -184,7 +184,7 @@ void main(string[] args)
 
     auto filesPrerenderer   = dependencies ~ sources ~ ["prerenderer/", "prerenderer.d"];
     auto filesDemo          = dependencies ~ sources ~ ["demo/", "demo.d"];
-    auto filesTileGenerator = ["demo/tileshape.d", "tilegenerator/"];
+    auto filesTileGenerator = ["dependencies/gl3n", "demo/tileshape.d", "tilegenerator/"];
 
     void build(string[] targets ...)
     {
