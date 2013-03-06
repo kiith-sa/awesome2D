@@ -19,6 +19,7 @@ import gl3n.linalg;
 import color;
 import demo.camera2d;
 import demo.light;
+import demo.map;
 import demo.sprite;
 import memory.memory;
 import platform.platform;
@@ -75,6 +76,9 @@ private:
 
     // Sprite used to draw the "player".
     Sprite* sprite_;
+
+    // Isometric map the demo "plays in".
+    Map map_;
 
     // Z rotation of the "player".
     float playerRotationZ_ = 0.0f;
@@ -133,30 +137,14 @@ public:
             throw new StartupException("Failed to initialize sprite renderer: " ~ e.msg);
         }
         scope(failure){destroy(spriteRenderer_); spriteRenderer_ = null;}
-        
+
         // Initialize the test sprite.
-        try
-        {
-            auto spriteDir = dataDir_.dir("sprites").dir("player");
-            auto spriteMeta = loadYAML(spriteDir.file("sprite.yaml"));
-            sprite_ = alloc!Sprite(renderer_, spriteDir, spriteMeta, "player sprite");
-        }
-        catch(VFSException e)
-        {
-            throw new StartupException("Failed to initialize test sprite: " ~ e.msg);
-        }
-        catch(YAMLException e)
-        {
-            throw new StartupException("Failed to initialize test sprite: " ~ e.msg);
-        }
-        catch(SpriteInitException e)
-        {
-            throw new StartupException("Failed to initialize test sprite: " ~ e.msg);
-        }
+        sprite_ = loadSprite(renderer_, dataDir_, "sprites/player");
+        if(sprite_ is null) {throw new StartupException("Failed to initialize test sprite.");}
         scope(failure){free(sprite_); sprite_ = null;}
 
         // Create and register light sources.
-        directional1 = DirectionalLight(vec3(1.0, 0.0, 0.1), rgb!"C0C0F0");
+        directional1 = DirectionalLight(vec3(1.0, 0.0, 0.8), rgb!"C0C0F0");
         directional2 = DirectionalLight(vec3(1.0, 1.0, 0.0), rgb!"202020");
         point1 = PointLight(vec3(0.0, 200.0, 12.5), rgb!"FF0000", 2.5f);
         point2 = PointLight(vec3(200.0, 0.0, 25.0), rgb!"FFFF00", 1.25f);
@@ -165,12 +153,19 @@ public:
         spriteRenderer_.registerPointLight(&point1);
         spriteRenderer_.registerPointLight(&point2);
         spriteRenderer_.ambientLight = vec3(0.1, 0.1, 0.1);
+
+        /*map_ = generateTestMap();*/
+        map_ = loadMap(dataDir_, "maps/testMap.yaml");
+        map_.loadTiles(dataDir_, renderer_);
+        writeln("Map size in bytes: ", map_.memoryBytes);
     }
 
     /// Deinitialize the demo.
     ~this()
     {
         writeln("Destroying Demo...");
+        map_.deleteTiles();
+        destroy(map_);
         if(sprite_ !is null){free(sprite_);}
         if(spriteRenderer_ !is null){destroy(spriteRenderer_);}
         if(camera_ !is null){destroy(camera_);}
@@ -202,6 +197,7 @@ public:
             bool frame(Renderer renderer)
             {
                 fpsCounter_.event();
+                map_.draw(spriteRenderer_, camera_);
                 spriteRenderer_.startDrawing();
                 spriteRenderer_.drawSprite(sprite_, vec3(playerPosition_), 
                                         vec3(0.0f, 0.0f, playerRotationZ_));
