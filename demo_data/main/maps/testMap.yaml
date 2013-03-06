@@ -1,0 +1,22 @@
+meta:
+  formatVersion: 0
+  width: 3
+  height: 3
+tiles:
+  - sprites/tiles/grass01/flat
+  - sprites/tiles/grass01/slope-se
+  - sprites/tiles/bridge01/flat
+rows:
+  - - [0]
+    - [0]
+    - [0]
+  - - [0]
+    - [65535, 65535, 2]
+    - [0, 1]
+  - - [0]
+    - [0]
+    - [0, 0]
+
+#  # # #
+#   # # #
+#  # # #
