@@ -84,7 +84,7 @@ private:
     float playerRotationZ_ = 0.0f;
 
     // 3D position of the "player".
-    vec3 playerPosition_ = vec3(0, 0, 0);
+    vec3 playerPosition_ = vec3(0, 0, 45);
 
     // Test directional light 1.
     DirectionalLight directional1;
@@ -146,16 +146,16 @@ public:
         // Create and register light sources.
         directional1 = DirectionalLight(vec3(1.0, 0.0, 0.8), rgb!"C0C0F0");
         directional2 = DirectionalLight(vec3(1.0, 1.0, 0.0), rgb!"202020");
-        point1 = PointLight(vec3(0.0, 200.0, 12.5), rgb!"FF0000", 2.5f);
-        point2 = PointLight(vec3(200.0, 0.0, 25.0), rgb!"FFFF00", 1.25f);
+        point1 = PointLight(vec3(40.0, 200.0, 70.0), rgb!"FF0000", 1.1f);
+        point2 = PointLight(vec3(100.0, 400.0, 70.0), rgb!"FFFF00", 1.1f);
         spriteRenderer_.registerDirectionalLight(&directional1);
         spriteRenderer_.registerDirectionalLight(&directional2);
         spriteRenderer_.registerPointLight(&point1);
         spriteRenderer_.registerPointLight(&point2);
         spriteRenderer_.ambientLight = vec3(0.1, 0.1, 0.1);
 
-        /*map_ = generateTestMap();*/
-        map_ = loadMap(dataDir_, "maps/testMap.yaml");
+        map_ = generateTestMap();
+        /*map_ = loadMap(dataDir_, "maps/testMap.yaml");*/
         map_.loadTiles(dataDir_, renderer_);
         writeln("Map size in bytes: ", map_.memoryBytes);
     }
@@ -194,14 +194,37 @@ public:
                 return false;
             });
 
+            void drawEntitiesInTile(ref const Map.SpriteDrawParams params)
+            {
+                // Once we have multiple entities, we'll use a spatial manager 
+                // based on cells/layers so we'll just directly draw entities within the cell/layer.
+                const aabb = params.drawAreaBoundingBox;
+                // This ensures we get drawn at the lowest tile the entity stands on.
+                // Prevents the lowest tiles from being drawn on top of the entity.
+                // Note that this is a very crude check - we should check for intersection of
+                // the entity (rotated, if possible) bounding box with the tile bounding box.
+                const offset =  0.25 * sprite_.size.y;
+                const pos  = playerPosition_ + vec3(offset, -offset, 0.0f);
+
+                if(pos.x <= aabb.max.x && pos.x >= aabb.min.x &&
+                   pos.y <= aabb.max.y && pos.y >= aabb.min.y &&
+                   pos.z <= aabb.max.z && pos.z >= aabb.min.z)
+                {
+                    spriteRenderer_.drawSprite(sprite_, playerPosition_, 
+                                               vec3(0.0f, 0.0f, playerRotationZ_));
+                }
+            }
+
             bool frame(Renderer renderer)
             {
                 fpsCounter_.event();
-                map_.draw(spriteRenderer_, camera_);
+                map_.draw(spriteRenderer_, camera_, &drawEntitiesInTile);
+                /*
                 spriteRenderer_.startDrawing();
                 spriteRenderer_.drawSprite(sprite_, vec3(playerPosition_), 
                                         vec3(0.0f, 0.0f, playerRotationZ_));
                 spriteRenderer_.stopDrawing();
+                */
                 return true;
             }
             renderer_.renderFrame(&frame);
@@ -321,8 +344,8 @@ private:
             case Right: playerRotationZ_ -= 0.1;             break;
             case Up, K_w:   playerPosition_ += rotate(vec2(8.0f, 0.0f), angle); break;
             case Down, K_s: playerPosition_ -= rotate(vec2(8.0f, 0.0f), angle); break;
-            case K_a:       playerPosition_ -= rotate(vec2(0.0f, 8.0f), angle); break;
-            case K_d:       playerPosition_ += rotate(vec2(0.0f, 8.0f), angle); break;
+            case K_a:       playerPosition_ += rotate(vec2(0.0f, 8.0f), angle); break;
+            case K_d:       playerPosition_ -= rotate(vec2(0.0f, 8.0f), angle); break;
             case K_q:       playerPosition_ += vec3(0.0f, 0.0f, 8.0f); break;
             case K_e:       playerPosition_ -= vec3(0.0f, 0.0f, 8.0f); break;
 

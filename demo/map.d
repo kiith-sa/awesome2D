@@ -12,6 +12,7 @@ import std.algorithm;
 import std.math;
 import std.stdio;
 
+import gl3n.aabb;
 import gl3n.linalg;
 import dgamevfs._;
 
@@ -195,116 +196,166 @@ public:
         tilesLoaded_ = false;
     }
 
+    /// Parameters passed by draw() to a delegate to draw all sprites in a layer of a cell.
+    struct SpriteDrawParams
+    {
+        /// X strip of the tile. Can be multiplied by tileSize.x to get X tile position.
+        short xStrip;
+        /// Y strip of the tile. Can be multiplied by tileSize.x to get Y tile position.
+        ushort yStrip;
+        /// Layer of the tile.  Can be multiplied by tileSize.z to get Z tile position.
+        ushort layer;
+        /// Draw also all layers above specified layer?
+        bool allLayersAbove = false;
+
+        /// Calculates bounding box to draw objects in
+        ///
+        /// (Preferrably, faster spatial management should be used as this is slow to 
+        /// call for every layer of every cell).
+        AABB drawAreaBoundingBox() @safe pure nothrow const
+        {
+            return AABB(vec3((xStrip - 0.5f) * tileSize.x,
+                             (yStrip - 0.5f) * tileSize.y,
+                             (layer  - 0.5f) * tileSize.z),
+                        vec3((xStrip + 0.5f) * tileSize.x,
+                             (yStrip + 0.5f) * tileSize.y,
+                             (layer + 0.5f + allLayersAbove ? 65535 : 0) * tileSize.z));
+        }
+    }
+
     /// Draw the map.
     ///
     /// Params:  spriteRenderer = Sprite renderer used to draw tiles.
     ///          camera         = Camera used to determine which tiles of the map to draw.
-    void draw(SpriteRenderer spriteRenderer, Camera2D camera)
+    ///          drawInTile     = A delegate that draws all objects in a layer of a cell
+    ///                           (and possibly in all layers above, if it's the topmost
+    ///                           used layer).
+    void draw(SpriteRenderer spriteRenderer, Camera2D camera, 
+              void delegate(ref const SpriteDrawParams) drawInTile)
     {
         spriteRenderer.startDrawing();
         scope(exit){spriteRenderer.stopDrawing();}
 
-        // Draw by layers, bottom-to-top.
-        foreach(const ushort layer; 0 .. maxLayerCount_)
+        // POSSIBLE OPTIMIZATION: Keep separate max layer count for every row so we don't
+        // draw too much invisible stuff on maps with too many layers.
+
+        // Determine the area of this layer visible for the camera.
+        const cameraHalfSize = 
+            vec2(camera.size.x, camera.size.y) * 0.5f * (1.0f / camera.zoom);
+        const cameraCenter         = vec2(camera.center);
+        const cameraCenterMaxLayer = cameraCenter - vec2(0.0f, maxLayerCount_ * tilePixelSize.z);
+
+        // 2D bounds of potentially visible cells on the bottommost layer.
+        const cameraMin = cameraCenterMaxLayer - cameraHalfSize;
+        const cameraMax = cameraCenter + cameraHalfSize;
+
+        // Layout of the cells:
+        // Top row:    X strip (determines world space X position of the cell).
+        // Middle row: X and Y index of the cell.
+        // Bottom row: Y strip (determines world space Y position of the cell).
+        //
+        //   /\     /\     /\     /\
+        //  /X-3   /X-2   /X-1   /X0\
+        // /0,6 \ /1,6 \ /2,6 \ /3,6 \
+        // \YS3 / \YS4 / \YS5 / \YS6 / \
+        //  \  /X-2\  /X-1\  /X0 \  /X1 \
+        //   \/ 0,5 \/ 1,5 \/ 2,5 \/ 2,5 \
+        //   /\ YS3 /\ YS4 /\ YS5 /\ YS6 /
+        //  /X-2   /X-1   /X0\   /X1\   /
+        // /0,4 \ /1,4 \ /2,4 \ /3,4 \ /
+        // \YS2 / \YS3 / \YS4 / \YS5 /
+        //  \  /X-1\  /X0 \  /X1 \  /
+        //   \/ 0,3 \/ 1,3 \/ 2,3 \/
+        //   /\ YS2 /\ YS3 /\ YS4 /\
+        //  /X-1   /X0\   /X1\   /X2\
+        // /0,2 \ /1,2 \ /2,2 \ /3,2 \
+        // \YS1 / \YS2 / \YS3 / \YS4 / \
+        //  \  /X0 \  /X1 \  /X2 \  /X3 \
+        //   \/ 0,1 \/ 1,1 \/ 2,1 \/ 3,1 \
+        //   /\ YS1 /\ YS2 /\ YS3 /\ YS4 /
+        //  /X0\   /X1\   /X2\   /X3\   /
+        // /0,0 \ /1,0 \ /2,0 \ /3,0 \ /
+        // \YS0 / \YS1 / \YS2 / \YS3 /
+        //  \  /   \  /   \  /   \  /
+        //   \/     \/     \/     \/
+
+        // Y is multiplied by 0.5 as the rows are half-tile-size apart vertically.
+        // (See the cell layout above)
+
+        // Extra tiles we draw around the visible area to account for row/column offsets,
+        // weird shaped tiles, etc.
+        enum border = 2;
+        alias tilePixelSize tPS;
+
+        // Extents of the area we draw in cells.
+        const cellMin =
+            vec2i(max(0, cast(int)(cameraMin.x / tPS.x) - border),
+                  max(0, cast(int)(cameraMin.y / (0.5 * tPS.y)) - border));
+        const cellMax =
+            vec2i(min(mapSize_.x, cast(int)(cameraMax.x / tPS.x) + border),
+                  min(mapSize_.y, cast(int)(cameraMax.y / (0.5 * tPS.y)) + border));
+
+        // X and Y positions of cells increase horizontally and vertically, but 
+        // world X and Y coordinates increase in SE, NE directions. So for each cell, 
+        // we determine its X and Y strips (marked in layout scheme above as X# and 
+        // YS#, where # is a number) to position it in world space.
+
+        // X and Y strip of the first cell in the row.
+        int startXStrip = -cellMax.y / 2 + cellMin.x - 1;
+        int startYStrip = (cellMax.y + 1) / 2 + cellMin.x - 1;
+        // Draw rows of visible tiles of the layer from top of the screen to bottom.
+        for(int cellY = (cellMax.y - 1); cellY >= cellMin.y; --cellY)
         {
-            // Z coordinate to draw at.
-            const z = tileSize.z * layer;
-
-            // Determine the area of this layer visible for the camera.
-            const cameraHalfSize = 
-                vec2(camera.size.x, camera.size.y) * 0.5f * (1.0f / camera.zoom);
-            const cameraCenter = vec2(camera.center) - vec2(0.0f, layer * tilePixelSize.z);
-
-            // 2D bounds of the part of this layer visible for the camera.
-            const cameraMin = cameraCenter - cameraHalfSize;
-            const cameraMax = cameraCenter + cameraHalfSize;
-
-            // Layout of the cells:
-            // Top row:    X strip (determines world space X position of the cell).
-            // Middle row: X and Y index of the cell.
-            // Bottom row: Y strip (determines world space Y position of the cell).
-            //
-            //   /\     /\     /\     /\
-            //  /X-3   /X-2   /X-1   /X0\
-            // /0,6 \ /1,6 \ /2,6 \ /3,6 \
-            // \YS3 / \YS4 / \YS5 / \YS6 / \
-            //  \  /X-2\  /X-1\  /X0 \  /X1 \
-            //   \/ 0,5 \/ 1,5 \/ 2,5 \/ 2,5 \
-            //   /\ YS3 /\ YS4 /\ YS5 /\ YS6 /
-            //  /X-2   /X-1   /X0\   /X1\   /
-            // /0,4 \ /1,4 \ /2,4 \ /3,4 \ /
-            // \YS2 / \YS3 / \YS4 / \YS5 /
-            //  \  /X-1\  /X0 \  /X1 \  /
-            //   \/ 0,3 \/ 1,3 \/ 2,3 \/
-            //   /\ YS2 /\ YS3 /\ YS4 /\
-            //  /X-1   /X0\   /X1\   /X2\
-            // /0,2 \ /1,2 \ /2,2 \ /3,2 \
-            // \YS1 / \YS2 / \YS3 / \YS4 / \
-            //  \  /X0 \  /X1 \  /X2 \  /X3 \
-            //   \/ 0,1 \/ 1,1 \/ 2,1 \/ 3,1 \
-            //   /\ YS1 /\ YS2 /\ YS3 /\ YS4 /
-            //  /X0\   /X1\   /X2\   /X3\   /
-            // /0,0 \ /1,0 \ /2,0 \ /3,0 \ /
-            // \YS0 / \YS1 / \YS2 / \YS3 /
-            //  \  /   \  /   \  /   \  /
-            //   \/     \/     \/     \/
-
-            // Y is multiplied by 0.5 as the rows are half-tile-size apart vertically.
-            // (See the cell layout above)
-
-            // Extra tiles we draw around the visible area to account for row/column offsets,
-            // weird shaped tiles, etc.
-            enum border = 2;
-            alias tilePixelSize tPS;
-
-            // Extents of the area we draw in cells.
-            const cellMin =
-                vec2i(max(0, cast(int)(cameraMin.x / tPS.x) - border),
-                      max(0, cast(int)(cameraMin.y / (0.5 * tPS.y)) - border));
-            const cellMax =
-                vec2i(min(mapSize_.x, cast(int)(cameraMax.x / tPS.x) + border),
-                      min(mapSize_.y, cast(int)(cameraMax.y / (0.5 * tPS.y)) + border));
-
-            // X and Y positions of cells increase horizontally and vertically, but 
-            // world X and Y coordinates increase in SE, NE directions. So for each cell, 
-            // we determine its X and Y strips (marked in layout scheme above as X# and 
-            // YS#, where # is a number) to position it in world space.
-
-            // X and Y strip of the first cell in the row.
-            int startXStrip = -cellMax.y / 2 + cellMin.x;
-            int startYStrip = (cellMax.y + 1) / 2 + cellMin.x;
-            // Draw rows of visible tiles of the layer from top of the screen to bottom.
-            for(int cellY = (cellMax.y - 1); cellY >= cellMin.y; --cellY)
+            // Increases on odd rows going down.
+            startXStrip += cellY % 2;
+            // Decreases on even rows going down.
+            startYStrip -= 1 - cellY % 2;
+            // X and Y strip of the current cell.
+            int xStrip = startXStrip;
+            int yStrip = startYStrip;
+            const rowOffset =  (cellY % 2) * 0.5 * tileSize.x;
+            // Draw the individual tiles within the row.
+            foreach(const cellX; cellMin.x .. cellMax.x)
             {
-                // Increases on odd rows going down.
-                startXStrip += cellY % 2;
-                // Decreases on even rows going down.
-                startYStrip -= 1 - cellY % 2;
-                // X and Y strip of the current cell.
-                int xStrip = startXStrip;
-                int yStrip = startYStrip;
-                const rowOffset =  (cellY % 2) * 0.5 * tileSize.x;
-                // Draw the individual tiles within the row.
-                foreach(const cellX; cellMin.x .. cellMax.x)
+                ++ xStrip;
+                ++ yStrip;
+                const(Cell*) cell = &cell(cellX, cellY);
+                // The cell doesn't have this layer.
+                
+                // Draw the cell's layer stack.
+                foreach(uint layer, const ushort layerIndex; cell.layerIndices(this))
                 {
-                    ++ xStrip;
-                    ++ yStrip;
-                    const(Cell*) cell = &cell(cellX, cellY);
-                    // The cell doesn't have this layer.
-                    if(cell.layerCount <= layer) {continue;}
-
-                    const layerIndex = cell.layerIndices(this)[layer];
-                    // Empty layer (air).
-                    if(layerIndex == ushort.max){continue;}
-
                     // World-space X and Y coordinates of the cell.
                     const x = tileSize.x * xStrip;
                     const y = tileSize.y * yStrip;
-                    Sprite* tile = tiles_[layerIndex].sprite;
-                    // Sprite loading might have failed.
-                    if(tile is null){continue;}
-                    spriteRenderer.drawSprite(tile, vec3(x, y, z), vec3(0.0f, 0.0f, 0.0f));
+                    const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
+                                                        cast(ushort)layer);
+
+                    // Note: The drawing order is extremely hacky, and might need improvements.
+                    // ushort.max is no tile (air)
+                    if(layerIndex != ushort.max)
+                    {
+                        // Z coordinate to draw at.
+                        const z = tileSize.z * layer;
+                        Tile* tile = &(tiles_[layerIndex]);
+                        Sprite* tileSprite = tile.sprite;
+                        // If the tile is flat, it takes up the whole cube of the layer, so we draw it 
+                        // after (on top of) the sprite.
+                        if(tile.shape == TileShape.Flat) {drawInTile(drawParams);}
+                        // Sprite loading might have failed.
+                        if(tileSprite is null){continue;}
+                        spriteRenderer.drawSprite(tileSprite, vec3(x, y, z), vec3(0.0f, 0.0f, 0.0f));
+                        if(tile.shape != TileShape.Flat) {drawInTile(drawParams);}
+                    }
+                    else 
+                    {
+                        drawInTile(drawParams);
+                    }
+
                 }
+                const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
+                                                    cast(ushort)cell.layerCount, true);
+                drawInTile(drawParams);
             }
         }
     }
@@ -351,6 +402,8 @@ public:
             Map map_;
             // Current layer in the cell on the world space coordinates.
             ushort currentLayer_ = 0;
+            
+            @disable bool opEquals(HeightRange rhs);
 
             // Get the current ground level.
             GroundDescription front() @safe
@@ -364,14 +417,14 @@ public:
                                       "even though the HeightRange is not empty");
 
                 const shape = tile.shape;
-                const baseHeight = tileSize.z * currentLayer_;
+                const baseHeight = tileSize.z * (currentLayer_ - 0.5f);
                 // Flat tiles have a constant height.
                 if(shape == TileShape.Flat)
                 {
                     return GroundDescription(normalUp, baseHeight + tileSize.z);
                 }
 
-                const tileCoords = worldCoordsToCell(worldCoords);
+                const tileCoords = worldCoordsToCell(worldCoords_);
 
                 // Get height in the tile for the tile coords.
                 auto result = tileHeightFunctions[cast(ubyte)shape](tileCoords);
@@ -384,7 +437,7 @@ public:
             {
                 assert(!empty, "HeightRange popFront called when empty");
                 // Empty ensures this is not null.
-                Cell* cell = map_.cellAt(worldCoords);
+                Cell* cell = map_.cellAt(worldCoords_);
                 do
                 {
                     ++currentLayer_;
@@ -395,7 +448,7 @@ public:
             // Are there no more ground levels?
             @property bool empty() @safe
             {
-                Cell* cell = map_.cellAt(worldCoords);
+                Cell* cell = map_.cellAt(worldCoords_);
                 // No ground levels outside of the map.
                 if(cell is null){return true;}
                 foreach(ushort layer; currentLayer_ .. cell.layerCount)
@@ -454,11 +507,11 @@ private:
     }
 
     /// Access the cell at specified world space coordinates.
-    Cell* cellAt(const float worldCoords) @safe
+    Cell* cellAt(const vec2 worldCoords) @safe
     {
         const cellCoords = worldToCell(worldCoords);
         if(cellCoords.x < 0 || cellCoords.x >= mapSize_.x ||
-           cellCoords.y < 0 || cellCoords.y >= mapSize_y)
+           cellCoords.y < 0 || cellCoords.y >= mapSize_.y)
         {
             return null;
         }
@@ -466,12 +519,12 @@ private:
     }
 
     /// Get the cell coordinates of the cell on specified world space coordinates.
-    vec2i worldToCell(const float worldX, const float worldY) @safe pure nothrow const
+    vec2i worldToCell(const vec2 worldCoords) @trusted nothrow const
     {
         // We add half tile sizes as the tiles' positions are in the tiles' centers,
         // not the W corner.
-        const xStrip = cast(int)floor((tileSize.x * 0.5 + worldX) / tileSize.x); 
-        const yStrip = cast(int)floor((tileSize.y * 0.5 + worldY) / tileSize.y); 
+        const xStrip = cast(int)floor((tileSize.x * 0.5 + worldCoords.x) / tileSize.x); 
+        const yStrip = cast(int)floor((tileSize.y * 0.5 + worldCoords.y) / tileSize.y); 
         return vec2i(yStrip - xStrip, (yStrip + xStrip) / 2);
     }
 
