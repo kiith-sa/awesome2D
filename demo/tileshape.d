@@ -90,7 +90,7 @@ enum tilePixelSize = vec3u(128, 64, 32);
 /// Note that this just gets the part of coordinates that correspond to the 
 /// position within boundaries of a cell. The actual coordinates of the cell 
 /// must be calculated separately.
-vec2 worldCoordsToCell(const vec2 world) @safe pure nothrow 
+vec2 worldCoordsToCell(const vec2 world) @safe nothrow 
 {
     // Get x,y coords within the cell.
     // We add half tile sizes as the tiles' positions are in the tiles' centers,
