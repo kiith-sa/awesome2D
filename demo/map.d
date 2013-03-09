@@ -671,12 +671,12 @@ Map loadMap(VFSDir gameDir, string mapName)
     }
 }
 
-/// Generate a dummy map used for testing.
+/// Generate a dummy test map with specified size.
 ///
 /// Returns: Generated test map.
-Map generateTestMap()
+Map generateTestMap(vec2u size)
 {
-    Map map = new Map(vec2u(64, 64));
+    Map map = new Map(size);
 
     with(map)
     {

@@ -159,8 +159,10 @@ public:
         spriteRenderer_.registerPointLight(&point1);
         spriteRenderer_.registerPointLight(&point2);
         spriteRenderer_.ambientLight = vec3(0.1, 0.1, 0.1);
+        spriteRenderer_.directionalLightsChanged();
+        spriteRenderer_.pointLightsChanged();
 
-        map_ = generateTestMap();
+        map_ = generateTestMap(vec2u(64, 64));
         /*map_ = loadMap(dataDir_, "maps/testMap.yaml");*/
         map_.loadTiles(dataDir_, renderer_);
         writeln("Map size in bytes: ", map_.memoryBytes);
