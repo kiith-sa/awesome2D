@@ -17,6 +17,7 @@ import derelict.opengl3.gl;
 import gl3n.linalg;
 
 import color;
+import util.string;
 import video.exceptions;
 import video.glslshader;
 import video.limits;
@@ -151,23 +152,21 @@ private:
         ///                        common for all cached programs.
         GLint getUniform(const string name, const uint outerHandle)
         {
+            const glHandle = outerToGLHandleUniform[outerHandle];
             // The underlying handle for this outer handle is known, return it.
-            if(outerToGLHandleUniform[outerHandle] != 0)
-            {
-                return outerToGLHandleUniform[outerHandle];
-            }
+            if(glHandle != 0) {return glHandle;}
 
             // On the first call, the underlying handle is not known, so 
             // get it using the name.
             GLint handle;
-            handle = glGetUniformLocation(program, toStringz(name));
+            handle = glGetUniformLocation(program, toStringzNoAlloc(name));
             if(handle == -1)
             {
                 throw new GLSLUniformException("No such uniform: \"" ~ name ~ "\"");
             }
 
             outerToGLHandleUniform[outerHandle] = handle;
-            return outerToGLHandleUniform[outerHandle];
+            return handle;
         }
 
         /// Get the underlying GL attribute handle for specified attribute.
