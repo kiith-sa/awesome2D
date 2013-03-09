@@ -251,6 +251,8 @@ public:
         glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
         glClear(GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
         setupViewport();
         // TODO (low-priority):
         // Use FBOs for drawing and suspend drawing if too slow
@@ -339,6 +341,17 @@ public:
     override @property void depthTest(const DepthTest depthTest)
     {
         depthTest_ = depthTest;
+        if(!glInitialized_){return;}
+        final switch(depthTest_)
+        {
+            case DepthTest.Disabled:
+                glDisable(GL_DEPTH_TEST);
+                break;
+            case DepthTest.ReadWrite:
+                glEnable(GL_DEPTH_TEST);
+                glDepthFunc(GL_LEQUAL);
+                break;
+        }
     }
 
 protected:
@@ -352,14 +365,33 @@ protected:
                                           IndexBuffer* indexBuffer, 
                                           GLSLShaderProgram* shaderProgram)
     {
-        setupGLState();
+        //debugSetupGLState();
         backend.drawVertexBufferGL2(indexBuffer, *shaderProgram);
-        restoreGLState();
+        //debugRestoreGLState();
     }
 
     override @property void blendModeChange(const BlendMode blendMode) @trusted
     {
-        // We don't need to do anything here for now.
+        if(!glInitialized_){return;}
+        final switch(blendMode)
+        {
+            case BlendMode.None:
+                glDisable(GL_BLEND);
+                break;
+            case BlendMode.Add:
+                alias derelict.opengl3.deprecatedConstants.GL_ONE GL_ONE;
+                glBlendFunc(GL_ONE, GL_ONE);
+                glEnable(GL_BLEND);
+                break;
+            case BlendMode.Alpha:
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glEnable(GL_BLEND);
+                break;
+            case BlendMode.Multiply:
+                glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+                glEnable(GL_BLEND);
+                break;
+        }
     }
 
     /// Initialize OpenGL context.
@@ -397,6 +429,9 @@ protected:
         }
 
         glInitialized_ = true;
+
+        depthTest(depthTest_);
+        blendModeChange(blendModeStack_.back);
     }
 
     /// Swap the front and back buffer. 
@@ -405,48 +440,20 @@ protected:
     void swapBuffers();
 
 private:
-    /// Set up GL state before drawing.
+    /// Debugging: Set up GL state before drawing.
     ///
     /// Allows us to encapsulate GL state, avoiding leaking unexpected state 
     /// between draws.
-    void setupGLState()
+    void debugSetupGLState()
     {
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
-        final switch(blendModeStack_.back)
-        {
-            case BlendMode.None:
-                glDisable(GL_BLEND);
-                break;
-            case BlendMode.Add:
-                alias derelict.opengl3.deprecatedConstants.GL_ONE GL_ONE;
-                glBlendFunc(GL_ONE, GL_ONE);
-                glEnable(GL_BLEND);
-                break;
-            case BlendMode.Alpha:
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glEnable(GL_BLEND);
-                break;
-            case BlendMode.Multiply:
-                glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
-                glEnable(GL_BLEND);
-                break;
-        }
-
-        final switch(depthTest_)
-        {
-            case DepthTest.Disabled:
-                glDisable(GL_DEPTH_TEST);
-                break;
-            case DepthTest.ReadWrite:
-                glEnable(GL_DEPTH_TEST);
-                glDepthFunc(GL_LEQUAL);
-                break;
-        }
+        blendModeChange(blendModeStack_.back);
+        depthTest(depthTest_);
     }
 
-    /// Restore GL state after drawing.
-    void restoreGLState()
+    /// Debugging: Restore GL state after drawing.
+    void debugRestoreGLState()
     {
         glDisable(GL_CULL_FACE);
         glDisable(GL_BLEND);
