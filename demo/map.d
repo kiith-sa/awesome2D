@@ -208,18 +208,19 @@ public:
         /// Draw also all layers above specified layer?
         bool allLayersAbove = false;
 
-        /// Calculates bounding box to draw objects in
+        /// Calculates bounding box to draw objects in.
         ///
-        /// (Preferrably, faster spatial management should be used as this is slow to 
-        /// call for every layer of every cell).
+        /// This is actually slightly bigger than the tile bounding box to 
+        /// allow e.g. tiles with slight variations on edges without drawing
+        /// them multiple times.
         AABB drawAreaBoundingBox() @safe pure nothrow const
         {
-            return AABB(vec3((xStrip - 0.5f) * tileSize.x,
-                             (yStrip - 0.5f) * tileSize.y,
-                             (layer  - 0.5f) * tileSize.z),
-                        vec3((xStrip + 0.5f) * tileSize.x,
-                             (yStrip + 0.5f) * tileSize.y,
-                             (layer + 0.5f + allLayersAbove ? 65535 : 0) * tileSize.z));
+            return AABB(vec3((xStrip - 0.5f) * tileSize.x - 1.0f,
+                             (yStrip - 0.5f) * tileSize.y - 1.0f,
+                             (layer  - 0.5f) * tileSize.z - 1.0f),
+                        vec3((xStrip + 0.5f) * tileSize.x + 1.0f,
+                             (yStrip + 0.5f) * tileSize.y + 1.0f,
+                             (layer + 0.5f + allLayersAbove ? 65535 : 0) * tileSize.z + 1.0f));
         }
     }
 
@@ -230,8 +231,16 @@ public:
     ///          drawInTile     = A delegate that draws all objects in a layer of a cell
     ///                           (and possibly in all layers above, if it's the topmost
     ///                           used layer).
+    ///                           The SpriteRenderer passed is enabled for drawing and 
+    ///                           has a clip area corresponding to the 3D area of the 
+    ///                           layer/cell. Objects present in multiple cells/layers 
+    ///                           should be drawn once per each.
+    ///                           The bounding box passed is the clipping bounding box.
+    ///                           The delegate could calculate it from the 
+    ///                           SpriteDrawParams, but we want to avoid recalculation.
     void draw(SpriteRenderer spriteRenderer, Camera2D camera, 
-              void delegate(ref const SpriteDrawParams) drawInTile)
+              void delegate(SpriteRenderer, ref const AABB, 
+                            ref const SpriteDrawParams) drawInTile)
     {
         spriteRenderer.startDrawing();
         scope(exit){spriteRenderer.stopDrawing();}
@@ -330,6 +339,8 @@ public:
                     const y = tileSize.y * yStrip;
                     const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
                                                         cast(ushort)layer);
+                    const tileBBox = drawParams.drawAreaBoundingBox;
+                    spriteRenderer.clipBounds = tileBBox;
 
                     // Note: The drawing order is extremely hacky, and might need improvements.
                     // ushort.max is no tile (air)
@@ -339,23 +350,34 @@ public:
                         const z = tileSize.z * layer;
                         Tile* tile = &(tiles_[layerIndex]);
                         Sprite* tileSprite = tile.sprite;
+                        // Normally, draw tile below any objects on the tile.
+                        if(tile.shape != TileShape.Flat)
+                        {
+                            // Sprite loading might have failed.
+                            if(tileSprite is null){continue;}
+                            spriteRenderer.drawSprite(tileSprite, vec3(x, y, z), vec3(0.0f, 0.0f, 0.0f));
+                        }
+                        drawInTile(spriteRenderer, tileBBox, drawParams);
                         // If the tile is flat, it takes up the whole cube of the layer, so we draw it 
                         // after (on top of) the sprite.
-                        if(tile.shape == TileShape.Flat) {drawInTile(drawParams);}
-                        // Sprite loading might have failed.
-                        if(tileSprite is null){continue;}
-                        spriteRenderer.drawSprite(tileSprite, vec3(x, y, z), vec3(0.0f, 0.0f, 0.0f));
-                        if(tile.shape != TileShape.Flat) {drawInTile(drawParams);}
+                        if(tile.shape == TileShape.Flat)
+                        {
+                            // Sprite loading might have failed.
+                            if(tileSprite is null){continue;}
+                            spriteRenderer.drawSprite(tileSprite, vec3(x, y, z), vec3(0.0f, 0.0f, 0.0f));
+                        }
                     }
+                    // Air - don't draw any tile, just any objects in its space.
                     else 
                     {
-                        drawInTile(drawParams);
+                        drawInTile(spriteRenderer, tileBBox, drawParams);
                     }
-
                 }
                 const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
                                                     cast(ushort)cell.layerCount, true);
-                drawInTile(drawParams);
+                const aboveTilesBBox = drawParams.drawAreaBoundingBox;
+                spriteRenderer.clipBounds = aboveTilesBBox;
+                drawInTile(spriteRenderer, aboveTilesBBox, drawParams);
             }
         }
     }

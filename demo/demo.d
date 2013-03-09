@@ -14,6 +14,7 @@ import std.math;
 import std.stdio;
 
 import dgamevfs._;
+import gl3n.aabb;
 import gl3n.linalg;
 
 import color;
@@ -76,6 +77,9 @@ private:
 
     // Sprite used to draw the "player".
     Sprite* sprite_;
+
+    // Sprite used to draw point lights.
+    Sprite* pointLightSprite_;
 
     // Isometric map the demo "plays in".
     Map map_;
@@ -140,6 +144,7 @@ public:
 
         // Initialize the test sprite.
         sprite_ = loadSprite(renderer_, dataDir_, "sprites/player");
+        pointLightSprite_ = loadSprite(renderer_, dataDir_, "sprites/lights/point");
         if(sprite_ is null) {throw new StartupException("Failed to initialize test sprite.");}
         scope(failure){free(sprite_); sprite_ = null;}
 
@@ -167,6 +172,7 @@ public:
         map_.deleteTiles();
         destroy(map_);
         if(sprite_ !is null){free(sprite_);}
+        if(pointLightSprite_ !is null){free(pointLightSprite_);}
         if(spriteRenderer_ !is null){destroy(spriteRenderer_);}
         if(camera_ !is null){destroy(camera_);}
         destroyRenderer();
@@ -194,24 +200,30 @@ public:
                 return false;
             });
 
-            void drawEntitiesInTile(ref const Map.SpriteDrawParams params)
+            void drawEntitiesInTile
+                (SpriteRenderer spriteRenderer, ref const AABB aabb, ref const Map.SpriteDrawParams params)
             {
                 // Once we have multiple entities, we'll use a spatial manager 
-                // based on cells/layers so we'll just directly draw entities within the cell/layer.
-                const aabb = params.drawAreaBoundingBox;
-                // This ensures we get drawn at the lowest tile the entity stands on.
-                // Prevents the lowest tiles from being drawn on top of the entity.
-                // Note that this is a very crude check - we should check for intersection of
-                // the entity (rotated, if possible) bounding box with the tile bounding box.
-                const offset =  0.25 * sprite_.size.y;
-                const pos  = playerPosition_ + vec3(offset, -offset, 0.0f);
+                // based on cells/layers so we'll just directly draw entities within the cell/layer
+                // and avoid doing AABB intersection checks every time.
 
-                if(pos.x <= aabb.max.x && pos.x >= aabb.min.x &&
-                   pos.y <= aabb.max.y && pos.y >= aabb.min.y &&
-                   pos.z <= aabb.max.z && pos.z >= aabb.min.z)
+                // The spriteRenderer clips drawn pixels to the 3D area specified by aabb, so
+                // we draw once per each cell the object is in.
+                if(aabb.intersects(AABB(sprite_.boundingBox.min + playerPosition_,
+                                        sprite_.boundingBox.max + playerPosition_)))
                 {
-                    spriteRenderer_.drawSprite(sprite_, playerPosition_, 
-                                               vec3(0.0f, 0.0f, playerRotationZ_));
+                    spriteRenderer.drawSprite(sprite_, playerPosition_, 
+                                              vec3(0.0f, 0.0f, playerRotationZ_));
+                }
+
+                foreach(light; [&point1, &point2])
+                {
+                    if(aabb.intersects(AABB(sprite_.boundingBox.min + light.position,
+                                            sprite_.boundingBox.max + light.position)))
+                    {
+                        spriteRenderer.drawSprite(pointLightSprite_, light.position, 
+                                                   vec3(0.0f, 0.0f, 0.0f));
+                    }
                 }
             }
 
