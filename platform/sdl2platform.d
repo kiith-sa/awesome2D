@@ -18,6 +18,7 @@ import gl3n.linalg;
 
 import platform.key;
 import platform.platform;
+import util.string;
 
 
 ///Platform implementation based on SDL 2.0 .
@@ -103,7 +104,7 @@ public:
         assert(window_ !is null, 
                "Trying to set window caption without creating a window first " ~
                "(Initialize a Renderer)");
-        SDL_SetWindowTitle(window_, toStringz(str));
+        SDL_SetWindowTitle(window_, toStringzNoAlloc(str));
     }
 
     override void hideCursor(){SDL_ShowCursor(0);}
