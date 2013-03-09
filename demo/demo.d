@@ -12,6 +12,7 @@ import std.algorithm;
 import std.conv;
 import std.math;
 import std.stdio;
+import std.typecons;
 
 import dgamevfs._;
 import gl3n.aabb;
@@ -216,13 +217,13 @@ public:
                                               vec3(0.0f, 0.0f, playerRotationZ_));
                 }
 
-                foreach(light; [&point1, &point2])
+                foreach(light; tuple(point1, point2))
                 {
-                    if(aabb.intersects(AABB(sprite_.boundingBox.min + light.position,
-                                            sprite_.boundingBox.max + light.position)))
+                    if(aabb.intersects(AABB(pointLightSprite_.boundingBox.min + light.position,
+                                            pointLightSprite_.boundingBox.max + light.position)))
                     {
                         spriteRenderer.drawSprite(pointLightSprite_, light.position, 
-                                                   vec3(0.0f, 0.0f, 0.0f));
+                                                  vec3(0.0f, 0.0f, 0.0f));
                     }
                 }
             }
@@ -231,12 +232,6 @@ public:
             {
                 fpsCounter_.event();
                 map_.draw(spriteRenderer_, camera_, &drawEntitiesInTile);
-                /*
-                spriteRenderer_.startDrawing();
-                spriteRenderer_.drawSprite(sprite_, vec3(playerPosition_), 
-                                        vec3(0.0f, 0.0f, playerRotationZ_));
-                spriteRenderer_.stopDrawing();
-                */
                 return true;
             }
             renderer_.renderFrame(&frame);
