@@ -2,8 +2,10 @@ uniform sampler2D texDiffuse;
 uniform sampler2D texNormal;
 uniform sampler2D texOffset;
 uniform vec3  spritePosition3D;
-uniform vec3  minBounds;
-uniform vec3  maxBounds;
+uniform vec3  minOffsetBounds;
+uniform vec3  maxOffsetBounds;
+uniform vec3  minClipBounds;
+uniform vec3  maxClipBounds;
 varying vec2 frag_TexCoord;
 
 // Ambient light
@@ -96,6 +98,22 @@ vec3 pointLightingTotal(in vec3 pixelDiffuse, in vec3 pixelNormal, in vec3 pixel
 
 void main (void)
 {
+    // Map offset coordinates from [0.0, 1.0] to [minOffsetBounds, maxOffsetBounds]
+    // and add that to sprite position to get position of the pixel.
+    vec3 offset   = vec3(texture2D(texOffset, frag_TexCoord));
+    vec3 position = spritePosition3D + minOffsetBounds +
+                    (maxOffsetBounds - minOffsetBounds) * offset;
+    if(position.x < minClipBounds.x || 
+       position.y < minClipBounds.y ||
+       position.z < minClipBounds.z ||
+       position.x > maxClipBounds.x ||
+       position.y > maxClipBounds.y ||
+       position.z > maxClipBounds.z)
+    {
+        // We're not drawing in this part of space.
+        discard;
+    }
+
     // Color of the sprite.
     vec3 diffuse  = vec3(texture2D(texDiffuse, frag_TexCoord));
     // We preserve transparency of the sprite.
@@ -103,10 +121,6 @@ void main (void)
     // Map the normal coordinates from [0.0, 1.0] to [-1.0, 1.0]
     vec3 normal   = vec3(texture2D(texNormal, frag_TexCoord));
     normal        = normalize(normal * 2.0 - vec3(1.0, 1.0, 1.0));
-    // Map offset coordinates from [0.0, 1.0] to [minBounds, maxBounds]
-    // and add that to sprite position to get position of the pixel.
-    vec3 offset   = vec3(texture2D(texOffset, frag_TexCoord));
-    vec3 position = spritePosition3D + minBounds + (maxBounds - minBounds) * offset;
 
     // Add up lighting from all types of light sources.
     vec3 totalLighting = ambientLight * diffuse

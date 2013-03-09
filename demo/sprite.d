@@ -260,6 +260,9 @@ public:
     /// Return size of the sprite in pixels.
     @property vec2u size() const pure nothrow {return size_;}
 
+    /// Return a reference to the bounding box of the sprite.
+    @property ref const(AABB) boundingBox() const pure nothrow {return boundingBox_;}
+
     /// Get a pointer to the facing of the sprite closest to specified rotation value.
     Facing* closestFacing(vec3 rotation)
     {
@@ -386,9 +389,14 @@ private:
     uint offsetSamplerUniform_;
 
     // Handle to the minimum offset bounds uniform.
-    uint minBoundsUniform_;
+    uint minOffsetBoundsUniform_;
     // Handle to the maximum offset bounds uniform.
-    uint maxBoundsUniform_;
+    uint maxOffsetBoundsUniform_;
+
+    // Handle to the minimum clip bounds uniform.
+    uint minClipBoundsUniform_;
+    // Handle to the maximum clip bounds uniform.
+    uint maxClipBoundsUniform_;
 
     // Handle to the ambient light color uniform.
     uint ambientLightUniform_;
@@ -435,6 +443,9 @@ private:
     // Storage to copy point light attenuations to before being uploaded as uniforms.
     float[maxPointLights] pointAttenuations_;
 
+    // 3D area we're drawing in. Any pixels outside of this area will be clipped away.
+    AABB clipBounds_;
+
 public:
     /// Construct a SpriteRenderer.
     ///
@@ -452,6 +463,8 @@ public:
         camera_        = camera;
         verticalAngle_ = verticalAngle * degToRad;
         spriteShader_  = renderer.createGLSLShader();
+        clipBounds_.min = vec3(-100000.0f, -100000.0f, -100000.0f);
+        clipBounds_.max = vec3(100000.0f,  100000.0f, 100000.0f);
         try
         {
             // Load the shader.
@@ -478,8 +491,10 @@ public:
                 diffuseSamplerUniform_        = getUniformHandle("texDiffuse");
                 normalSamplerUniform_         = getUniformHandle("texNormal");
                 offsetSamplerUniform_         = getUniformHandle("texOffset");
-                minBoundsUniform_             = getUniformHandle("minBounds");
-                maxBoundsUniform_             = getUniformHandle("maxBounds");
+                minOffsetBoundsUniform_       = getUniformHandle("minOffsetBounds");
+                maxOffsetBoundsUniform_       = getUniformHandle("maxOffsetBounds");
+                minClipBoundsUniform_         = getUniformHandle("minClipBounds");
+                maxClipBoundsUniform_         = getUniformHandle("maxClipBounds");
                 directionalDirectionsUniform_ = getUniformHandle("directionalDirections");
                 directionalDiffuseUniform_    = getUniformHandle("directionalDiffuse");
                 pointPositionsUniform_        = getUniformHandle("pointPositions");
@@ -577,9 +592,11 @@ public:
             setUniform(projectionUniform_,     camera_.projection);
 
             // Sprite position and bounds.
-            setUniform(positionUniform_,       position);
-            setUniform(minBoundsUniform_,      sprite.boundingBox_.min);
-            setUniform(maxBoundsUniform_,      sprite.boundingBox_.max);
+            setUniform(positionUniform_,        position);
+            setUniform(minOffsetBoundsUniform_, sprite.boundingBox_.min);
+            setUniform(maxOffsetBoundsUniform_, sprite.boundingBox_.max);
+            setUniform(minClipBoundsUniform_,   clipBounds_.min);
+            setUniform(maxClipBoundsUniform_,   clipBounds_.max);
 
             // Texture units used by specified textures.
             setUniform(diffuseSamplerUniform_, 0);
@@ -604,8 +621,11 @@ public:
         renderer_.drawVertexBuffer(sprite.vertexBuffer_, null, spriteShader_);
     }
 
+    // Set the 3D area to draw in. Any pixels outside of this area will be clipped away.
+    @property void clipBounds(const AABB rhs) @safe pure nothrow {clipBounds_ = rhs;}
+
     /// Set the ambient light color.
-    @property void ambientLight(const vec3 rhs) pure nothrow {ambientLight_ = rhs;}
+    @property void ambientLight(const vec3 rhs) @safe pure nothrow {ambientLight_ = rhs;}
 
     /// Register a directional (infinite-distance) light, and use it in future sprite draws.
     ///
