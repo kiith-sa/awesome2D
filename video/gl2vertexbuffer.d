@@ -116,7 +116,6 @@ void drawVertexBufferGL2
     // Enable all used vertex attributes.
     foreach(attribute; (*attributeSpec_).attributes)
     {
-        ++totalAttributes;
         const name = attributeInterpretationNames[attribute.interpretation];
         const outerHandle = shaderProgram.getAttributeOuterHandle(name);
 
@@ -130,6 +129,7 @@ void drawVertexBufferGL2
         {
             // Ignore missing attributes
             attributeOffset += attribute.type.attributeSize();
+            ++totalAttributes;
             continue;
         }
         enabledAttributes[totalAttributes] = handle;
@@ -143,6 +143,7 @@ void drawVertexBufferGL2
         // to default attributes in the shader program itself.
 
         attributeOffset += attribute.type.attributeSize();
+        ++totalAttributes;
     }
 
     const drawVertexCount =
