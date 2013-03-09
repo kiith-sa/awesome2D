@@ -1,0 +1,23 @@
+﻿%YAML 1.1
+---
+sprite:
+  verticalAngle: 30.000000
+  size:
+  - 32
+  - 32
+  offsetScale: 11.360000
+  posExtents:
+    min:
+    - -1.000001
+    - -1.000001
+    - -1.000001
+    max:
+    - 1.000001
+    - 1.000001
+    - 1.000001
+images:
+- zRotation: 0.000000
+  layers:
+    diffuse: sphere_diffuse_0.png
+    normal: sphere_normal_0.png
+    offset: sphere_offset_0.png
