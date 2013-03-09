@@ -210,17 +210,25 @@ public:
 
         /// Calculates bounding box to draw objects in.
         ///
+        /// Used for clipping sprites/tiles drawn in a tile.
+        ///
         /// This is actually slightly bigger than the tile bounding box to 
         /// allow e.g. tiles with slight variations on edges without drawing
         /// them multiple times.
         AABB drawAreaBoundingBox() @safe pure nothrow const
         {
-            return AABB(vec3((xStrip - 0.5f) * tileSize.x - 1.0f,
-                             (yStrip - 0.5f) * tileSize.y - 1.0f,
-                             (layer  - 0.5f) * tileSize.z - 1.0f),
-                        vec3((xStrip + 0.5f) * tileSize.x + 1.0f,
-                             (yStrip + 0.5f) * tileSize.y + 1.0f,
-                             (layer + 0.5f + allLayersAbove ? 65535 : 0) * tileSize.z + 1.0f));
+            // Ugly due to optimizations.
+            // 
+            // We add 1.0f of extra space to support tiles with slight variations.
+            vec3 min;
+            min.x = (xStrip - 0.5f) * tileSize.x - 1.0f;
+            min.y = (yStrip - 0.5f) * tileSize.y - 1.0f;
+            min.z = (layer  - 0.5f) * tileSize.z - 1.0f;
+            vec3 max;
+            max.x = (xStrip + 0.5f) * tileSize.x + 1.0f;
+            max.y = (yStrip + 0.5f) * tileSize.y + 1.0f;
+            max.z = (layer + 0.5f + allLayersAbove ? 65535 : 0) * tileSize.z + 1.0f;
+            return AABB(min, max);
         }
     }
 
@@ -322,21 +330,21 @@ public:
             // X and Y strip of the current cell.
             int xStrip = startXStrip;
             int yStrip = startYStrip;
-            const rowOffset =  (cellY % 2) * 0.5 * tileSize.x;
+            // World-space X and Y coordinates of the cell.
+            float x = tileSize.x * startXStrip;
+            float y = tileSize.y * startYStrip;
             // Draw the individual tiles within the row.
             foreach(const cellX; cellMin.x .. cellMax.x)
             {
                 ++ xStrip;
                 ++ yStrip;
+                x += tileSize.x;
+                y += tileSize.y;
                 const(Cell*) cell = &cell(cellX, cellY);
-                // The cell doesn't have this layer.
                 
                 // Draw the cell's layer stack.
                 foreach(uint layer, const ushort layerIndex; cell.layerIndices(this))
                 {
-                    // World-space X and Y coordinates of the cell.
-                    const x = tileSize.x * xStrip;
-                    const y = tileSize.y * yStrip;
                     const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
                                                         cast(ushort)layer);
                     const tileBBox = drawParams.drawAreaBoundingBox;
