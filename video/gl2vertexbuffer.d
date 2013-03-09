@@ -117,9 +117,10 @@ void drawVertexBufferGL2
     foreach(attribute; (*attributeSpec_).attributes)
     {
         ++totalAttributes;
-        const name = to!string(attribute.interpretation);
+        const name = attributeInterpretationNames[attribute.interpretation];
         const outerHandle = shaderProgram.getAttributeOuterHandle(name);
 
+        // GL handle to the attribute.
         GLint handle;
         try
         {
@@ -144,7 +145,7 @@ void drawVertexBufferGL2
         attributeOffset += attribute.type.attributeSize();
     }
 
-    auto drawVertexCount =
+    const drawVertexCount =
         indexBuffer is null ? vertexCount_ : indexBuffer.indexCount_;
 
     final switch(primitiveType_)
