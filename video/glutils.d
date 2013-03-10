@@ -101,7 +101,8 @@ GLenum glTextureType(const ColorFormat format) @safe pure nothrow
 
 /// Determine OpenGL packing/unpacking alignment needed for specified color format.
 /// 
-/// GL only supports 1, 2, 4, 8, so using bytes per pixel doesn't work for e.g. RGB8.
+/// GL only supports pixels to be aligned to 1, 2, 4 and 8 byte boundaries so using
+/// bytes per pixel doesn't work for e.g. RGB8.
 /// 
 /// Params:  format = Format to get alignment for.
 /// 
