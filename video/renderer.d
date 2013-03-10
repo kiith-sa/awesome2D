@@ -91,7 +91,9 @@ public:
     /// Create a 2D texture, loading from specified image.
     ///
     /// The texture must be destroyed by the user before the renderer is 
-    /// destroyed.
+    /// destroyed. 
+    ///
+    /// Pixel format of the texture will be based on image format of the image.
     ///
     /// Params:  image  = Image to load from.
     ///          params = Texture parameters (e.g. filtering).
