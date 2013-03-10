@@ -43,7 +43,7 @@ struct Image
          *          format = Color format of the image.
          */
         this(const uint width, const uint height, 
-             const ColorFormat format = ColorFormat.RGBA_8)
+             const ColorFormat format = ColorFormat.RGBA_8) @trusted
         {
             data_ = allocArray!ubyte(width * height * bytesPerPixel(format));
             size_ = vec2u(width, height);
@@ -51,25 +51,25 @@ struct Image
         }
 
         ///Destroy the image and free its memory.
-        ~this(){if(data !is null){free(data_);}}
+        @trusted nothrow ~this(){if(data !is null){free(data_);}}
 
         ///Get color format of the image.
-        @property ColorFormat format() const pure {return format_;}
+        @property ColorFormat format() @safe const pure nothrow {return format_;}
 
         ///Get size of the image in pixels.
-        @property vec2u size() const pure {return size_;}
+        @property vec2u size() @safe const pure nothrow {return size_;}
 
         ///Get image width in pixels.
-        @property uint width() const pure {return size_.x;}
+        @property uint width() @safe const pure nothrow {return size_.x;}
 
         ///Get image height in pixels.
-        @property uint height() const pure {return size_.y;}
+        @property uint height() @safe const pure nothrow {return size_.y;}
 
         ///Get direct read-only access to image data.
-        @property const(ubyte[]) data() const pure {return data_;}
+        @property const(ubyte[]) data() @safe const pure nothrow {return data_;}
 
         ///Get direct read-write access to image data.
-        @property ubyte[] dataUnsafe() pure {return data_;}
+        @property ubyte[] dataUnsafe() pure nothrow {return data_;}
 
         /**
          * Set RGBA pixel color.
@@ -80,7 +80,7 @@ struct Image
          *          y     = Y coordinate of the pixel.
          *          color = Color to set.
          */
-        void setPixelRGBA8(const uint x, const uint y, const Color color) pure
+        void setPixelRGBA8(const uint x, const uint y, const Color color) @safe pure nothrow
         in
         {
             assert(x < size_.x && y < size_.y, "Pixel out of range");
@@ -104,7 +104,7 @@ struct Image
          *          y     = Y coordinate of the pixel.
          *          color = Color to set.
          */
-        void setPixelGray8(const uint x, const uint y, const ubyte color) pure
+        void setPixelGray8(const uint x, const uint y, const ubyte color) @safe pure nothrow
         in
         {
             assert(x < size_.x && y < size_.y, "Pixel out of range");
@@ -122,7 +122,7 @@ struct Image
          *
          * Returns: Color of the pixel.
          */
-        Color getPixel(const uint x, const uint y) const pure
+        Color getPixel(const uint x, const uint y) @safe const pure nothrow
         in
         {
             assert(x < size_.x && y < size_.y, "Pixel out of range");
@@ -144,7 +144,7 @@ struct Image
          *
          * Params:  size = Size of one checker square.
          */
-        void generateCheckers(const uint size) pure
+        void generateCheckers(const uint size) @safe pure nothrow
         {
             bool white;
             foreach(y; 0 .. size_.y) foreach(x; 0 .. size_.x)
@@ -186,7 +186,7 @@ struct Image
          *
          * Params:  distance = Distance between 1 pixel wide stripes.
          */
-        void generateStripes(const uint distance) pure
+        void generateStripes(const uint distance) @safe pure nothrow
         {
             foreach(y; 0 .. size_.y) foreach(x; 0 .. size_.x)
             {
@@ -212,7 +212,7 @@ struct Image
         }
 
         ///Gamma correct the image with specified factor.
-        void gammaCorrect(const real factor) pure
+        void gammaCorrect(const real factor) @safe pure nothrow
         in{assert(factor >= 0.0, "Gamma correction factor must not be negative");}
         body
         {
@@ -237,7 +237,7 @@ struct Image
         }
 
         ///Flip the image vertically.
-        void flipVertical()
+        void flipVertical() @trusted
         {
             const uint pitch = pitch();
             ubyte[] tempRow = allocArray!ubyte(pitch);
@@ -255,5 +255,5 @@ struct Image
 
     private:
         ///Get pitch (bytes per row) of the image.
-        @property uint pitch() const pure {return bytesPerPixel(format_) * size_.x;}
+        @property uint pitch() @safe const pure nothrow {return bytesPerPixel(format_) * size_.x;}
 }
