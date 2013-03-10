@@ -38,7 +38,7 @@ enum ColorFormat
  *
  * Returns: Bytes per pixel needed by specified color format.
  */
-uint bytesPerPixel(const ColorFormat format) pure
+uint bytesPerPixel(const ColorFormat format) @safe pure nothrow
 {
     final switch(format)
     {
@@ -85,7 +85,7 @@ struct Color
      *          b = Blue channel value.
      *          a = Alpha channel value.
      */
-    this(const ubyte r, const ubyte g, const ubyte b, const ubyte a) pure
+    this(const ubyte r, const ubyte g, const ubyte b, const ubyte a) @safe pure nothrow
     {
         this.r = r;
         this.g = g;
@@ -94,7 +94,7 @@ struct Color
     }
                    
     ///Comparison for sorting.
-    int opCmp(ref const Color c) const pure nothrow
+    int opCmp(ref const Color c) @safe const pure nothrow
     {
         return r != c.r ? r - c.r :
                g != c.g ? g - c.g :
@@ -240,7 +240,7 @@ struct Color
     @property void gray8(const ubyte gray) pure {r = g = b = a = gray;}
 
     ///Gamma correct the color with specified factor.
-    void gammaCorrect(const real factor) pure
+    void gammaCorrect(const real factor) @safe pure nothrow
     in{assert(factor >= 0.0, "Can't gamma correct with a negative factor");}
     body
     {
@@ -257,8 +257,8 @@ struct Color
         if (G > 1.0 && (temp = (1.0 / G)) < scale) scale = temp;
         if (B > 1.0 && (temp = (1.0 / B)) < scale) scale = temp;
         scale *= 255.0;
-        R *= scale;    
-        G *= scale;    
+        R *= scale;
+        G *= scale;
         B *= scale;
         r = cast(ubyte)R;
         g = cast(ubyte)G;
@@ -284,7 +284,7 @@ struct Color
      *
      * Returns: Gamma corrected color.
      */
-    static ubyte gammaCorrect(const ubyte color, const real factor) pure
+    static ubyte gammaCorrect(const ubyte color, const real factor) @safe pure nothrow
     in
     {
         assert(factor >= 0.0, "Can't gamma correct with a negative factor");
