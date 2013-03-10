@@ -33,6 +33,7 @@ void constructTextureGL2
     texture.params_     = params;
     texture.dtor_       = &dtor;
     texture.bind_       = &bind;
+    texture.setPixels_  = &setPixels;
 
     with(texture)
     {
@@ -203,4 +204,31 @@ void bind(ref Texture self, const uint textureUnit) @safe nothrow
 {with(self.gl2_)
 {
     bindTexture(textureUnit, textureHandle_);
+}}
+
+/// Set pixels in specified area to pixels from specified image.
+///
+/// Implements Texture::setPixels.
+void setPixels(ref Texture self, const vec2u offset, ref const Image image) @trusted nothrow
+{with(self.gl2_)
+{
+    // Texture.setPixels() ensures the image format matches the texture and that 
+    // it doesn't extend outside of the texture.
+
+    // Texture loading parameters.
+    const loadFormat = self.format_.glTextureLoadFormat();
+    const type       = self.format_.glTextureType();
+
+    // Bind to texture unit 0 while we work, then rebind the previously bound texture.
+    const previousTexture = bindTexture(0, textureHandle_);
+    scope(exit){bindTexture(0, previousTexture);}
+
+    // By default, GL aligns rows to 4 byte boundaries, which messes up less than
+    // 32bpp images (e.g. RGB_8, grayscale) when their row sizes are not
+    // divisible by 4. So we force alignment here.
+    glPixelStorei(GL_UNPACK_ALIGNMENT, packAlignment(image.format));
+    // Write to texture
+    glTexSubImage2D(GL_TEXTURE_2D, 0, offset.x, offset.y, 
+                    image.size.x, image.size.y,
+                    loadFormat, type, image.data.ptr);
 }}

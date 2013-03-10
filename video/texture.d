@@ -124,6 +124,22 @@ public:
     {
         return this.sizeof;
     }
+
+    /// Overwrite pixels in an area of the texture by specified image.
+    ///
+    /// Params:  offset = The bottom-left corner of the area to overwrite.
+    ///          image  = Image to copy pixels from. Must be in the same format
+    ///                   as the image used to create the texture.
+    ///                   The image must not extend outside texture dimensions.
+    void setPixels(const vec2u offset, ref const Image image) @safe nothrow
+    {
+        const totalExtents = offset + image.size;
+        assert(totalExtents.x <= dimensions_.x && totalExtents.y <= dimensions_.y,
+               "Trying to set pixels outside of texture (offset or image too large)");
+        assert(image.format == format_,
+               "Trying to set pixels from an image with different color format");
+        setPixels_(this, offset, image);
+    }
 }
 
 
