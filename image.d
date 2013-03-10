@@ -36,6 +36,8 @@ struct Image
         /**
          * Construct an image.
          *
+         * The image will be black, and if it has an alpha channel, transparent.
+         *
          * Params:  width  = Width in pixels.
          *          height = Height in pixels.
          *          format = Color format of the image.
