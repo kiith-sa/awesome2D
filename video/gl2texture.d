@@ -164,7 +164,7 @@ struct GL2TextureData
 /// This should be used instead of glBindTexture to ensure we 
 /// rebind the last texture we called bind() method of after 
 /// doing operations that need us to bind a different texture to the unit.
-GLuint bindTexture(const uint textureUnit, const GLuint texture)
+GLuint bindTexture(const uint textureUnit, const GLuint texture) @trusted nothrow
 {
     glActiveTexture(GL_TEXTURE0 + textureUnit);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -181,7 +181,7 @@ GLuint[32] boundTextures_;
 /// Destroy the texture.
 ///
 /// Implements Texture::~this.
-void dtor(ref Texture self)
+void dtor(ref Texture self) @trusted nothrow
 {with(self.gl2_)
 {
     // Not initialized.
@@ -202,7 +202,7 @@ void dtor(ref Texture self)
 /// Bind the texture to specified unit.
 ///
 /// Implements Texture::bind.
-void bind(ref Texture self, const uint textureUnit)
+void bind(ref Texture self, const uint textureUnit) @safe nothrow
 {with(self.gl2_)
 {
     bindTexture(textureUnit, textureHandle_);

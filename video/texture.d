@@ -81,13 +81,15 @@ package:
     alias Texture Self;
 
     // Pointer to the destructor implementation.
-    void function(ref Self)             dtor_;
+    void function(ref Self) @trusted nothrow dtor_;
     // Pointer to the bind implementation.
-    void function(ref Self, const uint) bind_;
+    void function(ref Self, const uint) @trusted nothrow bind_;
+    // Pointer to the setPixels_ implementation.
+    void function(ref Self, const vec2u, ref const Image) @trusted nothrow setPixels_;
 
 public:
     /// Destroy the Texture, freeing any resources used.
-    ~this()
+    @safe nothrow ~this()
     {
         dtor_(this);
     }
@@ -104,7 +106,7 @@ public:
     ///
     /// Textures are never "unbound" or "released"; a different texture 
     /// can be bound to a unit, overriding the previous binding.
-    void bind(const uint textureUnit)
+    void bind(const uint textureUnit) @safe nothrow
     {
         bind_(this, textureUnit);
     }
