@@ -29,6 +29,7 @@ void constructTextureGL2
 {
     texture.gl2_        = GL2TextureData.init;
     texture.dimensions_ = image.size();
+    texture.format_     = image.format;
     texture.params_     = params;
     texture.dtor_       = &dtor;
     texture.bind_       = &bind;
@@ -96,54 +97,50 @@ void constructTextureGL2FBO
     texture.gl2_        = GL2TextureData.init;
     texture.dimensions_ = vec2u(width, height);
     texture.params_     = TextureParams().filtering(TextureFiltering.Nearest);
+    texture.format_     = format;
     texture.dtor_       = &dtor;
     texture.bind_       = &bind;
 
-    with(texture)
+    if(!glTextureSizeSupported(texture.dimensions_, format))
     {
-        const colorFormat = format;
+        const msg = "FBO texture size/format combination not supported: " ~
+                    to!string(texture.dimensions_) ~ ", " ~ to!string(texture.format_);
+        throw new FrameBufferInitException(msg);
+    }
 
-        if(!glTextureSizeSupported(dimensions_, format))
-        {
-            const msg = "FBO texture size/format combination not supported: " ~
-                        to!string(dimensions_) ~ ", " ~ to!string(colorFormat);
-            throw new FrameBufferInitException(msg);
-        }
+    glGenTextures(1, &texture.gl2_.textureHandle_);
+    // If we're constructing a texture while another texture is bound,
+    // make sure we rebind it.
+    const previous = bindTexture(0, texture.gl2_.textureHandle_);
+    scope(exit) {bindTexture(0, previous);}
 
-        glGenTextures(1, &gl2_.textureHandle_);
-        // If we're constructing a texture while another texture is bound,
-        // make sure we rebind it.
-        const previous = bindTexture(0, gl2_.textureHandle_);
-        scope(exit) {bindTexture(0, previous);}
+    // Set texture parameters.
+    const glFiltering = texture.params_.filtering_.glTextureFiltering();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glFiltering);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glFiltering);
+    const glWrap = texture.params_.wrap_.glTextureWrap();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrap);
 
-        // Set texture parameters.
-        const glFiltering = params_.filtering_.glTextureFiltering();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glFiltering);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glFiltering);
-        const glWrap = params_.wrap_.glTextureWrap();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrap);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrap);
+    // Texture loading parameters.
+    const internalFormat = texture.format_.glTextureInternalFormat();
+    const loadFormat     = texture.format_.glTextureLoadFormat();
+    const type           = texture.format_.glTextureType();
 
-        // Texture loading parameters.
-        const internalFormat = colorFormat.glTextureInternalFormat();
-        const loadFormat     = colorFormat.glTextureLoadFormat();
-        const type           = colorFormat.glTextureType();
+    string errorMsg;
+    if(glErrorOccured(errorMsg))
+    {
+        writeln("GL error before creating a FBO texture: ", errorMsg);
+    }
 
-        string errorMsg;
-        if(glErrorOccured(errorMsg))
-        {
-            writeln("GL error before creating a FBO texture: ", errorMsg);
-        }
+    // Create an empty texture (the null data pointer).
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
+                 texture.dimensions_.x, texture.dimensions_.y, 0,
+                 loadFormat, type, cast(void*) null);
 
-        // Create an empty texture (the null data pointer).
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
-                     dimensions_.x, dimensions_.y, 0,
-                     loadFormat, type, cast(void*) null);
-
-        if(glErrorOccured(errorMsg))
-        {
-            writeln("GL error after creating a FBO texture: ", errorMsg);
-        }
+    if(glErrorOccured(errorMsg))
+    {
+        writeln("GL error after creating a FBO texture: ", errorMsg);
     }
 }
 

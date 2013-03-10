@@ -11,6 +11,8 @@ module video.texture;
 
 import gl3n.linalg;
 
+import color;
+import image;
 import video.gl2texture;
 
 /// Texture filtering modes.
@@ -75,6 +77,9 @@ package:
     // X and Y size of the texture in pixels.
     vec2u dimensions_;
 
+    // Color format of the texture.
+    ColorFormat format_;
+
     // Parameters the texture was constructed with (filtering, wrapping, etc.).
     TextureParams params_;
     // Alias for readability.
@@ -96,6 +101,9 @@ public:
 
     /// Get the dimensions of the texture in pixels.
     @property vec2u dimensions() @safe const pure nothrow {return dimensions_;}
+
+    /// Get the color format of the texture.
+    @property ColorFormat format() @safe const pure nothrow {return format_;}
 
     /// Bind the texture to specified texture unit (to be used for drawing).
     ///
