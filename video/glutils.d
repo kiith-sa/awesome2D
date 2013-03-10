@@ -33,7 +33,7 @@ GLint glPrimitiveType(const PrimitiveType primitiveType) @safe pure nothrow
 /// Get OpenGL data type of a component of an attribute with specified attribute type.
 ///
 /// E.g. vec3 is a vector of 3 floats, so GL data type of AttributeType.vec3 is GL_FLOAT.
-GLint glAttributeType(const AttributeType type)
+GLint glAttributeType(const AttributeType type) @safe pure nothrow
 {
     final switch(type)
     {
@@ -64,7 +64,7 @@ GLint glTextureWrap(const TextureWrap wrap) @safe pure nothrow
 
 /// Get internal (on-GPU) GL pixel format (internalFormat passed to glTexImage2D())
 /// corresponding to a ColorFormat.
-GLint glTextureInternalFormat(const ColorFormat format)
+GLint glTextureInternalFormat(const ColorFormat format) @safe pure nothrow
 {
     final switch(format)
     {
@@ -76,7 +76,7 @@ GLint glTextureInternalFormat(const ColorFormat format)
 }
 
 /// Get a GL enum representing the format of pixel data to be loaded to a GL texture.
-GLenum glTextureLoadFormat(const ColorFormat format)
+GLenum glTextureLoadFormat(const ColorFormat format) @safe pure nothrow
 {
     final switch(format)
     {
@@ -88,7 +88,7 @@ GLenum glTextureLoadFormat(const ColorFormat format)
 }
 
 /// Get a GL enum representing the data type of pixel data to be loaded to a GL texture.
-GLenum glTextureType(const ColorFormat format)
+GLenum glTextureType(const ColorFormat format) @safe pure nothrow
 {
     final switch(format)
     {
@@ -99,8 +99,26 @@ GLenum glTextureType(const ColorFormat format)
     }
 }
 
+/// Determine OpenGL packing/unpacking alignment needed for specified color format.
+/// 
+/// GL only supports 1, 2, 4, 8, so using bytes per pixel doesn't work for e.g. RGB8.
+/// 
+/// Params:  format = Format to get alignment for.
+/// 
+/// Returns: Alignment for specified format.
+static GLint packAlignment(const ColorFormat format) @safe pure nothrow
+{
+    final switch(format)
+    {
+        case ColorFormat.RGB_565: return 2;
+        case ColorFormat.RGB_8:   return 1;
+        case ColorFormat.RGBA_8:  return 4;
+        case ColorFormat.GRAY_8:  return 1;
+    }
+}
+
 /// Determine if specified texture size/format combination is supported.
-bool glTextureSizeSupported(const vec2u size, const ColorFormat format)
+bool glTextureSizeSupported(const vec2u size, const ColorFormat format) @system nothrow
 {
     const internalFormat = format.glTextureInternalFormat();
     const loadFormat     = format.glTextureLoadFormat();
@@ -120,7 +138,7 @@ bool glTextureSizeSupported(const vec2u size, const ColorFormat format)
 }
 
 /// Determine if specified OpenGL extension is supported.
-bool glIsExtensionAvailable(const string name)
+bool glIsExtensionAvailable(const string name) @system
 {
     auto extstr = to!string(glGetString(GL_EXTENSIONS));
     return extstr.split(" ").canFind(name);
@@ -130,7 +148,7 @@ bool glIsExtensionAvailable(const string name)
 ///
 /// Returns true if a GL error has occured since the last call to glErrorOccured
 /// or glGetError. If an error occurs, msg is set to the name of the error.
-bool glErrorOccured(ref string msg)
+bool glErrorOccured(ref string msg) @system nothrow
 {
     glFinish();
     const error = glGetError();
