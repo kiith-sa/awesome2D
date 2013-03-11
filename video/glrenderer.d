@@ -363,10 +363,12 @@ protected:
 
     override void drawVertexBufferBackend(ref VertexBufferBackend backend,
                                           IndexBuffer* indexBuffer, 
-                                          GLSLShaderProgram* shaderProgram)
+                                          GLSLShaderProgram* shaderProgram,
+                                          const uint first,
+                                          const uint elements)
     {
         //debugSetupGLState();
-        backend.drawVertexBufferGL2(indexBuffer, *shaderProgram);
+        backend.drawVertexBufferGL2(indexBuffer, *shaderProgram, first, elements);
         //debugRestoreGLState();
     }
 

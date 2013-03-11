@@ -91,9 +91,13 @@ struct GL2VertexBufferBackendData
 ///                        Otherwise, all vertices in the buffer are drawn in
 ///                        consecutive order.
 ///          shader      = Shader program used for drawing.
+///          first       = Index of the first vertex of vertexBuffer to use
+///                        if indexBuffer is null, or the first index of
+///                        indexBuffer to use otherwise.
+///          elements    = Number of vertices to draw.
 void drawVertexBufferGL2
     (ref VertexBufferBackend self, IndexBuffer* indexBuffer,
-     ref GLSLShaderProgram shaderProgram)
+     ref GLSLShaderProgram shaderProgram, const uint first, const uint elements)
 {with(self) with(gl2_)
 {
     assert(locked_, "Trying to draw a vertex buffer that is not locked");
@@ -146,17 +150,14 @@ void drawVertexBufferGL2
         ++totalAttributes;
     }
 
-    const drawVertexCount =
-        indexBuffer is null ? vertexCount_ : indexBuffer.indexCount_;
-
     final switch(primitiveType_)
     {
         case PrimitiveType.Triangles:
-            assert(drawVertexCount % 3 == 0, 
+            assert(elements % 3 == 0, 
                    "Number of vertices drawn must be divisible by 3 when drawing triangles");
             break;
         case PrimitiveType.Lines:
-            assert(drawVertexCount % 2 == 0, 
+            assert(elements % 2 == 0, 
                    "Number of vertices drawn must be divisible by 2 when drawing lines");
             break;
     }
@@ -165,13 +166,13 @@ void drawVertexBufferGL2
     if(indexBuffer !is null)
     {
         indexBuffer.gl2_.indicesIBO_.bind();
-        glDrawElements(primitiveType_.glPrimitiveType(), cast(uint)indexBuffer.length,
-                       GL_UNSIGNED_INT, null);
+        glDrawElements(primitiveType_.glPrimitiveType(), elements,
+                       GL_UNSIGNED_INT, cast(GLvoid*)null + first * GLuint.sizeof);
         indexBuffer.gl2_.indicesIBO_.release();
     }
     else
     {
-        glDrawArrays(primitiveType_.glPrimitiveType(), 0, vertexCount_);
+        glDrawArrays(primitiveType_.glPrimitiveType(), first, elements);
     }
 }}
 
