@@ -237,7 +237,7 @@ struct TextureArea
 {
 private:
     // ID of the texture area used by the texture packer. ushort.max means invalid.
-    ushort id_;
+    ushort id_ = ushort.max;
 
     // Minimum (inclusive) extents of the texture space (in pixels).
     vec2us min_;
