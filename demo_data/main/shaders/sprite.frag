@@ -33,9 +33,9 @@ uniform float pointAttenuations[pointLightCount];
 /// Returns: Color added to the result pixel color by the light source.
 vec3 directionalLighting(in int light, in vec3 pixelDiffuse, in vec3 pixelNormal)
 {
-    vec3 lightDirection = normalize(directionalDirections[light]);
     vec3 reflectedColor = directionalDiffuse[light] * pixelDiffuse;
-    return reflectedColor * max(0.0, dot(pixelNormal, lightDirection));
+    return reflectedColor * 
+        max(0.0, dot(pixelNormal, directionalDirections[light]));
 }
 
 /// Compute the total contribution of all directional light sources.
