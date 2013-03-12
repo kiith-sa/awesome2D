@@ -189,8 +189,12 @@ package:
     ///Process a mouse motion event.
     void processMouseMotion(const SDL_MouseMotionEvent event) 
     {
-        const position = vec2u(event.x, event.y);
+        // Workaround around an SDL2 bug: 
+        // the mouse position is not passed correctly in the event.
+        int x, y;
+        SDL_GetMouseState(&x, &y);
+        //const position = vec2u(event.x, event.y);
         const positionRelative = vec2i(event.xrel, event.yrel);
-        mouseMotion.emit(position, positionRelative);
+        mouseMotion.emit(vec2u(x, y), positionRelative);
     }
 }
