@@ -79,8 +79,14 @@ public:
     }
 
     /// Is the buffer locked?
-    @property bool locked() const pure nothrow {return locked_;}
+    @property bool locked() @safe const pure nothrow {return locked_;}
 
     /// Get the number of indices in the buffer.
-    @property size_t length() const pure nothrow {return indexCount_;}
+    @property size_t length() @safe const pure nothrow {return indexCount_;}
+
+    /// Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
+    @property size_t memoryBytes() @safe const pure nothrow 
+    {
+        return this.sizeof + length * uint.sizeof;
+    }
 }
