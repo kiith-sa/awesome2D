@@ -164,8 +164,8 @@ class DerelictSDL2Loader : SharedLibLoader
             bindFunc(cast(void**)&SDL_NumJoysticks, "SDL_NumJoysticks");
             bindFunc(cast(void**)&SDL_JoystickName, "SDL_JoystickName");
             bindFunc(cast(void**)&SDL_JoystickOpen, "SDL_JoystickOpen");
-            bindFunc(cast(void**)&SDL_JoystickOpened, "SDL_JoystickOpened");
-            bindFunc(cast(void**)&SDL_JoystickIndex, "SDL_JoystickIndex");
+//            bindFunc(cast(void**)&SDL_JoystickOpened, "SDL_JoystickOpened");
+//            bindFunc(cast(void**)&SDL_JoystickIndex, "SDL_JoystickIndex");
             bindFunc(cast(void**)&SDL_JoystickNumAxes, "SDL_JoystickNumAxes");
             bindFunc(cast(void**)&SDL_JoystickNumBalls, "SDL_JoystickNumBalls");
             bindFunc(cast(void**)&SDL_JoystickNumHats, "SDL_JoystickNumHats");
@@ -336,8 +336,8 @@ class DerelictSDL2Loader : SharedLibLoader
             bindFunc(cast(void**)&SDL_GetPerformanceFrequency, "SDL_GetPerformanceFrequency");
             bindFunc(cast(void**)&SDL_Delay, "SDL_Delay");
             bindFunc(cast(void**)&SDL_AddTimer, "SDL_AddTimer");
-            bindFunc(cast(void**)&SDL_GetTouch, "SDL_GetTouch");
-            bindFunc(cast(void**)&SDL_GetFinger, "SDL_GetFinger");
+//            bindFunc(cast(void**)&SDL_GetTouch, "SDL_GetTouch");
+//            bindFunc(cast(void**)&SDL_GetFinger, "SDL_GetFinger");
             bindFunc(cast(void**)&SDL_GetVersion, "SDL_GetVersion");
             bindFunc(cast(void**)&SDL_GetRevision, "SDL_GetRevision");
             bindFunc(cast(void**)&SDL_GetRevisionNumber, "SDL_GetRevisionNumber");
@@ -354,7 +354,7 @@ class DerelictSDL2Loader : SharedLibLoader
             bindFunc(cast(void**)&SDL_GetDesktopDisplayMode, "SDL_GetDesktopDisplayMode");
             bindFunc(cast(void**)&SDL_GetCurrentDisplayMode, "SDL_GetCurrentDisplayMode");
             bindFunc(cast(void**)&SDL_GetClosestDisplayMode, "SDL_GetClosestDisplayMode");
-            bindFunc(cast(void**)&SDL_GetWindowDisplay, "SDL_GetWindowDisplay");
+//            bindFunc(cast(void**)&SDL_GetWindowDisplay, "SDL_GetWindowDisplay");
             bindFunc(cast(void**)&SDL_SetWindowDisplayMode, "SDL_SetWindowDisplayMode");
             bindFunc(cast(void**)&SDL_GetWindowDisplayMode, "SDL_GetWindowDisplayMode");
             bindFunc(cast(void**)&SDL_GetWindowPixelFormat, "SDL_GetWindowPixelFormat");

@@ -167,8 +167,8 @@ extern(C)
     alias nothrow int function() da_SDL_NumJoysticks;
     alias nothrow const(char)* function(int) da_SDL_JoystickName;
     alias nothrow SDL_Joystick* function(int) da_SDL_JoystickOpen;
-    alias nothrow int function(int) da_SDL_JoystickOpened;
-    alias nothrow int function(SDL_Joystick*) da_SDL_JoystickIndex;
+//    alias nothrow int function(int) da_SDL_JoystickOpened;
+//    alias nothrow int function(SDL_Joystick*) da_SDL_JoystickIndex;
     alias nothrow int function(SDL_Joystick*) da_SDL_JoystickNumAxes;
     alias nothrow int function(SDL_Joystick*) da_SDL_JoystickNumBalls;
     alias nothrow int function(SDL_Joystick*) da_SDL_JoystickNumHats;
@@ -371,8 +371,8 @@ extern(C)
     alias nothrow SDL_bool function(SDL_TimerID) da_SDL_RemoveTimer;
 
     // SDL_touch.h
-    alias nothrow SDL_Touch* function(SDL_TouchID) da_SDL_GetTouch;
-    alias nothrow SDL_Finger* function(SDL_TouchID, SDL_FingerID) da_SDL_GetFinger;
+//    alias nothrow SDL_Touch* function(SDL_TouchID) da_SDL_GetTouch;
+//    alias nothrow SDL_Finger* function(SDL_TouchID, SDL_FingerID) da_SDL_GetFinger;
 
     // SDL_version.h
     alias nothrow void function(SDL_version*) da_SDL_GetVersion;
@@ -392,7 +392,7 @@ extern(C)
     alias nothrow int function(int, SDL_DisplayMode*) da_SDL_GetDesktopDisplayMode;
     alias nothrow int function(int, SDL_DisplayMode*) da_SDL_GetCurrentDisplayMode;
     alias nothrow SDL_DisplayMode* function(int, const(SDL_DisplayMode)*, SDL_DisplayMode*) da_SDL_GetClosestDisplayMode;
-    alias nothrow int function(SDL_Window*) da_SDL_GetWindowDisplay;
+//    alias nothrow int function(SDL_Window*) da_SDL_GetWindowDisplay;
     alias nothrow int function(SDL_Window*, const(SDL_DisplayMode)*) da_SDL_SetWindowDisplayMode;
     alias nothrow int function(SDL_Window*, SDL_DisplayMode*) da_SDL_GetWindowDisplayMode;
     alias nothrow Uint32 function(SDL_Window*) da_SDL_GetWindowPixelFormat;
@@ -596,8 +596,8 @@ __gshared
     da_SDL_NumJoysticks SDL_NumJoysticks;
     da_SDL_JoystickName SDL_JoystickName;
     da_SDL_JoystickOpen SDL_JoystickOpen;
-    da_SDL_JoystickOpened SDL_JoystickOpened;
-    da_SDL_JoystickIndex SDL_JoystickIndex;
+//    da_SDL_JoystickOpened SDL_JoystickOpened;
+//    da_SDL_JoystickIndex SDL_JoystickIndex;
     da_SDL_JoystickNumAxes SDL_JoystickNumAxes;
     da_SDL_JoystickNumBalls SDL_JoystickNumBalls;
     da_SDL_JoystickNumHats SDL_JoystickNumHats;
@@ -783,8 +783,8 @@ __gshared
     da_SDL_Delay SDL_Delay;
     da_SDL_AddTimer SDL_AddTimer;
 
-    da_SDL_GetTouch SDL_GetTouch;
-    da_SDL_GetFinger SDL_GetFinger;
+//    da_SDL_GetTouch SDL_GetTouch;
+//    da_SDL_GetFinger SDL_GetFinger;
 
     da_SDL_GetVersion SDL_GetVersion;
     da_SDL_GetRevision SDL_GetRevision;
@@ -802,7 +802,7 @@ __gshared
     da_SDL_GetDesktopDisplayMode SDL_GetDesktopDisplayMode;
     da_SDL_GetCurrentDisplayMode SDL_GetCurrentDisplayMode;
     da_SDL_GetClosestDisplayMode SDL_GetClosestDisplayMode;
-    da_SDL_GetWindowDisplay SDL_GetWindowDisplay;
+//    da_SDL_GetWindowDisplay SDL_GetWindowDisplay;
     da_SDL_SetWindowDisplayMode SDL_SetWindowDisplayMode;
     da_SDL_GetWindowDisplayMode SDL_GetWindowDisplayMode;
     da_SDL_GetWindowPixelFormat SDL_GetWindowPixelFormat;
