@@ -15,6 +15,7 @@ import dgamevfs._;
 import gl3n.aabb;
 import gl3n.linalg;
 
+import color;
 import demo.sprite;
 import demo.spritepage;
 import demo.texturepacker;
@@ -66,33 +67,13 @@ public:
     ///                     containing the sprite images and metadata file (sprite.yaml).
     ///
     /// Returns: Pointer to the sprite on success, null on failure.
-    Sprite* loadSprite(string name)
+    Sprite* loadSprite(string name) @trusted
     {
+        auto sprite = alloc!Sprite;
         try
         {
-            auto spriteDir  = gameDir_.dir(name);
-            auto spriteYAML = loadYAML(spriteDir.file("sprite.yaml"));
-            auto sprite     = alloc!Sprite;
             scope(failure){free(sprite);}
-            sprite.name_ = name;
-
-            // Load sprite metadata.
-            auto spriteMeta   = spriteYAML["sprite"];
-            sprite.size_      = fromYAML!vec2u(spriteMeta["size"], "sprite size");
-            const offsetScale =
-                fromYAML!float(spriteMeta["offsetScale"], "sprite offset scale");
-            auto posExtents     = spriteMeta["posExtents"];
-            sprite.boundingBox_ = AABB(offsetScale * fromYAML!vec3(posExtents["min"]),
-                                       offsetScale * fromYAML!vec3(posExtents["max"]));
-
-            // Load data for each facing ("image") in the sprite.
-            auto images = spriteYAML["images"];
-            enforce(images.length > 0, new SpriteInitException("Sprite with no images"));
-
-            sprite.facings_ = loadSpriteFacings(spriteDir, images, sprite);
-            sprite.constructGraphicsBuffers(renderer_);
-            sprite.manager_ = this;
-
+            buildSprite(sprite, name);
             sprites_ ~= sprite;
             return sprite;
         }
@@ -133,8 +114,25 @@ public:
     /// When replacing the renderer, this must be called before the renderer is destroyed.
     void prepareForRendererChange()
     {
-        // Delete all textures and vertex buffers.
-        assert(false, "TODO");
+        // Remove all sprites' images from sprite pages and delete
+        // vertex/index buffers.
+        foreach(sprite; sprites_) if(sprite !is null)
+        {
+            foreach(ref facing; sprite.facings_)
+            {
+                facing.spritePage.removeImage(facing.textureArea);
+            }
+            free(sprite.facings_);
+            free(sprite.indexBuffer_);
+            free(sprite.vertexBuffer_);
+        }
+        foreach(page; spritePages_) if(page !is null)
+        {
+            assert(page.empty, "Sprite page not empty after all sprites have been removed");
+            free(page);
+        }
+        spritePages_.length = 0;
+        renderer_ = null;
     }
 
     /// When replacing the renderer, this must be called to pass the new renderer.
@@ -142,8 +140,20 @@ public:
     /// This will reload graphics data, which might take a while.
     void changeRenderer(Renderer newRenderer)
     {
+        assert(renderer_ is null,
+               "changeRenderer() called without prepareForRendererChange()");
+        renderer_ = newRenderer;
         // Reload/rebuild textures/vertex buffers.
-        assert(false, "TODO");
+        foreach(sprite; sprites_) if(sprite !is null)
+        {
+            // Reloading might fail, but we can't afford to destroy a sprite 
+            // the user might have another pointer to, so we just rebuild it
+            // with dummy data in that case.
+            try                          {buildSprite(sprite, sprite.name);}
+            catch(SpriteInitException e) {buildDummySprite(sprite, sprite.name);}
+            catch(YAMLException e)       {buildDummySprite(sprite, sprite.name);}
+            catch(VFSException e)        {buildDummySprite(sprite, sprite.name);}
+        }
     }
 
 package:
@@ -183,6 +193,78 @@ private:
         writeln("Failed to allocate a texture page at least " ~
                 to!string(minimumSize) ~ " large");
         return false;
+    }
+
+    // Initialize a sprite object.
+    //
+    // Params:  sprite = Sprite to initialize.
+    //          name   = Name of the sprite's subdirectory in the game directory.
+    //
+    // Throws:  SpriteInitException on a sprite construction error.
+    //          YAMLException on a YAML parsing error.
+    //          VFSException on a file system error.
+    //
+    // See_Also: loadSprite()
+    void buildSprite(Sprite* sprite, string name)
+    {
+        auto spriteDir  = gameDir_.dir(name);
+        auto spriteYAML = loadYAML(spriteDir.file("sprite.yaml"));
+        sprite.name_ = name;
+
+        // Load sprite metadata.
+        auto spriteMeta   = spriteYAML["sprite"];
+        sprite.size_      = fromYAML!vec2u(spriteMeta["size"], "sprite size");
+        const offsetScale =
+            fromYAML!float(spriteMeta["offsetScale"], "sprite offset scale");
+        auto posExtents     = spriteMeta["posExtents"];
+        sprite.boundingBox_ = AABB(offsetScale * fromYAML!vec3(posExtents["min"]),
+                                   offsetScale * fromYAML!vec3(posExtents["max"]));
+
+        // Load data for each facing ("image") in the sprite.
+        auto images = spriteYAML["images"];
+        enforce(images.length > 0, new SpriteInitException("Sprite with no images"));
+
+        sprite.facings_ = loadSpriteFacings(spriteDir, images, sprite);
+        sprite.constructGraphicsBuffers(renderer_);
+        sprite.manager_ = this;
+    }
+
+    // Initialize a sprite object by building a dummy sprite. Used when sprite reloading fails.
+    //
+    // Params:  sprite = Sprite to initialize.
+    //          name   = Name of the sprite.
+    void buildDummySprite(Sprite* sprite, string name)
+    {
+        sprite.name_ = name;
+
+        // Load sprite metadata.
+        sprite.size_      = vec2u(64, 64);
+        sprite.boundingBox_ = AABB(vec3(-100.0f, -100.0f, -100.0f),
+                                   vec3( 100.0f,  100.0f,  100.0f));
+
+        auto facings = allocArray!(Sprite.Facing)(1);
+        try with(facings[0])
+        {
+            zRotation = 0.0f;
+            Image diffuseImage = Image(64, 64, ColorFormat.RGBA_8);
+            Image normalImage  = Image(64, 64, ColorFormat.RGB_8);
+            Image offsetImage  = Image(64, 64, ColorFormat.RGB_8);
+            diffuseImage.generateCheckers(8);
+            normalImage.generateCheckers(8);
+            offsetImage.generateCheckers(8);
+            auto areaAndPage = fitImageToAPage(diffuseImage, normalImage, offsetImage, sprite);
+            textureArea = areaAndPage[0];
+            spritePage  = areaAndPage[1];
+            assert(isValid, "Constructed an invalid dummy sprite facing");
+        }
+        catch(SpriteInitException e)
+        {
+            auto msg = "Can't create a dummy sprite - out of texture memory? " ~ e.msg;
+            debug{assert(false, msg);}
+            else{throw new Error(msg);}
+        }
+        sprite.constructGraphicsBuffers(renderer_);
+        sprite.manager_ = this;
     }
 
     // Load all facings of a sprite based on YAML metadata.
