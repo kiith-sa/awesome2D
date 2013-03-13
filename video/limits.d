@@ -11,10 +11,10 @@ module video.limits;
 package:
 
 /// Maximum number of vertex attributes.
-enum MAX_ATTRIBUTES = 8;
+const MAX_ATTRIBUTES = 8;
 /// Maximum number of uniform variables.
-enum MAX_UNIFORMS = 32;
+const MAX_UNIFORMS = 32;
 /// Maximum number of vertex shaders (enabled or disabled) in the program.
-enum MAX_VERTEX_SHADERS = 16;
+const MAX_VERTEX_SHADERS = 16;
 /// Maximum number of fragment shaders (enabled or disabled) in the program.
-enum MAX_FRAGMENT_SHADERS = 16;
+const MAX_FRAGMENT_SHADERS = 16;
