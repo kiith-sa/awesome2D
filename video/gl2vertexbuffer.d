@@ -41,6 +41,8 @@ void constructVertexBufferBackendGL2
     backend.lock_      = &lock;
     backend.unlock_    = &unlock;
     backend.addVertex_ = &addVertex;
+    backend.bind_      = &bind;
+    backend.release_   = &release;
 }
 
 
@@ -108,14 +110,12 @@ void drawVertexBufferGL2
     // Offset of the current attribute relative to start of a vertex in the VBO.
     size_t attributeOffset = 0;
 
-    verticesVBO_.bind();
     scope(exit)
     {
         foreach(attribArray; enabledAttributes[0 .. totalAttributes])
         {
             glDisableVertexAttribArray(attribArray);
         }
-        verticesVBO_.release();
     }
     // Enable all used vertex attributes.
     foreach(attribute; (*attributeSpec_).attributes)
@@ -165,10 +165,8 @@ void drawVertexBufferGL2
     // Draw.
     if(indexBuffer !is null)
     {
-        indexBuffer.gl2_.indicesIBO_.bind();
         glDrawElements(primitiveType_.glPrimitiveType(), elements,
                        GL_UNSIGNED_INT, cast(GLvoid*)null + first * GLuint.sizeof);
-        indexBuffer.gl2_.indicesIBO_.release();
     }
     else
     {
@@ -189,7 +187,7 @@ void dtor(ref VertexBufferBackend self)
     deinitialize();
 }}
 
-/// Lock the vertex buffer so it can be drawn.
+/// Lock the vertex buffer so it can be bound.
 ///
 /// Implements VertexBuffer::lock.
 void lock(ref VertexBufferBackend self)
@@ -202,6 +200,24 @@ void lock(ref VertexBufferBackend self)
 ///
 /// Implements VertexBuffer::unlock.
 void unlock(ref VertexBufferBackend self) {}
+
+/// Bind the vertex buffer so it can be drawn.
+///
+/// Implements VertexBuffer::bind.
+void bind(ref VertexBufferBackend self)
+{with(self) with(gl2_)
+{
+    verticesVBO_.bind();
+}}
+
+/// Release the vertex buffer after drawing.
+///
+/// Implements VertexBuffer::release.
+void release(ref VertexBufferBackend self) 
+{with(self) with(gl2_)
+{
+    verticesVBO_.release();
+}}
 
 /// Add a new vertex to the vertex buffer.
 ///

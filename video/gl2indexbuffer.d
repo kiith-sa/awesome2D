@@ -23,6 +23,8 @@ void constructIndexBufferGL2(ref IndexBuffer buffer)
     buffer.dtor_     = &dtor;
     buffer.lock_     = &lock;
     buffer.unlock_   = &unlock;
+    buffer.bind_     = &bind;
+    buffer.release_  = &release;
     buffer.addIndex_ = &addIndex;
 }
 
@@ -77,6 +79,25 @@ void lock(ref IndexBuffer self)
 ///
 /// Implements IndexBuffer::unlock.
 void unlock(ref IndexBuffer self) {with(self.gl2_) {}}
+
+/// Bind the index buffer so it can be drawn.
+///
+/// Implements IndexBuffer::bind.
+void bind(ref IndexBuffer self)
+{with(self) with(gl2_)
+{
+    indicesIBO_.bind();
+}}
+
+/// Release the vertex buffer after drawing.
+///
+/// Implements IndexBuffer::release.
+void release(ref IndexBuffer self) 
+{with(self) with(gl2_)
+{
+    indicesIBO_.release();
+}}
+
 
 /// Add a new index to the index buffer.
 ///

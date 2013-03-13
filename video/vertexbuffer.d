@@ -24,6 +24,9 @@ package struct VertexBufferBackend
     // Is the buffer locked (i.e. not modifiable)?
     bool locked_ = false;
 
+    // Is this buffer bound for drawing?
+    bool bound_ = false;
+
     // Number of vertices in the buffer.
     uint vertexCount_ = 0;
 
@@ -46,6 +49,10 @@ package struct VertexBufferBackend
     void function(ref Self) lock_;
     // Pointer to unlock implementation.
     void function(ref Self) unlock_;
+    // Pointer to bind implementation.
+    void function(ref Self) bind_;
+    // Pointer to release implementation.
+    void function(ref Self) release_;
 }
 
 /// Vertex buffer struct.
@@ -106,9 +113,9 @@ public:
 
     /// Lock the buffer.
     ///
-    /// Must be called before using the buffer for drawing.
+    /// Must be called before binding the buffer for drawing.
     ///
-    /// It is a good practice to keep a buffer locked for a long time. The 
+    /// It is a good practice to keep a buffer locked for a long time. The
     /// backend might then be able to keep the buffer on the GPU, avoiding the
     /// need to reupload every frame.
     void lock()
@@ -122,12 +129,37 @@ public:
     /// Must be called before modifying the buffer if it was locked previously.
     void unlock()
     {
+        assert(!backend_.bound_, "Can't unlock a bound vertex buffer");
         backend_.unlock_(backend_);
         backend_.locked_ = false;
     } 
 
+    /// Bind the buffer for drawing. Must be called before drawing. The buffer must be locked.
+    ///
+    /// Only one vertex buffer can be bound at a time. The buffer must be released before binding
+    /// another buffer.
+    void bind()
+    {
+        assert(backend_.locked_, "Trying to bind an unlocked vertex buffer");
+        assert(!backend_.bound_, "Trying to bind an already bound vertex buffer");
+        backend_.bind_(backend_);
+        backend_.bound_ = true;
+    }
+
+    /// Release the buffer after drawing.
+    void release()
+    {
+        assert(backend_.locked_, "Vertex buffer was unlocked before releasing");
+        assert(backend_.bound_,  "Trying to release a vertex buffer that is not bound");
+        backend_.release_(backend_);
+        backend_.bound_ = false;
+    }
+
     /// Is the buffer currently locked?
-    bool locked() @safe const pure nothrow {return backend_.locked_;}
+    @property bool locked() @safe const pure nothrow {return backend_.locked_;}
+
+    /// Is the buffer currently bound?
+    @property bool bound() @safe const pure nothrow {return backend_.bound_;}
 
     /// Get the number of vertices in the buffer.
     size_t length() @safe pure nothrow const {return backend_.vertexCount_;}

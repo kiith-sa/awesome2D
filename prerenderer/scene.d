@@ -211,7 +211,9 @@ public:
 
         // Rendering itself.
         renderLayer.startRender();
+        model_.bind();
         renderer_.drawVertexBuffer(model_, null, renderLayer.shaderProgram);
+        model_.release();
         renderLayer.endRender();
     }
 

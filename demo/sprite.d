@@ -353,6 +353,12 @@ private:
     // Sprite page whose texture is currently bound. Only matters when drawing.
     SpritePage* boundSpritePage_ = null;
 
+    // Currently bound vertex buffer. Only matters when drawing.
+    VertexBuffer!(Sprite.SpriteVertex)* boundVertexBuffer_ = null;
+
+    // Currently bound index buffer. Only matters when drawing.
+    IndexBuffer* boundIndexBuffer_ = null;
+
 public:
     /// Construct a SpriteRenderer.
     ///
@@ -386,10 +392,13 @@ public:
     /// Must be called before any calls to drawSprite().
     ///
     /// Binds SpriteRenderer's sprite shader, and enables alpha blending.
-    /// Also, during drawing, the SpriteRenderer manages sprite texture binds.
-    /// No other shader or )texture can be bound until stopDrawing() is called, 
-    /// and if alpha blending is disabled between sprite draws, it must be reenabled 
-    /// before the next sprite draw.
+    /// Also, during drawing, the SpriteRenderer manages sprite texture, vertex and 
+    /// index buffer binds.
+    /// No other shader, texture, vertex or index buffer can be bound until stopDrawing() 
+    /// is called, and if alpha blending is disabled between sprite draws, 
+    /// it must be reenabled before the next sprite draw.
+    ///
+    /// Also, no sprite should be deleted while drawing.
     ///
     /// This is also the point when camera state is passed to the shader. 
     /// While drawing, changes to the camera will have no effect.
@@ -401,7 +410,9 @@ public:
         projectionUniform_.value = camera_.projection;
         resetUniforms();
         spriteShader_.bind();
-        boundSpritePage_ = null;
+        boundSpritePage_   = null;
+        boundVertexBuffer_ = null;
+        boundIndexBuffer_  = null;
     }
 
     /// Stop drawing sprites.
@@ -417,8 +428,12 @@ public:
 
         spriteShader_.release();
         renderer_.popBlendMode();
-        drawing_ = false;
-        boundSpritePage_ = null;
+        drawing_           = false;
+        boundSpritePage_   = null;
+        if(boundVertexBuffer_ !is null){boundVertexBuffer_.release();}
+        if(boundIndexBuffer_  !is null){boundIndexBuffer_.release();}
+        boundVertexBuffer_ = null;
+        boundIndexBuffer_  = null;
     }
 
     /// Draw a 2D sprite at specified 3D position.
@@ -452,6 +467,18 @@ public:
         {
             facing.spritePage.bind();
             boundSpritePage_ = facing.spritePage;
+        }
+        if(boundVertexBuffer_ != sprite.vertexBuffer_)
+        {
+            if(boundVertexBuffer_ !is null){boundVertexBuffer_.release();}
+            sprite.vertexBuffer_.bind();
+            boundVertexBuffer_ = sprite.vertexBuffer_;
+        }
+        if(boundIndexBuffer_ != sprite.indexBuffer_)
+        {
+            if(boundIndexBuffer_ !is null){boundIndexBuffer_.release();}
+            sprite.indexBuffer_.bind();
+            boundIndexBuffer_ = sprite.indexBuffer_;
         }
 
         renderer_.drawVertexBuffer(sprite.vertexBuffer_, sprite.indexBuffer_, spriteShader_, 

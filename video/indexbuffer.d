@@ -30,8 +30,11 @@ package:
     // Number of indices in the buffer.
     uint indexCount_ = 0;
 
-    // Is the buffer locked (ready for drawing)?
+    // Is the buffer locked (not modifiable)?
     bool locked_ = false;
+
+    // Is this buffer bound for drawing?
+    bool bound_ = false;
 
     // Alias for readability.
     alias IndexBuffer Self;
@@ -44,6 +47,10 @@ package:
     void function(ref Self)             lock_;
     // Pointer to the unlock implementation.
     void function(ref Self)             unlock_;
+    // Pointer to bind implementation.
+    void function(ref Self) bind_;
+    // Pointer to release implementation.
+    void function(ref Self) release_;
 
 public:
     /// Destroy the buffer, freeing any resources used.
@@ -62,7 +69,7 @@ public:
         ++ indexCount_;
     }
 
-    /// Lock the buffer. The buffer must be locked for drawing.
+    /// Lock the buffer. The buffer must be locked to be bound.
     ///
     /// When constructed, the buffer is not locked.
     void lock()
@@ -74,12 +81,37 @@ public:
     /// Unlock the buffer. Must be called to modify the buffer after drawing.
     void unlock()
     {
+        assert(!bound_, "Can't unlock a bound index buffer");
         unlock_(this);
         locked_ = false;
     }
 
+    /// Bind the buffer for drawing. Must be called before drawing. The buffer must be locked.
+    ///
+    /// Only one index buffer can be bound at a time. The buffer must be released before binding
+    /// another buffer.
+    void bind()
+    {
+        assert(locked_, "Trying to bind an unlocked index buffer");
+        assert(!bound_, "Trying to bind an already bound index buffer");
+        bind_(this);
+        bound_ = true;
+    }
+
+    /// Release the buffer after drawing.
+    void release()
+    {
+        assert(locked_, "Index buffer was unlocked before releasing");
+        assert(bound_,  "Trying to release an index buffer that is not bound");
+        release_(this);
+        bound_ = false;
+    }
+
     /// Is the buffer locked?
     @property bool locked() @safe const pure nothrow {return locked_;}
+
+    /// Is the buffer currently bound?
+    @property bool bound() @safe const pure nothrow {return bound_;}
 
     /// Get the number of indices in the buffer.
     @property size_t length() @safe const pure nothrow {return indexCount_;}

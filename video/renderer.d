@@ -108,7 +108,9 @@ public:
     /// Draw a vertex buffer, optionally with an index buffer specifying vertices to draw.
     ///
     /// Params: vertexBuffer  = Vertex buffer to draw from.
+    ///                         Must be bound.
     ///         indexBuffer   = Index buffer specifying vertices to draw.
+    ///                         If non-null, must be bound.
     ///                         If null, the vertices are drawn consecutively.
     ///         shaderProgram = Shader program to use for drawing.
     ///                         Must be bound.
@@ -126,7 +128,9 @@ public:
     /// Draw a part of a vertex buffer, optionally with an index buffer specifying vertices to draw.
     ///
     /// Params: vertexBuffer  = Vertex buffer to draw from.
+    ///                         Must be bound.
     ///         indexBuffer   = Index buffer specifying vertices to draw.
+    ///                         If non-null, must be bound.
     ///                         If null, the vertices are drawn consecutively.
     ///         shaderProgram = Shader program to use for drawing.
     ///                         Must be bound.
