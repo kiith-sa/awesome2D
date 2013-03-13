@@ -156,7 +156,7 @@ public:
 
         // Create and register light sources.
         directional1 = DirectionalLight(vec3(1.0, 0.0, 0.8), rgb!"C0C0F0");
-        directional2 = DirectionalLight(vec3(1.0, 1.0, 0.0), rgb!"202020");
+        directional2 = DirectionalLight(vec3(1.0, 1.0, 0.0), rgb!"F02020");
         point1 = PointLight(vec3(40.0, 200.0, 70.0), rgb!"FF0000", 1.1f);
         point2 = PointLight(vec3(100.0, 400.0, 70.0), rgb!"FFFF00", 1.1f);
         spriteRenderer_.registerDirectionalLight(&directional1);
@@ -313,6 +313,30 @@ private:
             clear(rendererContainer_);
             throw new StartupException("Failed to initialize renderer.");
         }
+    }
+
+    /// Reload the renderer. On failure, throws RendererInitException and the renderer is null.
+    void reloadRenderer()
+    {
+        // Destroy the current renderer.
+        assert(renderer_ !is null,
+               "Trying to reload renderer, but there's no preexisting renderer");
+        spriteRenderer_.prepareForRendererChange();
+        spriteManager_.prepareForRendererChange();
+        destroyRenderer();
+
+        // Ugly, but works.
+        try
+        {
+            initRenderer();
+        }
+        catch(StartupException e)
+        {
+            throw new RendererInitException(e.msg);
+        }
+
+        spriteManager_.changeRenderer(renderer_);
+        spriteRenderer_.changeRenderer(renderer_);
     }
 
     /// Destroy the renderer.

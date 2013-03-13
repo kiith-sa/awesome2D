@@ -593,7 +593,11 @@ public:
                "Trying to change Renderer while drawing with a SpriteRenderer");
         // Reload the shader, reset uniforms, init uniform handles.
         renderer_ = newRenderer;
+        // Ambient is stored directly in the Uniform struct - need to preserve it 
+        // between renderer reloads.
+        const previousAmbient = ambientLightUniform_.value;
         initializeShader();
+        ambientLight = previousAmbient;
     }
 
 private:
