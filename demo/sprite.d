@@ -587,6 +587,8 @@ public:
     /// This will reload the sprite shader, which might take a while.
     void changeRenderer(Renderer newRenderer) @trusted
     {
+        assert(renderer_ is null,
+               "changeRenderer() called without prepareForRendererChange()");
         assert(!drawing_,
                "Trying to change Renderer while drawing with a SpriteRenderer");
         // Reload the shader, reset uniforms, init uniform handles.
