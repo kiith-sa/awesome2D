@@ -208,29 +208,6 @@ public:
         ushort layer;
         /// Draw also all layers above specified layer?
         bool allLayersAbove = false;
-
-        /// Calculates bounding box to draw objects in.
-        ///
-        /// Used for clipping sprites/tiles drawn in a tile.
-        ///
-        /// This is actually slightly bigger than the tile bounding box to 
-        /// allow e.g. tiles with slight variations on edges without drawing
-        /// them multiple times.
-        AABB drawAreaBoundingBox() @safe pure nothrow const
-        {
-            // Ugly due to optimizations.
-            // 
-            // We add 1.0f of extra space to support tiles with slight variations.
-            vec3 min;
-            min.x = (xStrip - 0.5f) * tileSize.x - 1.0f;
-            min.y = (yStrip - 0.5f) * tileSize.y - 1.0f;
-            min.z = (layer  - 0.5f) * tileSize.z - 1.0f;
-            vec3 max;
-            max.x = (xStrip + 0.5f) * tileSize.x + 1.0f;
-            max.y = (yStrip + 0.5f) * tileSize.y + 1.0f;
-            max.z = (layer + 0.5f + allLayersAbove ? 65535 : 0) * tileSize.z + 1.0f;
-            return AABB(min, max);
-        }
     }
 
     /// Draw the map.
@@ -321,6 +298,9 @@ public:
         // X and Y strip of the first cell in the row.
         int startXStrip = -cellMax.y / 2 + cellMin.x - 1;
         int startYStrip = (cellMax.y + 1) / 2 + cellMin.x - 1;
+
+        // Bounding box of the current layer on the current cell.
+        AABB tileBBox;
         // Draw rows of visible tiles of the layer from top of the screen to bottom.
         for(int cellY = (cellMax.y - 1); cellY >= cellMin.y; --cellY)
         {
@@ -339,16 +319,27 @@ public:
             {
                 ++ xStrip;
                 ++ yStrip;
+                with(tileBBox)
+                {
+                    min.x = (xStrip - 0.5f) * tileSize.x - 1.0f;
+                    min.y = (yStrip - 0.5f) * tileSize.y - 1.0f;
+                    max.x = (xStrip + 0.5f) * tileSize.x + 1.0f;
+                    max.y = (yStrip + 0.5f) * tileSize.y + 1.0f;
+                }
                 x += tileSize.x;
                 y += tileSize.y;
                 const(Cell*) cell = &cell(cellX, cellY);
-                
+
                 // Draw the cell's layer stack.
                 foreach(uint layer, const ushort layerIndex; cell.layerIndices(this))
                 {
                     const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
                                                         cast(ushort)layer);
-                    const tileBBox = drawParams.drawAreaBoundingBox;
+                    with(tileBBox)
+                    {
+                        min.z = (layer - 0.5f) * tileSize.z - 1.0f;
+                        max.z = (layer + 0.5f) * tileSize.z + 1.0f;
+                    }
                     spriteRenderer.clipBounds = tileBBox;
 
                     // Note: The drawing order is extremely hacky, and might need improvements.
@@ -360,19 +351,17 @@ public:
                         Tile* tile = &(tiles_[layerIndex]);
                         Sprite* tileSprite = tile.sprite;
                         // Normally, draw tile below any objects on the tile.
-                        if(tile.shape != TileShape.Flat)
+                        // Sprite loading might have failed.
+                        if(tile.shape != TileShape.Flat && tileSprite !is null)
                         {
-                            // Sprite loading might have failed.
-                            if(tileSprite is null){continue;}
                             spriteRenderer.drawSprite(tileSprite, vec3(x, y, z), vec3(0.0f, 0.0f, 0.0f));
                         }
                         drawInTile(spriteRenderer, tileBBox, drawParams);
                         // If the tile is flat, it takes up the whole cube of the layer, so we draw it 
                         // after (on top of) the sprite.
-                        if(tile.shape == TileShape.Flat)
+                        // Sprite loading might have failed.
+                        if(tile.shape == TileShape.Flat && tileSprite !is null)
                         {
-                            // Sprite loading might have failed.
-                            if(tileSprite is null){continue;}
                             spriteRenderer.drawSprite(tileSprite, vec3(x, y, z), vec3(0.0f, 0.0f, 0.0f));
                         }
                     }
@@ -382,11 +371,17 @@ public:
                         drawInTile(spriteRenderer, tileBBox, drawParams);
                     }
                 }
+
+                // Draw everything _above_ the topmost layer.
                 const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
                                                     cast(ushort)cell.layerCount, true);
-                const aboveTilesBBox = drawParams.drawAreaBoundingBox;
-                spriteRenderer.clipBounds = aboveTilesBBox;
-                drawInTile(spriteRenderer, aboveTilesBBox, drawParams);
+                with(tileBBox)
+                {
+                    min.z = (cell.layerCount - 0.5f) * tileSize.z - 1.0f;
+                    max.z = (cell.layerCount + 0.5f + 65535.0f) * tileSize.z + 1.0f;
+                }
+                spriteRenderer.clipBounds = tileBBox;
+                drawInTile(spriteRenderer, tileBBox, drawParams);
             }
         }
     }
