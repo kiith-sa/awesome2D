@@ -45,7 +45,7 @@ enum AttributeInterpretation : ubyte
 /// Names of attribute interpretations used in shaders.
 ///
 /// This should be used instead of to!string to avoid allocations.
-enum string[(EnumMembers!AttributeInterpretation).length] attributeInterpretationNames =
+const string[(EnumMembers!AttributeInterpretation).length] attributeInterpretationNames =
   ["Position", "Color", "Normal", "TexCoord"];
 
 /// Specifies a single vertex attribute.
