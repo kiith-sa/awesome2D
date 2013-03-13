@@ -21,14 +21,19 @@ import gl3n.linalg;
 import color;
 import demo.camera2d;
 import demo.light;
+import demo.spritemanager;
+import demo.spritepage;
+import demo.texturepacker;
 import formats.image;
 import image;
 import math.math;
 import memory.memory;
 import video.exceptions;
+import video.indexbuffer;
 import video.glslshader;
 import video.renderer;
 import video.texture;
+import video.uniform;
 import video.vertexbuffer;
 import util.yaml;
 
@@ -45,9 +50,12 @@ class SpriteInitException : Exception
 /// A sprite supporting 3D position and rotation but using 2D graphics.
 ///
 /// Composed of multiple images (different image for each facing).
+///
+/// Sprites are created by a SpriteManager and must be deleted 
+/// by free() before the SpriteManager used to create them is destroyed.
 struct Sprite
 {
-private:
+package:
     // Vertex type used by sprite vertex buffers.
     struct SpriteVertex
     {
@@ -74,39 +82,25 @@ private:
     // Single image of the sprite representing one direction the sprite can face.
     struct Facing
     {
-        /// Rotation of the sprite around the Z axis in radians.
-        ///
-        /// If the sprite is drawn with this (or close) rotation, this frame will be used.
+        // Texture area taken up by the facing's image on its sprite page.
+        TextureArea textureArea;
+        // Pointer to the sprite page this facing's image is packed into.
+        SpritePage* spritePage;
+        // Rotation of the sprite around the Z axis in radians.
+        //
+        // If the sprite is drawn with this (or close) rotation, this frame will be used.
         float zRotation;
-        /// Diffuse color texture layer of the sprite.
-        Texture* diffuse;
-        /// Normal direction texture layer of the sprite.
-        ///
-        /// If not null, offset must also be non-null.
-        Texture* normal;
-        /// Position offset texture layer of the sprite.
-        ///
-        /// Colors of this texture represent positions within the sprite's bounding box.
-        /// R is the X coordinate, G is Y, and B is Z. The minimum value 
-        /// (0) maps to the minimum value of the coordinate in the bounding box,
-        /// while the maximum (255 or 1.0) is the maximum value.
-        ///
-        /// If not null, normal must also be non-null.
-        Texture* offset;
 
-        /// Is the facing validly initialized (i.e. an does its invariant hold?)?
+        // Is the facing validly initialized (i.e. an does its invariant hold?)?
         @property bool isValid() const pure nothrow 
         {
-            return !isNaN(zRotation) &&
-                   diffuse !is null &&
-                   ((normal is null) == (offset is null));
+            return !isNaN(zRotation) && textureArea.valid && spritePage !is null;
         }
 
-        /// Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
+        // Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
         @property size_t memoryBytes() @safe const pure nothrow 
         {
-            return this.sizeof + 
-                   diffuse.memoryBytes + normal.memoryBytes + offset.memoryBytes;
+            return this.sizeof;
         }
     }
 
@@ -116,155 +110,61 @@ private:
     // Name of the sprite, used for debugging.
     string name_;
 
-    // Vertex buffer used to draw the sprite. Stores two triangles.
+    // Vertex buffer storing vertices of all facings of the sprite.
+    //
+    // The first 4 vertices belong to the first facing, next 4 to the second, etc.
     VertexBuffer!SpriteVertex* vertexBuffer_;
 
+    // Index buffer storing indices of triangles used to draw facings of this sprite.
+    //
+    // The first 6 indices belong to the first facing, next 6 to the second, etc.
+    IndexBuffer* indexBuffer_;
+
+    // Sprite manager that was used to create this sprite.
+    SpriteManager manager_;
+
 public:
-    /// Construct a Sprite.
+    /// Destroy the sprite.
     ///
-    /// Params:  renderer  = Renderer to create textures.
-    ///          spriteDir = Directory to load images of the sprite from.
-    ///          yaml      = YAML node to load sprite metadata from.
-    ///          name      = Name of the sprite used for debugging.
-    ///
-    /// Throws:  SpriteInitException on failure (e.g. if one of the sprite's
-    ///          images could not be read).
-    this(Renderer renderer, VFSDir spriteDir, ref YAMLNode yaml, string name)
-    {
-        name_ = name;
-
-        // Load texture with specified filename from spriteDir.
-        Texture* loadTexture(string filename)
-        {
-            auto file = spriteDir.file(filename);
-            enforce(file.exists,
-                    new SpriteInitException("Sprite image " ~ filename ~ " does not exist."));
-            try
-            {
-                // Read from file and ensure image size matches the sprite size.
-                Image textureImage;
-                readImage(textureImage, file);
-                textureImage.flipVertical();
-                enforce(textureImage.size == size_,
-                        new SpriteInitException(
-                            format("Size %s of image %s in sprite %s does not match the " ~ 
-                                   "sprite (%s).", textureImage.size, filename, name, size_)));
-
-                // Load a texture from the image.
-                const params = TextureParams().filtering(TextureFiltering.Nearest);
-                auto result = renderer.createTexture(textureImage, params);
-                enforce(result !is null,
-                        new SpriteInitException
-                        ("Sprite texture could not be created from image " ~ filename ~ "."));
-                return result;
-            }
-            catch(VFSException e)
-            {
-                throw new SpriteInitException("Couldn't read image " ~ filename ~ ": " ~ e.msg);
-            }
-            catch(ImageFileException e)
-            {
-                throw new SpriteInitException("Couldn't read image " ~ filename ~ ": " ~ e.msg);
-            }
-        }
-
-        try
-        {
-            // Load sprite metadata.
-            auto spriteMeta = yaml["sprite"];
-            size_ = fromYAML!vec2u(spriteMeta["size"], "sprite size");
-            const offsetScale =
-                fromYAML!float(spriteMeta["offsetScale"], "sprite offset scale");
-            auto posExtents = spriteMeta["posExtents"];
-            boundingBox_ = AABB(offsetScale * fromYAML!vec3(posExtents["min"]), 
-                                offsetScale * fromYAML!vec3(posExtents["max"]));
-
-            // Load data for each facing ("image") in the sprite.
-            auto images = yaml["images"];
-            enforce(images.length > 0,
-                    new SpriteInitException("Sprite with no images"));
-            facings_ = allocArray!Facing(images.length);
-            scope(failure)
-            {
-                // The loading might fail half-way; free everything that was
-                // loaded in that case.
-                free(facings_);
-                facings_ = null;
-                foreach(ref facing; facings_)
-                {
-                    if(facing.diffuse !is null){free(facing.diffuse);}
-                    if(facing.normal !is null){free(facing.normal);}
-                    if(facing.offset !is null){free(facing.offset);}
-                }
-            }
-            uint i = 0;
-            // Every "image" in metadata refers to a facing with multiple layers.
-            foreach(ref YAMLNode image; images) with(facings_[i])
-            {
-                // Need to convert from degrees to radians.
-                zRotation = fromYAML!float(image["zRotation"], "Sprite image rotation")
-                            * (PI / 180.0);
-                auto layers = image["layers"];
-                // Load textures for the facing.
-                diffuse = loadTexture(layers["diffuse"].as!string);
-                normal  = loadTexture(layers["normal"].as!string);
-                offset  = loadTexture(layers["offset"].as!string);
-                enforce(isValid,
-                        new SpriteInitException("Invalid image in sprite " ~ name));
-                ++i;
-            }
-        }
-        catch(YAMLException e)
-        {
-            throw new SpriteInitException
-                ("Failed to initialize sprite " ~ name_ ~ ": " ~ e.msg);
-        }
-
-        vertexBuffer_ = renderer.createVertexBuffer!SpriteVertex(PrimitiveType.Triangles);
-        alias SpriteVertex V;
-        // Using integer division to make sure we end up on a whole-pixel boundary
-        // (avoids blurriness).
-        vec2 min = vec2(-(cast(int)size_.x / 2), -(cast(int)size_.y / 2));
-        vec2 max = min + vec2(size_);
-        // 2 triangles forming a quad.
-        vertexBuffer_.addVertex(V(min,                vec2(0.0f, 0.0f)));
-        vertexBuffer_.addVertex(V(max,                vec2(1.0f, 1.0f)));
-        vertexBuffer_.addVertex(V(vec2(min.x, max.y), vec2(0.0f, 1.0f)));
-        vertexBuffer_.addVertex(V(max,                vec2(1.0f, 1.0f)));
-        vertexBuffer_.addVertex(V(min,                vec2(0.0f, 0.0f)));
-        vertexBuffer_.addVertex(V(vec2(max.x, min.y), vec2(1.0f, 0.0f)));
-        vertexBuffer_.lock();
-    }
-
-    /// Destroy the sprite, freeing used textures.
+    /// The sprite must be destroyed before the SpriteManager used to create it.
     ~this()
     {
         // Don't try to delete facings if initialization failed.
         if(facings_ !is null)
         {
+            assert(vertexBuffer_ !is null,
+                   "Sprite facings exist, but the vertex buffer does not");
+            assert(indexBuffer_ !is null, 
+                   "Sprite vertex buffer exists, but the index buffer does not");
+            assert(manager_ !is null,
+                   "Sprite is initialized, but its SpriteManager is not set");
+
             foreach(ref facing; facings_)
             {
                 assert(facing.isValid, "Invalid sprite facing at destruction");
-                free(facing.diffuse);
-                free(facing.normal);
-                free(facing.offset);
+                facing.spritePage.removeImage(facing.textureArea);
             }
             free(facings_);
-        }
-        if(vertexBuffer_ !is null)
-        {
             free(vertexBuffer_);
+            free(indexBuffer_);
+            manager_.spriteDeleted(&this);
+            return;
         }
+        assert(vertexBuffer_ is null && indexBuffer_ is null && manager_ is null,
+               "Partially initialized sprite");
     }
 
     /// Return size of the sprite in pixels.
     @property vec2u size() const pure nothrow {return size_;}
 
-    /// Return a reference to the bounding box of the sprite.
-    @property ref const(AABB) boundingBox() const pure nothrow {return boundingBox_;}
+    /// Get the (debugging) name of the sprite.
+    @property string name() @safe const pure nothrow {return name_;}
 
-    /// Get a pointer to the facing of the sprite closest to specified rotation value.
-    Facing* closestFacing(vec3 rotation)
+    /// Return a reference to the bounding box of the sprite.
+    @property ref const(AABB) boundingBox() @safe const pure nothrow {return boundingBox_;}
+
+    /// Get the index of the facing of the sprite closest to specified rotation value.
+    uint closestFacing(vec3 rotation)
     {
         // Will probably need optimization.
         // Linear search _might_ possibly be fast enough though, and having variable 
@@ -277,14 +177,14 @@ public:
         rotation.z = rotation.z - 2.0 * PI * floor(rotation.z / (2.0 * PI));
         assert(facings_.length > 0, "A sprite with no facings");
         float minDifference = abs(facings_[0].zRotation - rotation.z);
-        Facing* closest = &(facings_[0]);
-        foreach(ref facing; facings_)
+        uint closest = 0;
+        foreach(uint index, ref facing; facings_)
         {
             const difference = abs(facing.zRotation - rotation.z);
             if(difference < minDifference)
             {
                 minDifference = difference;
-                closest = &facing;
+                closest = index;
             }
         }
         return closest;
@@ -293,41 +193,50 @@ public:
     /// Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
     @property size_t memoryBytes() @trusted const
     {
-        return this.sizeof + name_.length + vertexBuffer_.memoryBytes +
+        return this.sizeof + name_.length + vertexBuffer_.memoryBytes + 
+               indexBuffer_.memoryBytes +
                facings_.map!((ref const Facing t) => t.memoryBytes).reduce!"a + b";
     }
-}
 
-/// A convenience function to load a Sprite, handling possible errors.
-///
-/// Params:  renderer = Renderer to create textures.
-///          gameDir  = Game data directory.
-///          name     = Name of the subdirectory of gameDir containing the sprite images and 
-///                     metadata file (sprite.yaml).
-///
-/// Returns: Pointer to the sprite on success, null on failure.
-Sprite* loadSprite(Renderer renderer, VFSDir gameDir, string name)
-{
-    try
+package:
+    // Construct the vertex and index buffer used to draw the sprite.
+    // 
+    // Called at the end of Sprite construction.
+    void constructGraphicsBuffers(Renderer renderer)
     {
-        auto spriteDir = gameDir.dir(name);
-        auto spriteMeta = loadYAML(spriteDir.file("sprite.yaml"));
-        return alloc!Sprite(renderer, spriteDir, spriteMeta, name);
-    }
-    catch(VFSException e)
-    {
-        writeln("Filesystem error loading sprite \"", name, "\" : ", e.msg);
-        return null;
-    }
-    catch(YAMLException e)
-    {
-        writeln("YAML error loading sprite \"", name, "\" : ", e.msg);
-        return null;
-    }
-    catch(SpriteInitException e)
-    {
-        writeln("Sprite initialization error loading sprite \"", name, "\" : ", e.msg);
-        return null;
+        alias SpriteVertex V;
+        vertexBuffer_ = renderer.createVertexBuffer!V(PrimitiveType.Triangles);
+        indexBuffer_  = renderer.createIndexBuffer();
+        // Using integer division to make sure we end up on a whole-pixel boundary
+        // (avoids blurriness).
+        // 2D vertex positions are identical for all facings.
+        const vMin  = vec2(-(cast(int)size_.x / 2), -(cast(int)size_.y / 2));
+        const vMax  = vMin + vec2(size_);
+
+        foreach(ref facing; facings_)
+        {
+            const pageSize = facing.spritePage.size;
+            // Texture coords depends on the facing's sprite page and texture area on the page.
+            const tMin = vec2(cast(float)facing.textureArea.min.x / pageSize.x,
+                              cast(float)facing.textureArea.min.y / pageSize.y);
+            const tMax = vec2(cast(float)facing.textureArea.max.x / pageSize.x,
+                              cast(float)facing.textureArea.max.y / pageSize.y);
+            const baseIndex = cast(uint)vertexBuffer_.length;
+            // 2 triangles forming a quad.
+            vertexBuffer_.addVertex(V(vMin,                 tMin));
+            vertexBuffer_.addVertex(V(vMax,                 tMax));
+            vertexBuffer_.addVertex(V(vec2(vMin.x, vMax.y), vec2(tMin.x, tMax.y)));
+            vertexBuffer_.addVertex(V(vec2(vMax.x, vMin.y), vec2(tMax.x, tMin.y)));
+
+            indexBuffer_.addIndex(baseIndex);
+            indexBuffer_.addIndex(baseIndex + 1);
+            indexBuffer_.addIndex(baseIndex + 2);
+            indexBuffer_.addIndex(baseIndex + 1);
+            indexBuffer_.addIndex(baseIndex);
+            indexBuffer_.addIndex(baseIndex + 3);
+        }
+        vertexBuffer_.lock();
+        indexBuffer_.lock();
     }
 }
 
@@ -361,69 +270,8 @@ public:
     // This is hardcoded in the sprite fragment shader. If changed, update the
     // shader as well as any 8's found in documentation/errors in this file.
     enum maxPointLights = 8;
+
 private:
-
-    /// Convenience wrapper for a GLSL uniform variable or array.
-    ///
-    /// Allows to only reupload the uniform after it is modified.
-    struct Uniform(Type)
-    {
-        private:
-            // Value of the uniform variable/array.
-            Type value_;
-            // Handle to the uniform in a GLSLShaderProgram.
-            uint handle_;
-            // Do we need to reupload the uniform? (e.g. after modification).
-            bool needReupload_ = true;
-
-        public:
-            /// Construct a Uniform with specified handle.
-            this(const uint handle) @safe pure nothrow
-            {
-                handle_ = handle;
-            }
-
-            /// Set the uniform's value.
-            @property void value(const Type rhs) @safe pure nothrow 
-            {
-                value_ = rhs;
-                needReupload_ = true;
-            }
-
-            /// Ditto.
-            @property void value(ref const Type rhs) @safe pure nothrow 
-            {
-                value_ = rhs;
-                needReupload_ = true;
-            }
-
-            /// Force the uniform to be uploaded before the next draw.
-            ///
-            /// Should be called after a shader is bound to ensure the uniforms are uploaded.
-            void reset() @safe pure nothrow
-            {
-                needReupload_ = true;
-            }
-
-            /// Upload the uniform to passed shader if its value has changed or it's been reset.
-            ///
-            /// Params:  shader = Shader this uniform belongs to. Must be the shader
-            ///                   that was used to determine the uniform's handle.
-            void uploadIfNeeded(GLSLShaderProgram* shader)
-            {
-                if(!needReupload_) {return;}
-                static if(isStaticArray!Type)
-                {
-                    shader.setUniformArray(handle_, value_);
-                }
-                else
-                {
-                    shader.setUniform(handle_, value_);
-                }
-                needReupload_ = false;
-            }
-    }
-
     // Renderer used for drawing.
     Renderer renderer_;
 
@@ -496,6 +344,9 @@ private:
     // Reference to the camera used to set up the projection matrix.
     Camera2D camera_;
 
+    // Sprite page whose texture is currently bound. Only matters when drawing.
+    SpritePage* boundSpritePage_ = null;
+
 public:
     /// Construct a SpriteRenderer.
     ///
@@ -507,7 +358,7 @@ public:
     ///
     /// Throws:  SpriteRendererInitException on failure.
     this(Renderer renderer, VFSDir dataDir, 
-         float verticalAngle, Camera2D camera)
+         const float verticalAngle, Camera2D camera)
     {
         renderer_                      = renderer;
         camera_                        = camera;
@@ -531,40 +382,7 @@ public:
 
             spriteShader_.lock();
 
-            // Get handles to access uniforms with.
-            with(*spriteShader_)
-            {
-                verticalAngleUniform_         = Uniform!float(getUniformHandle("verticalAngle"));
-                projectionUniform_            = Uniform!mat4(getUniformHandle("projection"));
-                diffuseSamplerUniform_        = Uniform!int(getUniformHandle("texDiffuse"));
-                normalSamplerUniform_         = Uniform!int(getUniformHandle("texNormal"));
-                offsetSamplerUniform_         = Uniform!int(getUniformHandle("texOffset"));
-                ambientLightUniform_          = Uniform!vec3(getUniformHandle("ambientLight"));
-                minClipBoundsUniform_         = Uniform!vec3(getUniformHandle("minClipBounds"));
-                maxClipBoundsUniform_         = Uniform!vec3(getUniformHandle("maxClipBounds"));
-                directionalDirectionsUniform_ = Uniform!(vec3[maxDirectionalLights]) 
-                                                    (getUniformHandle("directionalDirections"));
-                directionalDiffuseUniform_    = Uniform!(vec3[maxDirectionalLights])
-                                                    (getUniformHandle("directionalDiffuse"));
-                pointPositionsUniform_        = Uniform!(vec3[maxPointLights])
-                                                    (getUniformHandle("pointPositions"));
-                pointDiffuseUniform_          = Uniform!(vec3[maxPointLights])
-                                                    (getUniformHandle("pointDiffuse"));
-                pointAttenuationsUniform_     = Uniform!(float[maxPointLights])
-                                                    (getUniformHandle("pointAttenuations"));
-
-                verticalAngleUniform_.value   = verticalAngle * degToRad;
-                diffuseSamplerUniform_.value  = 0;
-                normalSamplerUniform_.value   = 1;
-                offsetSamplerUniform_.value   = 2;
-                ambientLightUniform_.value    = vec3(0.0f, 0.0f, 0.0f);
-                minClipBoundsUniform_.value   = vec3(-100000.0f, -100000.0f, -100000.0f);
-                maxClipBoundsUniform_.value   = vec3(100000.0f,  100000.0f, 100000.0f);
-
-                positionUniformHandle_        = getUniformHandle("spritePosition3D");
-                minOffsetBoundsUniformHandle_ = getUniformHandle("minOffsetBounds");
-                maxOffsetBoundsUniformHandle_ = getUniformHandle("maxOffsetBounds");
-            }
+            initializeUniforms(verticalAngle);
         }
         catch(VFSException e)
         {
@@ -589,31 +407,22 @@ public:
     /// Must be called before any calls to drawSprite().
     ///
     /// Binds SpriteRenderer's sprite shader, and enables alpha blending.
-    /// No other shader can be bound until stopDrawing() is called, 
+    /// Also, during drawing, the SpriteRenderer manages sprite texture binds.
+    /// No other shader or )texture can be bound until stopDrawing() is called, 
     /// and if alpha blending is disabled between sprite draws, it must be reenabled 
     /// before the next sprite draw.
     ///
-    /// This is also the point when camera state is passed to the shader. While drawing,
-    /// changes to the camera will have no effect.
+    /// This is also the point when camera state is passed to the shader. 
+    /// While drawing, changes to the camera will have no effect.
     void startDrawing()
     {
         assert(!drawing_, "SpriteRenderer.startDrawing() called when already drawing");
         drawing_ = true;
         renderer_.pushBlendMode(BlendMode.Alpha);
         projectionUniform_.value = camera_.projection;
-        verticalAngleUniform_.reset();
-        diffuseSamplerUniform_.reset();
-        normalSamplerUniform_.reset();
-        offsetSamplerUniform_.reset();
-        ambientLightUniform_.reset();
-        minClipBoundsUniform_.reset();
-        maxClipBoundsUniform_.reset();
-        directionalDirectionsUniform_.reset();
-        directionalDiffuseUniform_.reset();
-        pointPositionsUniform_.reset();
-        pointDiffuseUniform_.reset();
-        pointAttenuationsUniform_.reset();
+        resetUniforms();
         spriteShader_.bind();
+        boundSpritePage_ = null;
     }
 
     /// Stop drawing sprites.
@@ -630,6 +439,7 @@ public:
         spriteShader_.release();
         renderer_.popBlendMode();
         drawing_ = false;
+        boundSpritePage_ = null;
     }
 
     /// Draw a 2D sprite at specified 3D position.
@@ -654,49 +464,19 @@ public:
         if(directionalUniformsNeedUpdate_) {updateDirectionalUniforms();}
         if(pointUniformsNeedUpdate_)       {updatePointUniforms();}
 
-        // Upload the uniforms.
+        uploadUniforms(sprite, position);
 
-        // The uniforms encapsulate in Uniform structs don't have to be reuploaded every time.
-
-        // View angle and projection.
-        verticalAngleUniform_.uploadIfNeeded(spriteShader_);
-        projectionUniform_.uploadIfNeeded(spriteShader_);
-
-        // Texture units used by specified textures.
-        diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);
-        normalSamplerUniform_.uploadIfNeeded(spriteShader_);
-        offsetSamplerUniform_.uploadIfNeeded(spriteShader_);
-
-        // Clipping bounds.
-        minClipBoundsUniform_.uploadIfNeeded(spriteShader_);
-        maxClipBoundsUniform_.uploadIfNeeded(spriteShader_);
-
-        // Ambient light.
-        ambientLightUniform_.uploadIfNeeded(spriteShader_);
-
-        // Directional lights.
-        directionalDirectionsUniform_.uploadIfNeeded(spriteShader_);
-        directionalDiffuseUniform_.uploadIfNeeded(spriteShader_);
-
-        // Point lights.
-        pointPositionsUniform_.uploadIfNeeded(spriteShader_);
-        pointDiffuseUniform_.uploadIfNeeded(spriteShader_);
-        pointAttenuationsUniform_.uploadIfNeeded(spriteShader_);
-
-        // Uniforms reuploaded for each sprite.
-        with(*spriteShader_)
+        const facingIndex = sprite.closestFacing(rotation);
+        Sprite.Facing* facing = &(sprite.facings_[facingIndex]);
+        // Don't rebind a sprite page if we don't have to.
+        if(boundSpritePage_ != facing.spritePage)
         {
-            // Sprite position and bounds.
-            setUniform(positionUniformHandle_,        position);
-            setUniform(minOffsetBoundsUniformHandle_, sprite.boundingBox_.min);
-            setUniform(maxOffsetBoundsUniformHandle_, sprite.boundingBox_.max);
+            facing.spritePage.bind();
+            boundSpritePage_ = facing.spritePage;
         }
 
-        Sprite.Facing* facing = sprite.closestFacing(rotation);
-        facing.diffuse.bind(0);
-        facing.normal.bind(1);
-        facing.offset.bind(2);
-        renderer_.drawVertexBuffer(sprite.vertexBuffer_, null, spriteShader_);
+        renderer_.drawVertexBuffer(sprite.vertexBuffer_, sprite.indexBuffer_, spriteShader_, 
+                                   6 * facingIndex, 6);
     }
 
     /// Set the 3D area to draw in. Any pixels outside of this area will be discarded.
@@ -767,7 +547,6 @@ public:
     /// Note: After any modifications to registered directional lights, 
     ///       a call to pointLightsChanged() is needed for the changes to take effect.
     ///
-    ///
     /// Note: Number of point lights that may be registered simultaneously.
     ///       is limited by maxPointLights. Trying to register more will 
     ///       result in undefined behavior (or assertion failure in debug build).
@@ -814,28 +593,47 @@ public:
         pointUniformsNeedUpdate_ = true;
     }
 
+    /// When replacing the renderer, this must be called before the renderer is destroyed.
+    void prepareForRendererChange()
+    {
+        // Delete the shader.
+        assert(!drawing_,
+               "Trying to change Renderer while drawing with a SpriteRenderer");
+        assert(false, "TODO");
+    }
+
+    /// When replacing the renderer, this must be called to pass the new renderer.
+    ///
+    /// This will reload the sprite shader, which might take a while.
+    void changeRenderer(Renderer newRenderer)
+    {
+        // Reload the shader, reset uniforms, init uniform handles.
+        assert(!drawing_,
+               "Trying to change Renderer while drawing with a SpriteRenderer");
+        assert(false, "TODO");
+    }
+
 private:
     /// Update data to upload as directional light uniforms.
     void updateDirectionalUniforms() @safe pure nothrow
     {
-        // Directly accessing value_ of a Uniform for speed.
-
         // This will probably need optimization (but need a stress test first).
         //
         // Currently we just overwrite all data but much of it could be retained
         // as lights are not always modified.
         foreach(l; 0 .. directionalLightsUsed_)
         {
-            directionalDirectionsUniform_.value_[l] = directionalLights_[l].direction;
+            directionalDirectionsUniform_.value[l] = directionalLights_[l].direction;
+            directionalDirectionsUniform_.value[l].normalize;
             const color = directionalLights_[l].diffuse;
-            directionalDiffuseUniform_.value_[l] =
+            directionalDiffuseUniform_.value[l] =
                 vec3(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f);
         }
         // Due to optimization, the shader always processes all lights,
         // including those that are unspecified, so we specify data that
         // will result in no effect (black color, etc.).
-        directionalDirectionsUniform_.value_[directionalLightsUsed_ .. $] = vec3(0.0, 0.0, 1.0);
-        directionalDiffuseUniform_.value_[directionalLightsUsed_ .. $]    = vec3(0.0, 0.0, 0.0);
+        directionalDirectionsUniform_.value[directionalLightsUsed_ .. $] = vec3(0.0, 0.0, 1.0);
+        directionalDiffuseUniform_.value[directionalLightsUsed_ .. $]    = vec3(0.0, 0.0, 0.0);
 
         // Force reupload.
         directionalDirectionsUniform_.reset();
@@ -847,8 +645,6 @@ private:
     /// Update data to upload as point light uniforms.
     void updatePointUniforms() @safe pure nothrow
     {
-        // Directly accessing value_ of a Uniform for speed.
-
         // This will probably need optimization (but need a stress test first).
         //
         // Currently we just overwrite all data but much of it could be retained
@@ -858,16 +654,16 @@ private:
             const color           = pointLights_[l].diffuse;
             const colorNormalized = vec3(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f);
 
-            pointPositionsUniform_.value_[l]    = pointLights_[l].position;
-            pointDiffuseUniform_.value_[l]      = colorNormalized;
-            pointAttenuationsUniform_.value_[l] = pointLights_[l].attenuation;
+            pointPositionsUniform_.value[l]    = pointLights_[l].position;
+            pointDiffuseUniform_.value[l]      = colorNormalized;
+            pointAttenuationsUniform_.value[l] = pointLights_[l].attenuation;
         }
         // Due to optimization, the shader always processes all lights,
         // including those that are unspecified, so we specify data that
         // will result in no effect (black color, etc.).
-        pointPositionsUniform_.value_[pointLightsUsed_ .. $]    = vec3(0.0, 0.0, 0.0);
-        pointDiffuseUniform_.value_[pointLightsUsed_ .. $]      = vec3(0.0, 0.0, 0.0);
-        pointAttenuationsUniform_.value_[pointLightsUsed_ .. $] = 1.0f;
+        pointPositionsUniform_.value[pointLightsUsed_ .. $]    = vec3(0.0, 0.0, 0.0);
+        pointDiffuseUniform_.value[pointLightsUsed_ .. $]      = vec3(0.0, 0.0, 0.0);
+        pointAttenuationsUniform_.value[pointLightsUsed_ .. $] = 1.0f;
 
         // Force reupload.
         pointPositionsUniform_.reset();
@@ -875,5 +671,108 @@ private:
         pointAttenuationsUniform_.reset();
 
         pointUniformsNeedUpdate_ = false;
+    }
+
+    // Initialize handles and default values of uniforms used.
+    //
+    // Called during construction.
+    //
+    // Params:  verticalAngle = Vertical view angle.
+    void initializeUniforms(const float verticalAngle)
+    {
+        // Get handles to access uniforms with.
+        with(*spriteShader_)
+        {
+            verticalAngleUniform_         = Uniform!float(getUniformHandle("verticalAngle"));
+            projectionUniform_            = Uniform!mat4(getUniformHandle("projection"));
+            diffuseSamplerUniform_        = Uniform!int(getUniformHandle("texDiffuse"));
+            normalSamplerUniform_         = Uniform!int(getUniformHandle("texNormal"));
+            offsetSamplerUniform_         = Uniform!int(getUniformHandle("texOffset"));
+            ambientLightUniform_          = Uniform!vec3(getUniformHandle("ambientLight"));
+            minClipBoundsUniform_         = Uniform!vec3(getUniformHandle("minClipBounds"));
+            maxClipBoundsUniform_         = Uniform!vec3(getUniformHandle("maxClipBounds"));
+            directionalDirectionsUniform_ = Uniform!(vec3[maxDirectionalLights]) 
+                                                (getUniformHandle("directionalDirections"));
+            directionalDiffuseUniform_    = Uniform!(vec3[maxDirectionalLights])
+                                                (getUniformHandle("directionalDiffuse"));
+            pointPositionsUniform_        = Uniform!(vec3[maxPointLights])
+                                                (getUniformHandle("pointPositions"));
+            pointDiffuseUniform_          = Uniform!(vec3[maxPointLights])
+                                                (getUniformHandle("pointDiffuse"));
+            pointAttenuationsUniform_     = Uniform!(float[maxPointLights])
+                                                (getUniformHandle("pointAttenuations"));
+
+            verticalAngleUniform_.value   = verticalAngle * degToRad;
+            diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
+            normalSamplerUniform_.value   = SpriteTextureUnit.Normal;
+            offsetSamplerUniform_.value   = SpriteTextureUnit.Offset;
+            ambientLightUniform_.value    = vec3(0.0f, 0.0f, 0.0f);
+            minClipBoundsUniform_.value   = vec3(-100000.0f, -100000.0f, -100000.0f);
+            maxClipBoundsUniform_.value   = vec3(100000.0f,  100000.0f, 100000.0f);
+
+            positionUniformHandle_        = getUniformHandle("spritePosition3D");
+            minOffsetBoundsUniformHandle_ = getUniformHandle("minOffsetBounds");
+            maxOffsetBoundsUniformHandle_ = getUniformHandle("maxOffsetBounds");
+        }
+    }
+
+    /// Reset all uniforms, forcing them to be reuploaded at next draw.
+    void resetUniforms() @safe pure nothrow
+    {
+        verticalAngleUniform_.reset();
+        diffuseSamplerUniform_.reset();
+        normalSamplerUniform_.reset();
+        offsetSamplerUniform_.reset();
+        ambientLightUniform_.reset();
+        minClipBoundsUniform_.reset();
+        maxClipBoundsUniform_.reset();
+        directionalDirectionsUniform_.reset();
+        directionalDiffuseUniform_.reset();
+        pointPositionsUniform_.reset();
+        pointDiffuseUniform_.reset();
+        pointAttenuationsUniform_.reset();
+    }
+
+    // Upload uniforms that need to be uploaded before drawing.
+    //
+    // Params:  sprite   = Sprite we're about to draw.
+    //          position = 3D position of the sprite.
+    void uploadUniforms(Sprite* sprite, const vec3 position)
+    {
+        // The uniforms encapsulate in Uniform structs don't have to be reuploaded every time.
+
+        // View angle and projection.
+        verticalAngleUniform_.uploadIfNeeded(spriteShader_);
+        projectionUniform_.uploadIfNeeded(spriteShader_);
+
+        // Texture units used by specified textures.
+        diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);
+        normalSamplerUniform_.uploadIfNeeded(spriteShader_);
+        offsetSamplerUniform_.uploadIfNeeded(spriteShader_);
+
+        // Clipping bounds.
+        minClipBoundsUniform_.uploadIfNeeded(spriteShader_);
+        maxClipBoundsUniform_.uploadIfNeeded(spriteShader_);
+
+        // Ambient light.
+        ambientLightUniform_.uploadIfNeeded(spriteShader_);
+
+        // Directional lights.
+        directionalDirectionsUniform_.uploadIfNeeded(spriteShader_);
+        directionalDiffuseUniform_.uploadIfNeeded(spriteShader_);
+
+        // Point lights.
+        pointPositionsUniform_.uploadIfNeeded(spriteShader_);
+        pointDiffuseUniform_.uploadIfNeeded(spriteShader_);
+        pointAttenuationsUniform_.uploadIfNeeded(spriteShader_);
+
+        // Uniforms reuploaded for each sprite.
+        with(*spriteShader_)
+        {
+            // Sprite position and bounds.
+            setUniform(positionUniformHandle_,        position);
+            setUniform(minOffsetBoundsUniformHandle_, sprite.boundingBox_.min);
+            setUniform(maxOffsetBoundsUniformHandle_, sprite.boundingBox_.max);
+        }
     }
 }

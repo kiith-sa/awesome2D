@@ -18,6 +18,7 @@ import dgamevfs._;
 
 import demo.camera2d;
 import demo.sprite;
+import demo.spritemanager;
 import demo.tileshape;
 import containers.vector;
 import math.math;
@@ -155,7 +156,7 @@ public:
     /// Load tile sprites used to draw the map.
     ///
     /// Separate from map loading to allow tile loading at a different time.
-    void loadTiles(VFSDir gameDir, Renderer renderer)
+    void loadTiles(VFSDir gameDir, SpriteManager spriteManager)
     {
         assert(!tilesLoaded_, "Trying to load tiles when they are already loaded");
 
@@ -165,7 +166,7 @@ public:
         {
             // Load the sprite of each tile - tile name specifies the sprite dir.
             assert(tile.sprite is null, "Sprite of a tile is non-null before loading");
-            tile.sprite = loadSprite(renderer, gameDir, tile.name);
+            tile.sprite = spriteManager.loadSprite(tile.name);
             // Fail without crashing.
             if(tile.sprite is null)
             {

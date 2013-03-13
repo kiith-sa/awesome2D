@@ -23,6 +23,7 @@ import demo.camera2d;
 import demo.light;
 import demo.map;
 import demo.sprite;
+import demo.spritemanager;
 import memory.memory;
 import platform.platform;
 import time.eventcounter;
@@ -62,6 +63,8 @@ private:
 
     // Camera used to view the scene.
     Camera2D camera_;
+    // Constructs and manages sprites.
+    SpriteManager spriteManager_;
     // Handles rendering sprites with lighting.
     SpriteRenderer spriteRenderer_;
 
@@ -117,6 +120,8 @@ public:
         initRenderer();
         writeln("Initialized Video");
         scope(failure){destroyRenderer();}
+        spriteManager_ = new SpriteManager(renderer_, dataDir_);
+        scope(failure){destroy(spriteManager_); spriteManager_ = null;}
 
         gameTime_ = new GameTime();
 
@@ -144,8 +149,8 @@ public:
         scope(failure){destroy(spriteRenderer_); spriteRenderer_ = null;}
 
         // Initialize the test sprite.
-        sprite_ = loadSprite(renderer_, dataDir_, "sprites/player");
-        pointLightSprite_ = loadSprite(renderer_, dataDir_, "sprites/lights/point");
+        sprite_ = spriteManager_.loadSprite("sprites/player");
+        pointLightSprite_ = spriteManager_.loadSprite("sprites/lights/point");
         if(sprite_ is null) {throw new StartupException("Failed to initialize test sprite.");}
         scope(failure){free(sprite_); sprite_ = null;}
 
@@ -164,7 +169,7 @@ public:
 
         map_ = generateTestMap(vec2u(64, 64));
         /*map_ = loadMap(dataDir_, "maps/testMap.yaml");*/
-        map_.loadTiles(dataDir_, renderer_);
+        map_.loadTiles(dataDir_, spriteManager_);
         writeln("Map size in bytes: ", map_.memoryBytes);
     }
 
@@ -178,6 +183,7 @@ public:
         if(pointLightSprite_ !is null){free(pointLightSprite_);}
         if(spriteRenderer_ !is null){destroy(spriteRenderer_);}
         if(camera_ !is null){destroy(camera_);}
+        if(spriteManager_ !is null){destroy(spriteManager_);}
         destroyRenderer();
         destroyPlatform();
     }
@@ -375,7 +381,7 @@ private:
     }
 
     /// Move the camera if mouse is on a window edge.
-    void handleCameraMovement() @safe pure nothrow
+    void handleCameraMovement() @trusted
     {
         const bounds = renderer_.viewportSize;
         const borderWidth = 48;
