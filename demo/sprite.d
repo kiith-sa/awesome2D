@@ -278,6 +278,12 @@ private:
     // Are we currently drawing sprites? If true, spriteShader_ is bound.
     bool drawing_;
 
+    // Game data directory (to load shader from).
+    VFSDir dataDir_;
+
+    // Vertical view angle.
+    float verticalAngle_;
+
     // Shader program used to draw sprites. The lighting model is implemented on shader.
     GLSLShaderProgram* spriteShader_;
 
@@ -358,46 +364,19 @@ public:
     ///
     /// Throws:  SpriteRendererInitException on failure.
     this(Renderer renderer, VFSDir dataDir, 
-         const float verticalAngle, Camera2D camera)
+         const float verticalAngle, Camera2D camera) @trusted
     {
-        renderer_                      = renderer;
-        camera_                        = camera;
-        spriteShader_                  = renderer.createGLSLShader();
-        directionalUniformsNeedUpdate_ = true;
-        pointUniformsNeedUpdate_       = true;
-        try
-        {
-            // Load the shader.
-            auto shaderDir = dataDir.dir("shaders");
-            auto vertFile  = shaderDir.file("sprite.vert");
-            auto fragFile  = shaderDir.file("sprite.frag");
-            char[] vertSource  = allocArray!char(cast(size_t)vertFile.bytes);
-            scope(exit){free(vertSource);}
-            char[] fragSource  = allocArray!char(cast(size_t)fragFile.bytes);
-            scope(exit){free(fragSource);}
-            vertFile.input.read(cast(void[])vertSource);
-            fragFile.input.read(cast(void[])fragSource);
-            const vertexShader   = spriteShader_.addVertexShader(cast(string)vertSource);
-            const fragmentShader = spriteShader_.addFragmentShader(cast(string)fragSource);
-
-            spriteShader_.lock();
-
-            initializeUniforms(verticalAngle);
-        }
-        catch(VFSException e)
-        {
-            throw new SpriteRendererInitException("Couldn't load sprite shader: " ~ e.msg);
-        }
-        catch(GLSLException e)
-        {
-            throw new SpriteRendererInitException("Error in sprite shader: " ~ e.msg);
-        }
+        renderer_      = renderer;
+        camera_        = camera;
+        dataDir_       = dataDir;
+        verticalAngle_ = verticalAngle;
+        initializeShader();
     }
 
     /// Destroy the SpriteRenderer, freeing all used resources.
     ///
     /// Must be called as SpriteRenderer uses manually allocated memory.
-    ~this()
+    @trusted ~this()
     {
         free(spriteShader_);
     }
@@ -414,7 +393,7 @@ public:
     ///
     /// This is also the point when camera state is passed to the shader. 
     /// While drawing, changes to the camera will have no effect.
-    void startDrawing()
+    void startDrawing() @trusted
     {
         assert(!drawing_, "SpriteRenderer.startDrawing() called when already drawing");
         drawing_ = true;
@@ -452,7 +431,7 @@ public:
     ///          rotation = Rotation of the sprite around the X, Y and Z axis.
     ///                     (At the moment, only Z affects the graphics as the sprite format 
     ///                     only supports Z rotation).
-    void drawSprite(Sprite* sprite, vec3 position, const vec3 rotation)
+    void drawSprite(Sprite* sprite, vec3 position, const vec3 rotation) @trusted
     {
         assert(drawing_, "SpriteRenderer.drawSprite() called without calling startDrawing()");
         assert(renderer_.blendMode == BlendMode.Alpha,
@@ -535,7 +514,7 @@ public:
     }
 
     /// Must be called for any changes in parameters of registered directional lights to take effect.
-    void directionalLightsChanged()
+    void directionalLightsChanged() @safe pure nothrow
     {
         directionalUniformsNeedUpdate_ = true;
     }
@@ -588,29 +567,31 @@ public:
     }
 
     /// Must be called for any changes in parameters of registered point lights to take effect.
-    void pointLightsChanged()
+    void pointLightsChanged() @safe pure nothrow
     {
         pointUniformsNeedUpdate_ = true;
     }
 
     /// When replacing the renderer, this must be called before the renderer is destroyed.
-    void prepareForRendererChange()
+    void prepareForRendererChange() @trusted
     {
-        // Delete the shader.
         assert(!drawing_,
                "Trying to change Renderer while drawing with a SpriteRenderer");
-        assert(false, "TODO");
+        // Deinit the shader.
+        free(spriteShader_);
+        renderer_ = null;
     }
 
     /// When replacing the renderer, this must be called to pass the new renderer.
     ///
     /// This will reload the sprite shader, which might take a while.
-    void changeRenderer(Renderer newRenderer)
+    void changeRenderer(Renderer newRenderer) @trusted
     {
-        // Reload the shader, reset uniforms, init uniform handles.
         assert(!drawing_,
                "Trying to change Renderer while drawing with a SpriteRenderer");
-        assert(false, "TODO");
+        // Reload the shader, reset uniforms, init uniform handles.
+        renderer_ = newRenderer;
+        initializeShader();
     }
 
 private:
@@ -673,12 +654,45 @@ private:
         pointUniformsNeedUpdate_ = false;
     }
 
+    // Initialize the sprite shader and uniforms.
+    void initializeShader()
+    {
+        spriteShader_                  = renderer_.createGLSLShader();
+        directionalUniformsNeedUpdate_ = true;
+        pointUniformsNeedUpdate_       = true;
+        try
+        {
+            // Load the shader.
+            auto shaderDir = dataDir_.dir("shaders");
+            auto vertFile  = shaderDir.file("sprite.vert");
+            auto fragFile  = shaderDir.file("sprite.frag");
+            char[] vertSource  = allocArray!char(cast(size_t)vertFile.bytes);
+            scope(exit){free(vertSource);}
+            char[] fragSource  = allocArray!char(cast(size_t)fragFile.bytes);
+            scope(exit){free(fragSource);}
+            vertFile.input.read(cast(void[])vertSource);
+            fragFile.input.read(cast(void[])fragSource);
+            const vertexShader   = spriteShader_.addVertexShader(cast(string)vertSource);
+            const fragmentShader = spriteShader_.addFragmentShader(cast(string)fragSource);
+
+            spriteShader_.lock();
+
+            initializeUniforms();
+        }
+        catch(VFSException e)
+        {
+            throw new SpriteRendererInitException("Couldn't load sprite shader: " ~ e.msg);
+        }
+        catch(GLSLException e)
+        {
+            throw new SpriteRendererInitException("Error in sprite shader: " ~ e.msg);
+        }
+    }
+
     // Initialize handles and default values of uniforms used.
     //
     // Called during construction.
-    //
-    // Params:  verticalAngle = Vertical view angle.
-    void initializeUniforms(const float verticalAngle)
+    void initializeUniforms()
     {
         // Get handles to access uniforms with.
         with(*spriteShader_)
@@ -702,7 +716,7 @@ private:
             pointAttenuationsUniform_     = Uniform!(float[maxPointLights])
                                                 (getUniformHandle("pointAttenuations"));
 
-            verticalAngleUniform_.value   = verticalAngle * degToRad;
+            verticalAngleUniform_.value   = verticalAngle_ * degToRad;
             diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
             normalSamplerUniform_.value   = SpriteTextureUnit.Normal;
             offsetSamplerUniform_.value   = SpriteTextureUnit.Offset;
