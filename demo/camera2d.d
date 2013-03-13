@@ -67,7 +67,7 @@ public:
     }
 
     /// Get size of the viewport in pixels.
-    @property vec2u size() const pure nothrow {return size_;}
+    @property vec2u size() @safe const pure nothrow {return size_;}
 
     /// Return a GLSL-compatible projection matrix.
     @property ref const(mat4) projection() @safe const pure nothrow {return projection_;}
