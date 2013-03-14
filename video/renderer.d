@@ -79,7 +79,7 @@ public:
     /// Params: primitiveType = Determines which graphics primitive type 
     ///                         should the vertices in this buffer form.
     ///
-    /// The index buffer must be destroyed by the user before
+    /// The vertex buffer must be destroyed by the user before
     /// the renderer is destroyed.
     VertexBuffer!V* createVertexBuffer(V)(const PrimitiveType primitiveType)
     {
