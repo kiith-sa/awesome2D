@@ -6,7 +6,7 @@ uniform vec3  minOffsetBounds;
 uniform vec3  maxOffsetBounds;
 uniform vec3  minClipBounds;
 uniform vec3  maxClipBounds;
-varying vec2 frag_TexCoord;
+varying vec2  frag_TexCoord;
 
 // Ambient light
 uniform vec3 ambientLight;
@@ -23,6 +23,11 @@ uniform vec3  pointPositions[pointLightCount];
 // Diffuse colors for unused light sources must be black.
 uniform vec3  pointDiffuse[pointLightCount];
 uniform float pointAttenuations[pointLightCount];
+
+// Minimum extents of the 3D bounding box of the sprite in world space.
+varying vec3  worldSpriteBoundsMin;
+// Size of the 3D bounding box of the sprite.
+varying vec3  spriteBoundsSize;
 
 /// Compute lighting contribution from one directional light source.
 ///
@@ -51,6 +56,7 @@ vec3 directionalLightingTotal(in vec3 pixelDiffuse, in vec3 pixelNormal)
     // Unused light sources have black color so they won't affect the result.
     result += directionalLighting(0, pixelDiffuse, pixelNormal);
     result += directionalLighting(1, pixelDiffuse, pixelNormal);
+    if(directionalDiffuse[2] == vec3(0.0, 0.0, 0.0)){return result;}
     result += directionalLighting(2, pixelDiffuse, pixelNormal);
     result += directionalLighting(3, pixelDiffuse, pixelNormal);
     return result;
@@ -87,10 +93,16 @@ vec3 pointLightingTotal(in vec3 pixelDiffuse, in vec3 pixelNormal, in vec3 pixel
     // Unused light sources have black color so they won't affect the result.
     result += pointLighting(0, pixelDiffuse, pixelNormal, pixelPosition);
     result += pointLighting(1, pixelDiffuse, pixelNormal, pixelPosition);
+    if(pointDiffuse[2] == vec3(0.0, 0.0, 0.0)){return result;}
+
     result += pointLighting(2, pixelDiffuse, pixelNormal, pixelPosition);
     result += pointLighting(3, pixelDiffuse, pixelNormal, pixelPosition);
+    if(pointDiffuse[4] == vec3(0.0, 0.0, 0.0)){return result;}
+
     result += pointLighting(4, pixelDiffuse, pixelNormal, pixelPosition);
     result += pointLighting(5, pixelDiffuse, pixelNormal, pixelPosition);
+    if(pointDiffuse[6] == vec3(0.0, 0.0, 0.0)){return result;}
+
     result += pointLighting(6, pixelDiffuse, pixelNormal, pixelPosition);
     result += pointLighting(7, pixelDiffuse, pixelNormal, pixelPosition);
     return result;
@@ -101,8 +113,7 @@ void main (void)
     // Map offset coordinates from [0.0, 1.0] to [minOffsetBounds, maxOffsetBounds]
     // and add that to sprite position to get position of the pixel.
     vec3 offset   = vec3(texture2D(texOffset, frag_TexCoord));
-    vec3 position = spritePosition3D + minOffsetBounds +
-                    (maxOffsetBounds - minOffsetBounds) * offset;
+    vec3 position = worldSpriteBoundsMin + spriteBoundsSize * offset;
     if(position.x < minClipBounds.x || 
        position.y < minClipBounds.y ||
        position.z < minClipBounds.z ||
