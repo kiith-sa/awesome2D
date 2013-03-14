@@ -23,6 +23,7 @@ import demo.camera2d;
 import demo.light;
 import demo.spritemanager;
 import demo.spritepage;
+import demo.spritevertex;
 import demo.texturepacker;
 import formats.image;
 import image;
@@ -56,19 +57,6 @@ class SpriteInitException : Exception
 struct Sprite
 {
 package:
-    // Vertex type used by sprite vertex buffers.
-    struct SpriteVertex
-    {
-        // Position of the vertex.
-        vec2 position;
-        // Texture coordinate of the vertex.
-        vec2 texCoord;
-
-        // Metadata for Renderer.
-        mixin VertexAttributes!(vec2, AttributeInterpretation.Position,
-                                vec2, AttributeInterpretation.TexCoord);
-    }
-
     // Size of the sprite in pixels.
     vec2u size_;
 
@@ -90,11 +78,15 @@ package:
         //
         // If the sprite is drawn with this (or close) rotation, this frame will be used.
         float zRotation;
+        // Offset into the index buffer of the texture page where the first 
+        // index used to draw the facing's image can be found.
+        uint indexBufferOffset = uint.max;
 
         // Is the facing validly initialized (i.e. an does its invariant hold?)?
         @property bool isValid() const pure nothrow 
         {
-            return !isNaN(zRotation) && textureArea.valid && spritePage !is null;
+            return !isNaN(zRotation) && textureArea.valid && 
+                   spritePage !is null && indexBufferOffset != uint.max;
         }
 
         // Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
@@ -110,16 +102,6 @@ package:
     // Name of the sprite, used for debugging.
     string name_;
 
-    // Vertex buffer storing vertices of all facings of the sprite.
-    //
-    // The first 4 vertices belong to the first facing, next 4 to the second, etc.
-    VertexBuffer!SpriteVertex* vertexBuffer_;
-
-    // Index buffer storing indices of triangles used to draw facings of this sprite.
-    //
-    // The first 6 indices belong to the first facing, next 6 to the second, etc.
-    IndexBuffer* indexBuffer_;
-
     // Sprite manager that was used to create this sprite.
     SpriteManager manager_;
 
@@ -132,10 +114,6 @@ public:
         // Don't try to delete facings if initialization failed.
         if(facings_ !is null)
         {
-            assert(vertexBuffer_ !is null,
-                   "Sprite facings exist, but the vertex buffer does not");
-            assert(indexBuffer_ !is null, 
-                   "Sprite vertex buffer exists, but the index buffer does not");
             assert(manager_ !is null,
                    "Sprite is initialized, but its SpriteManager is not set");
 
@@ -145,13 +123,10 @@ public:
                 facing.spritePage.removeImage(facing.textureArea);
             }
             free(facings_);
-            free(vertexBuffer_);
-            free(indexBuffer_);
             manager_.spriteDeleted(&this);
             return;
         }
-        assert(vertexBuffer_ is null && indexBuffer_ is null && manager_ is null,
-               "Partially initialized sprite");
+        assert(manager_ is null, "Partially initialized sprite");
     }
 
     /// Return size of the sprite in pixels.
@@ -193,50 +168,8 @@ public:
     /// Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
     @property size_t memoryBytes() @trusted const
     {
-        return this.sizeof + name_.length + vertexBuffer_.memoryBytes + 
-               indexBuffer_.memoryBytes +
+        return this.sizeof + name_.length +
                facings_.map!((ref const Facing t) => t.memoryBytes).reduce!"a + b";
-    }
-
-package:
-    // Construct the vertex and index buffer used to draw the sprite.
-    // 
-    // Called at the end of Sprite construction.
-    void constructGraphicsBuffers(Renderer renderer)
-    {
-        alias SpriteVertex V;
-        vertexBuffer_ = renderer.createVertexBuffer!V(PrimitiveType.Triangles);
-        indexBuffer_  = renderer.createIndexBuffer();
-        // Using integer division to make sure we end up on a whole-pixel boundary
-        // (avoids blurriness).
-        // 2D vertex positions are identical for all facings.
-        const vMin  = vec2(-(cast(int)size_.x / 2), -(cast(int)size_.y / 2));
-        const vMax  = vMin + vec2(size_);
-
-        foreach(ref facing; facings_)
-        {
-            const pageSize = facing.spritePage.size;
-            // Texture coords depends on the facing's sprite page and texture area on the page.
-            const tMin = vec2(cast(float)facing.textureArea.min.x / pageSize.x,
-                              cast(float)facing.textureArea.min.y / pageSize.y);
-            const tMax = vec2(cast(float)facing.textureArea.max.x / pageSize.x,
-                              cast(float)facing.textureArea.max.y / pageSize.y);
-            const baseIndex = cast(uint)vertexBuffer_.length;
-            // 2 triangles forming a quad.
-            vertexBuffer_.addVertex(V(vMin,                 tMin));
-            vertexBuffer_.addVertex(V(vMax,                 tMax));
-            vertexBuffer_.addVertex(V(vec2(vMin.x, vMax.y), vec2(tMin.x, tMax.y)));
-            vertexBuffer_.addVertex(V(vec2(vMax.x, vMin.y), vec2(tMax.x, tMin.y)));
-
-            indexBuffer_.addIndex(baseIndex);
-            indexBuffer_.addIndex(baseIndex + 1);
-            indexBuffer_.addIndex(baseIndex + 2);
-            indexBuffer_.addIndex(baseIndex + 1);
-            indexBuffer_.addIndex(baseIndex);
-            indexBuffer_.addIndex(baseIndex + 3);
-        }
-        vertexBuffer_.lock();
-        indexBuffer_.lock();
     }
 }
 
@@ -354,7 +287,7 @@ private:
     SpritePage* boundSpritePage_ = null;
 
     // Currently bound vertex buffer. Only matters when drawing.
-    VertexBuffer!(Sprite.SpriteVertex)* boundVertexBuffer_ = null;
+    VertexBuffer!(SpriteVertex)* boundVertexBuffer_ = null;
 
     // Currently bound index buffer. Only matters when drawing.
     IndexBuffer* boundIndexBuffer_ = null;
@@ -462,27 +395,28 @@ public:
 
         const facingIndex = sprite.closestFacing(rotation);
         Sprite.Facing* facing = &(sprite.facings_[facingIndex]);
+        SpritePage* page = facing.spritePage;
         // Don't rebind a sprite page if we don't have to.
-        if(boundSpritePage_ != facing.spritePage)
+        if(boundSpritePage_ != page)
         {
-            facing.spritePage.bind();
-            boundSpritePage_ = facing.spritePage;
+            page.bind();
+            boundSpritePage_ = page;
         }
-        if(boundVertexBuffer_ != sprite.vertexBuffer_)
+        if(boundVertexBuffer_ != page.vertices_)
         {
             if(boundVertexBuffer_ !is null){boundVertexBuffer_.release();}
-            sprite.vertexBuffer_.bind();
-            boundVertexBuffer_ = sprite.vertexBuffer_;
+            page.vertices_.bind();
+            boundVertexBuffer_ = page.vertices_;
         }
-        if(boundIndexBuffer_ != sprite.indexBuffer_)
+        if(boundIndexBuffer_ != page.indices_)
         {
             if(boundIndexBuffer_ !is null){boundIndexBuffer_.release();}
-            sprite.indexBuffer_.bind();
-            boundIndexBuffer_ = sprite.indexBuffer_;
+            page.indices_.bind();
+            boundIndexBuffer_ = page.indices_;
         }
 
-        renderer_.drawVertexBuffer(sprite.vertexBuffer_, sprite.indexBuffer_, spriteShader_, 
-                                   6 * facingIndex, 6);
+        renderer_.drawVertexBuffer(page.vertices_, page.indices_, spriteShader_, 
+                                   facing.indexBufferOffset, 6);
     }
 
     /// Set the 3D area to draw in. Any pixels outside of this area will be discarded.

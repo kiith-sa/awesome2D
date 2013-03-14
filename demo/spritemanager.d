@@ -123,8 +123,6 @@ public:
                 facing.spritePage.removeImage(facing.textureArea);
             }
             free(sprite.facings_);
-            free(sprite.indexBuffer_);
-            free(sprite.vertexBuffer_);
         }
         foreach(page; spritePages_) if(page !is null)
         {
@@ -225,7 +223,6 @@ private:
         enforce(images.length > 0, new SpriteInitException("Sprite with no images"));
 
         sprite.facings_ = loadSpriteFacings(spriteDir, images, sprite);
-        sprite.constructGraphicsBuffers(renderer_);
         sprite.manager_ = this;
     }
 
@@ -252,9 +249,10 @@ private:
             diffuseImage.generateCheckers(8);
             normalImage.generateCheckers(8);
             offsetImage.generateCheckers(8);
-            auto areaAndPage = fitImageToAPage(diffuseImage, normalImage, offsetImage, sprite);
-            textureArea = areaAndPage[0];
-            spritePage  = areaAndPage[1];
+            auto areaPageOffset = fitImageToAPage(diffuseImage, normalImage, offsetImage, sprite);
+            textureArea       = areaPageOffset[0];
+            spritePage        = areaPageOffset[1];
+            indexBufferOffset = areaPageOffset[2];
             assert(isValid, "Constructed an invalid dummy sprite facing");
         }
         catch(SpriteInitException e)
@@ -263,7 +261,6 @@ private:
             debug{assert(false, msg);}
             else{throw new Error(msg);}
         }
-        sprite.constructGraphicsBuffers(renderer_);
         sprite.manager_ = this;
     }
 
@@ -327,9 +324,11 @@ private:
                     ("Couldn't read a facing of sprite " ~ sprite.name ~ ": " ~ e.msg);
             }
 
-            auto areaAndPage = fitImageToAPage(diffuseImage, normalImage, offsetImage, sprite);
-            textureArea = areaAndPage[0];
-            spritePage  = areaAndPage[1];
+            auto areaPageOffset = fitImageToAPage(diffuseImage, normalImage, offsetImage, sprite);
+            textureArea       = areaPageOffset[0];
+            spritePage        = areaPageOffset[1];
+            indexBufferOffset = areaPageOffset[2];
+            assert(isValid, "Constructed an invalid dummy sprite facing");
 
             enforce(isValid,
                     new SpriteInitException("Invalid image in sprite " ~ sprite.name));
@@ -347,22 +346,26 @@ private:
     //          offset  = Offset layer.
     //          sprite  = Sprite this image belongs to, for debugging.
     //
-    // Returns: A tuple of texture area allocated for the image and a pointer to the 
-    //          sprite page it was allocated on.
+    // Returns: A tuple of texture area allocated for the image, a pointer to the 
+    //          sprite page it was allocated on and the offset to the first index
+    //          used to draw the image in the page's index buffer.
     // 
     // Throws:  SpriteInitException if no sprite page could allocate the space and
     //          a new sprite page large enough to fit the image could not be allocated.
-    Tuple!(TextureArea, SpritePage*) fitImageToAPage
+    Tuple!(TextureArea, SpritePage*, uint) fitImageToAPage
         (ref const Image diffuse, ref const Image normal, ref const Image offset, 
          const(Sprite)* sprite)
     {
         TextureArea facingArea;
+        uint indexBufferOffset;
         size_t pageIndex = size_t.max;
 
         // Try to find a page to fit the new texture to.
         foreach(index, page; spritePages_) if(page !is null)
         {
-            facingArea = page.insertImage(diffuse, normal, offset);
+            auto areaAndOffset = page.insertImage(diffuse, normal, offset);
+            facingArea = areaAndOffset[0];
+            indexBufferOffset = areaAndOffset[1];
             if(facingArea.valid) 
             {
                 pageIndex = index;
@@ -376,12 +379,14 @@ private:
                                                    "sprite %s with size %s", 
                                                    sprite.name, sprite.size)));
             pageIndex  = spritePages_.length - 1;
-            facingArea =
+            auto areaAndOffset =
                 spritePages_.back.insertImage(diffuse, normal, offset);
+            facingArea = areaAndOffset[0];
+            indexBufferOffset = areaAndOffset[1];
             assert(facingArea.valid, "Couldn't insert a sprite facing into a newly "
                                      "created page large enough to insert it");
         }
 
-        return tuple(facingArea, spritePages_[pageIndex]);
+        return tuple(facingArea, spritePages_[pageIndex], indexBufferOffset);
     }
 }

@@ -9,16 +9,20 @@ module demo.spritepage;
 
 
 import std.conv;
+import std.typecons;
 
 import gl3n.linalg;
 
 import color;
+import demo.spritevertex;
 import demo.texturepacker;
 import image;
 import math.math;
 import memory.memory;
 import video.renderer;
 import video.texture;
+import video.indexbuffer;
+import video.vertexbuffer;
 
 
 /// Enumerates the texture units used by sprite layers.
@@ -72,6 +76,16 @@ private:
     // Handles packing of images to the page's texture space.
     TexturePacker packer_;
 
+package:
+    // Vertex buffer storing vertices used to draw inserted images.
+    //
+    // Vertices are stored in quadruplets - 4 vertices of a quad.
+    VertexBuffer!(SpriteVertex)* vertices_;
+    // Index buffer storing indices used to draw inserted images.
+    //
+    // Indices are stored in sextuplets - 2 triangles of a quad.
+    IndexBuffer* indices_;
+
 public:
     /// Destroy the SpritePage. The page must be empty.
     ~this()
@@ -83,6 +97,8 @@ public:
             free(diffuseTexture_);
             free(normalTexture_);
             free(offsetTexture_);
+            free(vertices_);
+            free(indices_);
         }
     }
 
@@ -103,13 +119,18 @@ public:
     ///          normal  = Normal layer of the image.
     ///          offset  = Offset layer of the image.
     ///
-    /// Returns: Texture area the image takes up on the page.
+    /// Returns: Texture area the image takes up on the page,
+    ///          and the index of the first index buffer element 
+    ///          used to draw this image.
     ///          If the image could not be inserted, the area is invalid
     ///          (must be checked by TextureArea.valid).
-    TextureArea insertImage(ref const Image diffuse, ref const Image normal, 
-                            ref const Image offset)
+    Tuple!(TextureArea, uint)
+        insertImage(ref const Image diffuse, ref const Image normal, 
+                    ref const Image offset)
     {
         const size = diffuse.size;
+        assert(!vertices_.bound && !indices_.bound,
+               "Inserting an image to a SpritePage while its buffers are bound");
         assert(size == normal.size && size == offset.size,
                "Sizes of image layers are not identical");
         assert(diffuse.format == ColorFormat.RGBA_8 && 
@@ -124,7 +145,9 @@ public:
             normalTexture_.setPixels(area.min, normal);
             offsetTexture_.setPixels(area.min, offset);
         }
-        return area;
+
+        auto indexBufferOffset = addVertices(size, area);
+        return tuple(area, indexBufferOffset);
     }
 
     /// Remove a previously inserted image from the page.
@@ -158,6 +181,56 @@ public:
                (offsetTexture_ is null ? "N/A" : to!string(offsetTexture_)) ~
                ", packer_: " ~ to!string(packer_) ~
                "}";
+    }
+
+private:
+    // Add vertices and indices to draw a newly inserted image.
+    //
+    // Params:  size = Size of the image in pixels.
+    //          area = Texture area where the image was inserted.
+    //                 Will be updated with the index of the first 
+    //                 index of the sprite in indices_.
+    //
+    // Returns:  Index of the first index buffer element used to draw 
+    //           this image.
+    uint addVertices(const vec2u size, ref TextureArea area)
+    {
+        if(vertices_.locked()){vertices_.unlock();}
+        if(indices_.locked()){indices_.unlock();}
+
+        // Using integer division to make sure we end up on a whole-pixel boundary
+        // (avoids blurriness).
+        // 2D vertex positions are identical for all facings.
+        const vMin  = vec2(-(cast(int)size.x / 2), -(cast(int)size.y / 2));
+        const vMax  = vMin + vec2(size);
+
+        alias SpriteVertex V;
+        const pageSize = this.size;
+        // Texture coords depends on the facing's sprite page and texture area on the page.
+        const tMin = vec2(cast(float)area.min.x / pageSize.x,
+                          cast(float)area.min.y / pageSize.y);
+        const tMax = vec2(cast(float)area.max.x / pageSize.x,
+                          cast(float)area.max.y / pageSize.y);
+        const baseIndex = cast(uint)vertices_.length;
+        // 2 triangles forming a quad.
+        vertices_.addVertex(V(vMin,                 tMin));
+        vertices_.addVertex(V(vMax,                 tMax));
+        vertices_.addVertex(V(vec2(vMin.x, vMax.y), vec2(tMin.x, tMax.y)));
+        vertices_.addVertex(V(vec2(vMax.x, vMin.y), vec2(tMax.x, tMin.y)));
+
+        const indexBufferOffset = cast(uint)indices_.length;
+
+        indices_.addIndex(baseIndex);
+        indices_.addIndex(baseIndex + 1);
+        indices_.addIndex(baseIndex + 2);
+        indices_.addIndex(baseIndex + 1);
+        indices_.addIndex(baseIndex);
+        indices_.addIndex(baseIndex + 3);
+
+        vertices_.lock();
+        indices_.lock();
+
+        return indexBufferOffset;
     }
 }
 /// Alias for a sprite page with the currently default texture packer.
@@ -197,6 +270,10 @@ SpritePage* createSpritePage(Renderer renderer, const vec2u size)
     if(result.normalTexture_ is null)  {goto DIFFUSE_CLEANUP;}
     result.offsetTexture_  = renderer.createTexture(emptyRGBImage, textureParams);
     if(result.offsetTexture_ is null)  {goto NORMAL_CLEANUP;}
+
+    result.vertices_ =
+        renderer.createVertexBuffer!SpriteVertex(PrimitiveType.Triangles);
+    result.indices_  = renderer.createIndexBuffer();
 
     result.packer_ = BinaryTexturePacker(vec2us(cast(ushort)size.x, cast(ushort)size.y));
     result.initialized_ = true;
