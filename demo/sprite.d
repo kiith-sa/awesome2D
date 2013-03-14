@@ -120,7 +120,8 @@ public:
             foreach(ref facing; facings_)
             {
                 assert(facing.isValid, "Invalid sprite facing at destruction");
-                facing.spritePage.removeImage(facing.textureArea);
+                facing.spritePage.removeImage(facing.textureArea,
+                                              facing.indexBufferOffset);
             }
             free(facings_);
             manager_.spriteDeleted(&this);

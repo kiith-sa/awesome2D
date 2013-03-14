@@ -120,7 +120,8 @@ public:
         {
             foreach(ref facing; sprite.facings_)
             {
-                facing.spritePage.removeImage(facing.textureArea);
+                facing.spritePage.removeImage(facing.textureArea,
+                                              facing.indexBufferOffset);
             }
             free(sprite.facings_);
         }
@@ -286,7 +287,8 @@ private:
             // loaded in that case.
             foreach(ref facing; facings) if(facing.isValid)
             {
-                facing.spritePage.removeImage(facing.textureArea);
+                facing.spritePage.removeImage(facing.textureArea, 
+                                              facing.indexBufferOffset);
             }
             free(facings);
             facings = null;

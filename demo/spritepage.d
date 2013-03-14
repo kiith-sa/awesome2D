@@ -155,8 +155,15 @@ public:
     /// Params:  area = Texture area of the image to remove. Must be valid and
     ///                 previously returned by the insertImage() method of the
     ///                 same SpritePage instance.
-    void removeImage(ref const TextureArea area) @safe pure nothrow
+    ///          indexBufferOffset = Offset to the index buffer of the page
+    ///                              where the first index used to draw the image
+    ///                              can be found.
+    void removeImage(ref const TextureArea area, uint indexBufferOffset)
+        @safe pure nothrow
     {
+        // POSSIBLE OPTIMIZATION (GPU memory):
+        // Keep a buffer of removed indexBufferOffsets so we can reuse them
+        // when a new image is inserted.
         assert(area.valid, "Trying to remove an invalid texture area from a sprite page");
         packer_.freeSpace(area);
     }
