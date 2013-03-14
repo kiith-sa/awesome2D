@@ -52,7 +52,7 @@ struct GL2VertexBufferBackendData
     /// Pointer to the specification of vertex attributes in this buffer.
     const(VertexAttributeSpec)* attributeSpec_;
 
-    /// Size of a signle vertex in bytes.
+    /// Size of a single vertex in bytes.
     size_t  vertexBytes_;
     /// Number of vertices that can be held in verticesRAM_.
     size_t  vertexCapacity_;
@@ -62,6 +62,20 @@ struct GL2VertexBufferBackendData
     ubyte[] verticesRAM_;
     /// VBO with the vertex data.
     GL2BufferObject verticesVBO_;
+
+    /// Stores enabled vertex attributes so we can disable them when done.
+    GLint[MAX_ATTRIBUTES] enabledAttributes_;
+    /// Number of attributes in enabledAttributes_.
+    size_t enabledAttributesCount_ = 0;
+
+    /// Shader used during the previous draw while this buffer was bound.
+    ///
+    /// Only one buffer can be bound (and drawn from) at a time, so if
+    /// we remember the shader from previous draw call while the vbuffer is bound,
+    /// and the shader used at current draw call is the same, we know no other
+    /// shader was bound in the meantime. This allows us to keep vertex attributes
+    /// enabled between draws as long as the same vbuffer and shader is bound.
+    GLSLShaderProgram* lastDrawShader_ = null;
 
     /// Initialize GL2VertexBufferBackendData with specified vertex attribute spec.
     void initialize(ref const VertexAttributeSpec attributeSpec)
@@ -103,51 +117,15 @@ void drawVertexBufferGL2
 {with(self) with(gl2_)
 {
     assert(locked_, "Trying to draw a vertex buffer that is not locked");
+    assert(bound_, "Trying to draw a vertex buffer that is not bound");
 
-    // Stores enabled vertex attributes so we can disable them when done.
-    GLint[MAX_ATTRIBUTES] enabledAttributes;
-    size_t totalAttributes = 0;
-    // Offset of the current attribute relative to start of a vertex in the VBO.
-    size_t attributeOffset = 0;
-
-    scope(exit)
+    // Only enable vertex attributes if the buffer was just bound or if a different
+    // shader than before is used.
+    if(&shaderProgram !is lastDrawShader_)
     {
-        foreach(attribArray; enabledAttributes[0 .. totalAttributes])
-        {
-            glDisableVertexAttribArray(attribArray);
-        }
-    }
-    // Enable all used vertex attributes.
-    foreach(attribute; (*attributeSpec_).attributes)
-    {
-        const name = attributeInterpretationNames[attribute.interpretation];
-        const outerHandle = shaderProgram.getAttributeOuterHandle(name);
-
-        // GL handle to the attribute.
-        GLint handle;
-        try
-        {
-            handle = shaderProgram.getAttributeGLHandle(outerHandle);
-        }
-        catch(GLSLAttributeException e)
-        {
-            // Ignore missing attributes
-            attributeOffset += attribute.type.attributeSize();
-            ++totalAttributes;
-            continue;
-        }
-        enabledAttributes[totalAttributes] = handle;
-        glVertexAttribPointer(handle, cast(int)attribute.type.attributeDimensions(), 
-                              attribute.type.glAttributeType(), GL_FALSE, 
-                              cast(int)vertexBytes_, cast(const(void*))attributeOffset);
-        glEnableVertexAttribArray(handle);
-
-        // TODO (low-priority) 
-        // cache the outer handles 
-        // to default attributes in the shader program itself.
-
-        attributeOffset += attribute.type.attributeSize();
-        ++totalAttributes;
+        disableVertexAttributes(self);
+        enableVertexAttributes(self, shaderProgram);
+        lastDrawShader_ = &shaderProgram;
     }
 
     final switch(primitiveType_)
@@ -171,6 +149,61 @@ void drawVertexBufferGL2
     else
     {
         glDrawArrays(primitiveType_.glPrimitiveType(), first, elements);
+    }
+}}
+
+/// Enable vertex attributes for a vbuffer-shader combination.
+///
+/// Params:  self          = Vertex buffer to enable vertex attributes for.
+///          shaderProgram = Shader program to get vertx attribute handles to enable from.
+void enableVertexAttributes(ref VertexBufferBackend self, ref GLSLShaderProgram shaderProgram)
+{with(self) with(gl2_)
+{
+    assert(bound_, "Enabling vertex attributes for a vertex buffer that is not bound");
+    size_t attributeOffset = 0;
+
+    enabledAttributesCount_ = 0;
+    foreach(attribute; (*attributeSpec_).attributes)
+    {
+        const name = attributeInterpretationNames[attribute.interpretation];
+        const outerHandle = shaderProgram.getAttributeOuterHandle(name);
+
+        // GL handle to the attribute.
+        GLint handle;
+        try
+        {
+            handle = shaderProgram.getAttributeGLHandle(outerHandle);
+        }
+        catch(GLSLAttributeException e)
+        {
+            // Ignore missing attributes
+            attributeOffset += attribute.type.attributeSize();
+            ++enabledAttributesCount_;
+            continue;
+        }
+        enabledAttributes_[enabledAttributesCount_] = handle;
+        glVertexAttribPointer(handle, cast(int)attribute.type.attributeDimensions(), 
+                              attribute.type.glAttributeType(), GL_FALSE, 
+                              cast(int)vertexBytes_, cast(const(void*))attributeOffset);
+        glEnableVertexAttribArray(handle);
+
+        // TODO (low-priority) 
+        // cache the outer handles 
+        // to default attributes in the shader program itself.
+
+        attributeOffset += attribute.type.attributeSize();
+        ++enabledAttributesCount_;
+    }
+}}
+
+/// Disable vertex attributes enabled by a vertex buffer.
+void disableVertexAttributes(ref VertexBufferBackend self)
+{with(self) with(gl2_)
+{
+    assert(bound_, "Disabling vertex attributes for a vertex buffer that is not bound");
+    foreach(attribArray; enabledAttributes_[0 .. enabledAttributesCount_])
+    {
+        glDisableVertexAttribArray(attribArray);
     }
 }}
 
@@ -216,6 +249,9 @@ void bind(ref VertexBufferBackend self)
 void release(ref VertexBufferBackend self) 
 {with(self) with(gl2_)
 {
+    disableVertexAttributes(self);
+    enabledAttributesCount_ = 0;
+    lastDrawShader_ = null;
     verticesVBO_.release();
 }}
 
