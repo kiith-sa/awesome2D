@@ -209,6 +209,12 @@ public:
                 return false;
             });
 
+            const playerAABB = AABB(sprite_.boundingBox.min + playerPosition_,
+                                    sprite_.boundingBox.max + playerPosition_);
+            const point1AABB = AABB(pointLightSprite_.boundingBox.min + point1.position,
+                                    pointLightSprite_.boundingBox.max + point1.position);
+            const point2AABB = AABB(pointLightSprite_.boundingBox.min + point2.position,
+                                    pointLightSprite_.boundingBox.max + point2.position);
             void drawEntitiesInTile
                 (SpriteRenderer spriteRenderer, ref const AABB aabb, ref const Map.SpriteDrawParams params)
             {
@@ -218,21 +224,22 @@ public:
 
                 // The spriteRenderer clips drawn pixels to the 3D area specified by aabb, so
                 // we draw once per each cell the object is in.
-                if(aabb.intersects(AABB(sprite_.boundingBox.min + playerPosition_,
-                                        sprite_.boundingBox.max + playerPosition_)))
+                if(aabb.intersects(playerAABB))
                 {
                     spriteRenderer.drawSprite(sprite_, playerPosition_, 
                                               vec3(0.0f, 0.0f, playerRotationZ_));
                 }
 
-                foreach(light; tuple(point1, point2))
+                if(aabb.intersects(point1AABB))
                 {
-                    if(aabb.intersects(AABB(pointLightSprite_.boundingBox.min + light.position,
-                                            pointLightSprite_.boundingBox.max + light.position)))
-                    {
-                        spriteRenderer.drawSprite(pointLightSprite_, light.position, 
-                                                  vec3(0.0f, 0.0f, 0.0f));
-                    }
+                    spriteRenderer.drawSprite(pointLightSprite_, point1.position, 
+                                              vec3(0.0f, 0.0f, 0.0f));
+                }
+
+                if(aabb.intersects(point2AABB))
+                {
+                    spriteRenderer.drawSprite(pointLightSprite_, point2.position, 
+                                              vec3(0.0f, 0.0f, 0.0f));
                 }
             }
 
