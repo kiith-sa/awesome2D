@@ -111,9 +111,18 @@ struct GL2VertexBufferBackendData
 ///                        if indexBuffer is null, or the first index of
 ///                        indexBuffer to use otherwise.
 ///          elements    = Number of vertices to draw.
+///          minIndex    = When indexBuffer is not null:
+///                        Minimum index value among the indices used.
+///                        Does not have to be an exact minimum, but must be
+///                        lower or equal to the lowest index.
+///          maxIndex    = When indexBuffer is not null:
+///                        Maximum index value among the indices used.
+///                        Does not have to be an exact maximum, but must be
+///                        greater or equal to the highest index.
 void drawVertexBufferGL2
     (ref VertexBufferBackend self, IndexBuffer* indexBuffer,
-     ref GLSLShaderProgram shaderProgram, const uint first, const uint elements)
+     ref GLSLShaderProgram shaderProgram, const uint first, const uint elements,
+     uint minIndex, uint maxIndex)
 {with(self) with(gl2_)
 {
     assert(locked_, "Trying to draw a vertex buffer that is not locked");
@@ -143,8 +152,8 @@ void drawVertexBufferGL2
     // Draw.
     if(indexBuffer !is null)
     {
-        glDrawElements(primitiveType_.glPrimitiveType(), elements,
-                       GL_UNSIGNED_INT, cast(GLvoid*)null + first * GLuint.sizeof);
+        glDrawRangeElements(primitiveType_.glPrimitiveType(), minIndex, maxIndex, elements,
+                            GL_UNSIGNED_INT, cast(GLvoid*)null + first * GLuint.sizeof);
     }
     else
     {

@@ -416,8 +416,15 @@ public:
             boundIndexBuffer_ = page.indices_;
         }
 
+        const indexOffset = facing.indexBufferOffset;
+        assert(indexOffset % 6 == 0, "Sprite indices don't form sextuples");
+        // Assuming a quadruplet per image, added in same order as the indices.
+        // See SpritePage vertex/index buffer code.
+        const minVertex = (indexOffset / 6) * 4;
+        const maxVertex = minVertex + 3;
+
         renderer_.drawVertexBuffer(page.vertices_, page.indices_, spriteShader_, 
-                                   facing.indexBufferOffset, 6);
+                                   facing.indexBufferOffset, 6, minVertex, maxVertex);
     }
 
     /// Set the 3D area to draw in. Any pixels outside of this area will be discarded.

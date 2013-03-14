@@ -365,10 +365,13 @@ protected:
                                           IndexBuffer* indexBuffer, 
                                           GLSLShaderProgram* shaderProgram,
                                           const uint first,
-                                          const uint elements)
+                                          const uint elements,
+                                          const uint minIndex,
+                                          const uint maxIndex)
     {
         //debugSetupGLState();
-        backend.drawVertexBufferGL2(indexBuffer, *shaderProgram, first, elements);
+        backend.drawVertexBufferGL2(indexBuffer, *shaderProgram, first, elements, 
+                                    minIndex, maxIndex);
         //debugRestoreGLState();
     }
 

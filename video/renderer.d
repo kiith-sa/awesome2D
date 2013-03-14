@@ -122,7 +122,8 @@ public:
         assert(shaderProgram !is null, "Shader program must be specified when drawing");
         drawVertexBufferBackend(vertexBuffer.backend_, indexBuffer, shaderProgram, 0, 
                                 cast(uint)(indexBuffer is null ? vertexBuffer.length 
-                                                               : indexBuffer.length));
+                                                               : indexBuffer.length),
+                                0u, cast(uint)(vertexBuffer.length - 1));
     }
 
     /// Draw a part of a vertex buffer, optionally with an index buffer specifying vertices to draw.
@@ -138,16 +139,26 @@ public:
     ///                         if indexBuffer is null, or the first index of
     ///                         indexBuffer to use otherwise.
     ///         elements      = Number of vertices to draw.
+    ///         minIndex      = When indexBuffer is not null:
+    ///                         Minimum index value among the indices used.
+    ///                         Does not have to be an exact minimum, but must be
+    ///                         lower or equal to the lowest index.
+    ///         maxIndex      = When indexBuffer is not null:
+    ///                         Maximum index value among the indices used.
+    ///                         Does not have to be an exact maximum, but must be
+    ///                         greater or equal to the highest index.
     void drawVertexBuffer(V)(VertexBuffer!V* vertexBuffer,
                              IndexBuffer* indexBuffer,
                              GLSLShaderProgram* shaderProgram,
-                             const uint first, 
-                             const uint elements)
+                             const uint first,
+                             const uint elements,
+                             const uint minIndex,
+                             const uint maxIndex)
     {
         assert(vertexBuffer  !is null, "Vertex buffer must be specified when drawing");
         assert(shaderProgram !is null, "Shader program must be specified when drawing");
         drawVertexBufferBackend(vertexBuffer.backend_, indexBuffer, shaderProgram, 
-                                first, elements);
+                                first, elements, minIndex, maxIndex);
     }
 
     /// A test function that draws a triangle.
@@ -228,7 +239,9 @@ protected:
                                  IndexBuffer* indexBuffer,
                                  GLSLShaderProgram* shaderProgram,
                                  const uint first,
-                                 const uint elements);
+                                 const uint elements,
+                                 const uint minIndex,
+                                 const uint maxIndex);
 
     /// Called when the blend mode changes to specified blend mode.
     @property void blendModeChange(const BlendMode blendMode) @trusted;
