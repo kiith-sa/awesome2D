@@ -766,20 +766,18 @@ private:
         const cameraMin = cameraCenterMaxLayer - cameraHalfSize;
         const cameraMax = cameraCenter + cameraHalfSize;
 
-        // Y is multiplied by 0.5 as the rows are half-tile-size apart vertically.
-
-        // Extra tiles we draw around the visible area to account for row/column offsets,
-        // weird shaped tiles, etc.
-        enum border = 2;
         alias tilePixelSize tPS;
 
         // Extents of the area we draw in cells.
+        //
+        // Each extent is tweaked a bit to ensure we don't draw any more than we have to.
+        // Y is multiplied by 0.5 as the rows are half-tile-size apart vertically.
         auto cellMin =
-            vec2i(max(0, cast(int)(cameraMin.x / tPS.x) - border),
-                  max(0, cast(int)(cameraMin.y / (0.5 * tPS.y)) - border));
+            vec2i(max(0, cast(int)(cameraMin.x / tPS.x) - 0),
+                  max(0, cast(int)(cameraMin.y / (0.5 * tPS.y)) + 1));
         auto cellMax =
-            vec2i(min(mapSize_.x, cast(int)(cameraMax.x / tPS.x) + border),
-                  min(mapSize_.y, cast(int)(cameraMax.y / (0.5 * tPS.y)) + border));
+            vec2i(min(mapSize_.x, cast(int)(cameraMax.x / tPS.x) + 2),
+                  min(mapSize_.y, cast(int)(cameraMax.y / (0.5 * tPS.y)) + 2));
 
         return tuple(cellMin, cellMax);
     }}
