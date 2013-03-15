@@ -373,7 +373,7 @@ private:
     /// Access the cell at specified cell coordinates. 
     ///
     /// This should be used to access cells to allow changes in cell storage.
-    ref Cell cell(const uint x, const uint y) @trusted 
+    ref Cell cell(const uint x, const uint y) @trusted nothrow pure
     {
         return cells_[y][x];
     }
@@ -684,7 +684,7 @@ private:
             tilePosition_.y = tilePosition_.y + tileSize.y;
 
             const(Cell*) cell = &map_.cell(cellX, cellY);
-            drawCell(cell, xStrip, yStrip);
+            drawCell(cell, xStrip, yStrip, cellX, cellY);
         }
     }
 
@@ -693,17 +693,21 @@ private:
     // Params:  cell   = Cell to draw.
     //          xStrip = X strip of the cell (determines X position).
     //          yStrip = Y strip of the cell (determines Y position).
-    void drawCell(const(Cell*) cell, const int xStrip, const int yStrip)
+    //          cellX  = X cell coordinate of the cell.
+    //          cellY  = Y cell coordinate of the cell.
+    void drawCell(const(Cell*) cell, const int xStrip, const int yStrip,
+                  const int cellX, const int cellY)
     {
         // Draw the cell's layer stack.
-        foreach(uint layer, const ushort layerIndex; cell.layerIndices(map_))
+        foreach(ushort layer, const ushort layerIndex; cell.layerIndices(map_))
         {
             const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
                                                 cast(ushort)layer);
             tileBBox_.min.z = (layer - 0.5f) * tileSize.z - 1.0f;
             tileBBox_.max.z = (layer + 0.5f) * tileSize.z + 1.0f;
-            spriteRenderer_.clipBounds = tileBBox_;
+            cullTileBBoxZ(cellX, cellY, layer);
             tilePosition_.z = tileSize.z * layer;
+            spriteRenderer_.clipBounds = tileBBox_;
 
             drawCellLayer(layerIndex, drawParams);
         }
@@ -746,6 +750,46 @@ private:
         else 
         {
             drawInTile_(spriteRenderer_, tileBBox_, drawParams);
+        }
+    }
+
+    // Cull Z coordinates of the tile (clipping) bounding box to avoid drawing invisible pixels.
+    //
+    // Assumes that tileBBox_ is set to the full bounding box of the tile before call.
+    //
+    // Params:  cellX = X cell coordinate of the tile.
+    //          cellY = Y cell coordinate of the tile.
+    //          layer = Layer of the tile.
+    void cullTileBBoxZ(const int cellX, const int cellY, const ushort layer) pure nothrow
+    {
+        const currentTile = map_.cell(cellX, cellY).tileAtLayer(layer, map_);
+        if(cellY == 0 || cellX == 0 || cellX == map_.mapSize_.x - 1)
+        {
+            return;
+        }
+        // POSSIBLE OPTIMIZATION:
+        // We could extend this to allow below tiles at higher layer to obscure the current
+        // tile, and that might even work with non-flat currentTile shapes.
+        if(currentTile.shape == TileShape.Flat)
+        {
+            const tile1 = map_.cell((cellY % 2 == 0) ? cellX : cellX - 1, cellY - 1)
+                              .tileAtLayer(layer, map_);
+            const tile2 = map_.cell((cellY % 2 == 0) ? cellX + 1 : cellX, cellY - 1)
+                              .tileAtLayer(layer, map_);
+            if(tile1 is null || tile2 is null){return;}
+
+            // Check that both tiles below the current tile obscure its low-z part.
+            switch(tile1.shape) with(TileShape)
+            {
+                case Flat, CliffS, CliffW, SlopeSW, SlopeSBottom, SlopeWLeft: break;
+                default: return;
+            }
+            switch(tile2.shape) with(TileShape)
+            {
+                case Flat, CliffS, CliffE, SlopeSE, SlopeSBottom, SlopeERight: break;
+                default: return;
+            }
+            tileBBox_.min.z = tileBBox_.max.z - 2.0f;
         }
     }
 
