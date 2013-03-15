@@ -29,12 +29,19 @@ void constructIndexBufferGL2(ref IndexBuffer buffer)
 }
 
 /// Data members of the GL2 index buffer backend.
+///
+/// We use ushort indices from start, and if a too large index is added, we
+/// reallocate and use uints.
 struct GL2IndexBufferData
 {
+    /// Data type of indices in the buffer.
+    GLenum indexType_ = GL_UNSIGNED_SHORT;
+    /// Size of one index in bytes.
+    uint indexBytes_  = ushort.sizeof;
     /// Copy of the index buffer in RAM.
     /// 
     /// Used for modifications; uploaded to the IBO when lock() is called.
-    uint[] indicesRAM_;
+    ubyte[] indicesRAM_;
     /// IBO with the index data.
     GL2BufferObject indicesIBO_;
 
@@ -42,8 +49,8 @@ struct GL2IndexBufferData
     void initialize()
     {
         indicesIBO_ = GL2BufferObject(GL_ELEMENT_ARRAY_BUFFER);
-        // Preallocate space for 16 indices.
-        indicesRAM_ = allocArray!uint(16);
+        // Preallocate space for 32 indices.
+        indicesRAM_ = allocArray!ubyte(64);
     }
 
     /// Deinitialize, freeing all used resources.
@@ -72,7 +79,7 @@ void dtor(ref IndexBuffer self)
 void lock(ref IndexBuffer self)
 {with(self) with(gl2_)
 {
-    indicesIBO_.uploadData(cast(void*)indicesRAM_, indexCount_ * uint.sizeof);
+    indicesIBO_.uploadData(cast(void*)indicesRAM_, indexCount_ * indexBytes_);
 }}
 
 /// Unlock the index buffer so it can be modified.
@@ -105,15 +112,40 @@ void release(ref IndexBuffer self)
 void addIndex(ref IndexBuffer self, const uint index)
 {with(self) with(gl2_)
 {
-    assert(indexCount_ <= indicesRAM_.length,
+    assert(indexCount_ * indexBytes_ <= indicesRAM_.length,
            "There are more indices than allocated space");
     // Out of space - reallocate.
-    if(indexCount_ == indicesRAM_.length)
+    if(indexCount_ * indexBytes_ == indicesRAM_.length)
     {
         indicesRAM_ = realloc(indicesRAM_, indicesRAM_.length * 2);
     }
 
+    // The index can't be represented by ushorts, so use uints.
+    if(indexType_ == GL_UNSIGNED_SHORT && index > ushort.max)
+    {
+        indexType_ = GL_UNSIGNED_INT;
+        indexBytes_ = uint.sizeof;
+        auto oldIndicesRAM = indicesRAM_;
+        indicesRAM_ = allocArray!ubyte(indicesRAM_.length * 2);
+        foreach(i; 0 .. indexCount_)
+        {
+            (cast(uint[])indicesRAM_)[i] = (cast(ushort[])oldIndicesRAM)[i];
+        }
+        free(oldIndicesRAM);
+    }
+
     // Add the index.
-    indicesRAM_[indexCount_] = index;
+    if(indexType_ == GL_UNSIGNED_SHORT)
+    {
+        (cast(ushort[])indicesRAM_)[indexCount_] = cast(ushort)index;
+    }
+    else if(indexType_ == GL_UNSIGNED_INT)
+    {
+        (cast(uint[])indicesRAM_)[indexCount_] = index;
+    }
+    else
+    {
+        assert(false, "Unknown index type");
+    }
     // Frontend increments indexCount_.
 }}

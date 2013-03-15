@@ -153,7 +153,8 @@ void drawVertexBufferGL2
     if(indexBuffer !is null)
     {
         glDrawRangeElements(primitiveType_.glPrimitiveType(), minIndex, maxIndex, elements,
-                            GL_UNSIGNED_INT, cast(GLvoid*)null + first * GLuint.sizeof);
+                            indexBuffer.gl2_.indexType_,
+                            cast(GLvoid*)null + first * indexBuffer.gl2_.indexBytes_);
     }
     else
     {
