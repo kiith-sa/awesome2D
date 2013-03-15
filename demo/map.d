@@ -701,14 +701,14 @@ private:
         // Draw the cell's layer stack.
         foreach(ushort layer, const ushort layerIndex; cell.layerIndices(map_))
         {
-            const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
-                                                cast(ushort)layer);
             tileBBox_.min.z = (layer - 0.5f) * tileSize.z - 1.0f;
             tileBBox_.max.z = (layer + 0.5f) * tileSize.z + 1.0f;
-            cullTileBBoxZ(cellX, cellY, layer);
+            if(cullTile(cellX, cellY, layer)) {continue;}
             tilePosition_.z = tileSize.z * layer;
             spriteRenderer_.clipBounds = tileBBox_;
 
+            const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
+                                                cast(ushort)layer);
             drawCellLayer(layerIndex, drawParams);
         }
 
@@ -753,44 +753,78 @@ private:
         }
     }
 
-    // Cull Z coordinates of the tile (clipping) bounding box to avoid drawing invisible pixels.
+    // Cull the tile if invisible, or cull Z coordinates of the tile 
+    // (clipping) bounding box to avoid drawing invisible pixels.
     //
     // Assumes that tileBBox_ is set to the full bounding box of the tile before call.
     //
     // Params:  cellX = X cell coordinate of the tile.
     //          cellY = Y cell coordinate of the tile.
     //          layer = Layer of the tile.
-    void cullTileBBoxZ(const int cellX, const int cellY, const ushort layer) pure nothrow
+    //
+    // Returns: True if the tile is completely invisible, false otherwise.
+    bool cullTile(const int cellX, const int cellY, const ushort layer) pure nothrow
     {
-        const currentTile = map_.cell(cellX, cellY).tileAtLayer(layer, map_);
         if(cellY == 0 || cellX == 0 || cellX == map_.mapSize_.x - 1)
         {
-            return;
+            return false;
         }
-        // POSSIBLE OPTIMIZATION:
-        // We could extend this to allow below tiles at higher layer to obscure the current
-        // tile, and that might even work with non-flat currentTile shapes.
-        if(currentTile.shape == TileShape.Flat)
-        {
-            const tile1 = map_.cell((cellY % 2 == 0) ? cellX : cellX - 1, cellY - 1)
-                              .tileAtLayer(layer, map_);
-            const tile2 = map_.cell((cellY % 2 == 0) ? cellX + 1 : cellX, cellY - 1)
-                              .tileAtLayer(layer, map_);
-            if(tile1 is null || tile2 is null){return;}
 
-            // Check that both tiles below the current tile obscure its low-z part.
-            switch(tile1.shape) with(TileShape)
-            {
-                case Flat, CliffS, CliffW, SlopeSW, SlopeSBottom, SlopeWLeft: break;
-                default: return;
-            }
-            switch(tile2.shape) with(TileShape)
-            {
-                case Flat, CliffS, CliffE, SlopeSE, SlopeSBottom, SlopeERight: break;
-                default: return;
-            }
+
+        // POSSIBLE OPTIMIZATION:
+        // Lower row tiles at higher layers can also obscure the current tile.
+
+        // POSSIBLE OPTIMIZATION:
+        // Whether a cell-layer is obscured could be determined only when the map is modified.
+        const tileSW = map_.cell((cellY % 2 == 0) ? cellX : cellX - 1, cellY - 1)
+                           .tileAtLayer(layer, map_);
+        const tileSE = map_.cell((cellY % 2 == 0) ? cellX + 1 : cellX, cellY - 1)
+                           .tileAtLayer(layer, map_);
+        const tileAbove = map_.cell(cellX, cellY).tileAtLayer(cast(ushort)(layer + 1), map_);
+
+        // In this case, the tile is visible and we can't cull Z.
+        if(tileSW is null || tileSE is null){return false;}
+
+        bool obscuredAbove, obscuredSW, obscuredSE;
+        // The tile is visible but we might be able to cull Z so we don't return yet.
+        if(tileAbove is null)
+        {
+            obscuredAbove = false;
+        }
+        else switch(tileAbove.shape) with(TileShape)
+        {
+            case Flat, SlopeSE, SlopeSW, SlopeNE, SlopeNW,
+                 SlopeSBottom, SlopeSTop, SlopeNBottom, SlopeNTop,
+                 SlopeERight, SlopeELeft, SlopeWRight, SlopeWLeft:
+                 obscuredAbove = true;
+                 break;
+            default: break;
+        }
+        switch(tileSW.shape) with(TileShape)
+        {
+            case Flat, CliffS, CliffW, SlopeSW, SlopeSBottom, SlopeWLeft:
+                obscuredSW = true;
+                break;
+            default: break;
+        }
+        switch(tileSE.shape) with(TileShape)
+        {
+            case Flat, CliffS, CliffE, SlopeSE, SlopeSBottom, SlopeERight:
+                obscuredSE = true;
+                break;
+            default: break;
+        }
+
+        // The tile is completely obscured.
+        if(obscuredAbove && obscuredSE && obscuredSW){return true;}
+
+        const currentTile = map_.cell(cellX, cellY).tileAtLayer(layer, map_);
+        // Cull the Z coordinates of the tile bounding box.
+        if(currentTile.shape == TileShape.Flat && obscuredSE && obscuredSW)
+        {
             tileBBox_.min.z = tileBBox_.max.z - 2.0f;
         }
+        return false;
     }
 
     // Get the extents of the area to draw in cells.
