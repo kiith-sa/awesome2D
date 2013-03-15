@@ -48,9 +48,9 @@ package:
     // Pointer to the unlock implementation.
     void function(ref Self)             unlock_;
     // Pointer to bind implementation.
-    void function(ref Self) bind_;
+    void function(ref Self)             bind_;
     // Pointer to release implementation.
-    void function(ref Self) release_;
+    void function(ref Self)             release_;
 
 public:
     /// Destroy the buffer, freeing any resources used.
