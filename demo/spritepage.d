@@ -11,6 +11,7 @@ module demo.spritepage;
 import std.conv;
 import std.typecons;
 
+import gl3n.aabb;
 import gl3n.linalg;
 
 import color;
@@ -115,9 +116,10 @@ public:
     /// All layers must have the same size. The diffuse layer must be in RGBA_8
     /// color format, the normal and offset layers must be RGB_8.
     ///
-    /// Params:  diffuse = Diffuse color layer of the image.
-    ///          normal  = Normal layer of the image.
-    ///          offset  = Offset layer of the image.
+    /// Params:  diffuse           = Diffuse color layer of the image.
+    ///          normal            = Normal layer of the image.
+    ///          offset            = Offset layer of the image.
+    ///          spriteBoundingBox = 3D bounding box of the sprite.
     ///
     /// Returns: Texture area the image takes up on the page,
     ///          and the index of the first index buffer element 
@@ -126,7 +128,7 @@ public:
     ///          (must be checked by TextureArea.valid).
     Tuple!(TextureArea, uint)
         insertImage(ref const Image diffuse, ref const Image normal, 
-                    ref const Image offset)
+                    ref const Image offset, ref const AABB spriteBoundingBox)
     {
         const size = diffuse.size;
         assert(!vertices_.bound && !indices_.bound,
@@ -146,7 +148,7 @@ public:
             offsetTexture_.setPixels(area.min, offset);
         }
 
-        auto indexBufferOffset = addVertices(size, area);
+        auto indexBufferOffset = addVertices(size, area, spriteBoundingBox);
         return tuple(area, indexBufferOffset);
     }
 
@@ -193,14 +195,15 @@ public:
 private:
     // Add vertices and indices to draw a newly inserted image.
     //
-    // Params:  size = Size of the image in pixels.
-    //          area = Texture area where the image was inserted.
-    //                 Will be updated with the index of the first 
-    //                 index of the sprite in indices_.
+    // Params:  size              = Size of the image in pixels.
+    //          area              = Texture area where the image was inserted.
+    //                              Will be updated with the index of the first 
+    //                              index of the sprite in indices_.
+    //          spriteBoundingBox = 3D bounding box of the sprite.
     //
     // Returns:  Index of the first index buffer element used to draw 
     //           this image.
-    uint addVertices(const vec2u size, ref TextureArea area)
+    uint addVertices(const vec2u size, ref TextureArea area, ref const AABB spriteBoundingBox)
     {
         if(vertices_.locked()){vertices_.unlock();}
         if(indices_.locked()){indices_.unlock();}
@@ -219,11 +222,12 @@ private:
         const tMax = vec2(cast(float)area.max.x / pageSize.x,
                           cast(float)area.max.y / pageSize.y);
         const baseIndex = cast(uint)vertices_.length;
+        const bbox = &spriteBoundingBox;
         // 2 triangles forming a quad.
-        vertices_.addVertex(V(vMin,                 tMin));
-        vertices_.addVertex(V(vMax,                 tMax));
-        vertices_.addVertex(V(vec2(vMin.x, vMax.y), vec2(tMin.x, tMax.y)));
-        vertices_.addVertex(V(vec2(vMax.x, vMin.y), vec2(tMax.x, tMin.y)));
+        vertices_.addVertex(V(vMin,                 tMin,                 bbox.min, bbox.max));
+        vertices_.addVertex(V(vMax,                 tMax,                 bbox.min, bbox.max));
+        vertices_.addVertex(V(vec2(vMin.x, vMax.y), vec2(tMin.x, tMax.y), bbox.min, bbox.max));
+        vertices_.addVertex(V(vec2(vMax.x, vMin.y), vec2(tMax.x, tMin.y), bbox.min, bbox.max));
 
         const indexBufferOffset = cast(uint)indices_.length;
 

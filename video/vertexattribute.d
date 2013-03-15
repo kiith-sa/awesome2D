@@ -40,12 +40,10 @@ enum AttributeInterpretation : ubyte
     Normal   = 2,
     /// Texture coordinate.
     TexCoord = 3,
-    /// World space sprite position.
-    SpritePosition = 4,
     /// Object space minimum extents of the sprite bounding box.
-    MinOffsetBounds = 5,
+    MinOffsetBounds = 4,
     /// Object space maximum extents of the sprite bounding box.
-    MaxOffsetBounds = 6
+    MaxOffsetBounds = 5
 }
 
 /// Names of attribute interpretations used in shaders.
@@ -53,7 +51,7 @@ enum AttributeInterpretation : ubyte
 /// This should be used instead of to!string to avoid allocations.
 const string[(EnumMembers!AttributeInterpretation).length] attributeInterpretationNames =
   ["Position", "Color", "Normal", "TexCoord", 
-   "SpritePosition", "MinOffsetBounds", "MaxOffsetBounds"];
+   "MinOffsetBounds", "MaxOffsetBounds"];
 
 /// Specifies a single vertex attribute.
 struct VertexAttribute

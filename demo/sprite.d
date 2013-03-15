@@ -223,10 +223,6 @@ private:
 
     // Handle to the sprite 3D position uniform.
     uint positionUniformHandle_;
-    // Handle to the minimum offset bounds uniform.
-    uint minOffsetBoundsUniformHandle_;
-    // Handle to the maximum offset bounds uniform.
-    uint maxOffsetBoundsUniformHandle_;
 
     // Vertical angle of the view.
     Uniform!float verticalAngleUniform_;
@@ -700,8 +696,6 @@ private:
             maxClipBoundsUniform_.value   = vec3(100000.0f,  100000.0f, 100000.0f);
 
             positionUniformHandle_        = getUniformHandle("spritePosition3D");
-            minOffsetBoundsUniformHandle_ = getUniformHandle("minOffsetBounds");
-            maxOffsetBoundsUniformHandle_ = getUniformHandle("maxOffsetBounds");
         }
     }
 
@@ -760,8 +754,6 @@ private:
         {
             // Sprite position and bounds.
             setUniform(positionUniformHandle_,        position);
-            setUniform(minOffsetBoundsUniformHandle_, sprite.boundingBox_.min);
-            setUniform(maxOffsetBoundsUniformHandle_, sprite.boundingBox_.max);
         }
     }
 }

@@ -365,7 +365,7 @@ private:
         // Try to find a page to fit the new texture to.
         foreach(index, page; spritePages_) if(page !is null)
         {
-            auto areaAndOffset = page.insertImage(diffuse, normal, offset);
+            auto areaAndOffset = page.insertImage(diffuse, normal, offset, sprite.boundingBox);
             facingArea = areaAndOffset[0];
             indexBufferOffset = areaAndOffset[1];
             if(facingArea.valid) 
@@ -382,7 +382,7 @@ private:
                                                    sprite.name, sprite.size)));
             pageIndex  = spritePages_.length - 1;
             auto areaAndOffset =
-                spritePages_.back.insertImage(diffuse, normal, offset);
+                spritePages_.back.insertImage(diffuse, normal, offset, sprite.boundingBox);
             facingArea = areaAndOffset[0];
             indexBufferOffset = areaAndOffset[1];
             assert(facingArea.valid, "Couldn't insert a sprite facing into a newly "

@@ -19,8 +19,14 @@ struct SpriteVertex
     vec2 position;
     // Texture coordinate of the vertex.
     vec2 texCoord;
+    // Minimum 3D bounds of the sprite.
+    vec3 minOffsetBounds;
+    // Maximum 3D bounds of the sprite.
+    vec3 maxOffsetBounds;
 
     // Metadata for Renderer.
     mixin VertexAttributes!(vec2, AttributeInterpretation.Position,
-                            vec2, AttributeInterpretation.TexCoord);
+                            vec2, AttributeInterpretation.TexCoord,
+                            vec3, AttributeInterpretation.MinOffsetBounds,
+                            vec3, AttributeInterpretation.MaxOffsetBounds);
 }

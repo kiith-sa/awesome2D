@@ -1,5 +1,9 @@
 attribute vec2 Position;
 attribute vec2 TexCoord;
+// Minimum extents of the 3D bounding box of the sprite in object space.
+attribute vec3 MinOffsetBounds;
+// Maximum extents of the 3D bounding box of the sprite in object space.
+attribute vec3 MaxOffsetBounds;
 
 varying vec2 frag_TexCoord;
 
@@ -9,10 +13,6 @@ uniform vec3  spritePosition3D;
 uniform float verticalAngle;
 // Orthographic projection projecting the sprite to the screen.
 uniform mat4  projection;
-// Minimum extents of the 3D bounding box of the sprite in object space.
-uniform vec3  minOffsetBounds;
-// Maximum extents of the 3D bounding box of the sprite in object space.
-uniform vec3  maxOffsetBounds;
 
 // Minimum extents of the 3D bounding box of the sprite in world space.
 varying vec3  worldSpriteBoundsMin;
@@ -79,8 +79,8 @@ void main (void)
     vec2 spritePosition2D = vec2(view * vec4(spritePosition3D, 1.0));
     vec2 pos2D = Position + spritePosition2D;
 
-    worldSpriteBoundsMin = spritePosition3D + minOffsetBounds;
-    spriteBoundsSize     = maxOffsetBounds - minOffsetBounds;
+    worldSpriteBoundsMin = spritePosition3D + MinOffsetBounds;
+    spriteBoundsSize     = MaxOffsetBounds - MinOffsetBounds;
 
     gl_Position = projection * vec4(pos2D, 0.0, 1.0);
 }
