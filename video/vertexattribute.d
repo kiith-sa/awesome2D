@@ -43,7 +43,9 @@ enum AttributeInterpretation : ubyte
     /// Object space minimum extents of the sprite bounding box.
     MinOffsetBounds = 4,
     /// Object space maximum extents of the sprite bounding box.
-    MaxOffsetBounds = 5
+    MaxOffsetBounds = 5,
+    /// Unused, just padding for memory alignment.
+    Padding = ubyte.max
 }
 
 /// Names of attribute interpretations used in shaders.
@@ -97,8 +99,8 @@ public:
     {
         // There can be at most one attribute of every interpretation,
         // and position is required.
-        uint[(EnumMembers!AttributeInterpretation).length] interpCounts;
-        size_t[(EnumMembers!AttributeInterpretation).length] interpDimensions;
+        uint[ubyte.max + 1] interpCounts;
+        size_t[ubyte.max + 1] interpDimensions;
 
         foreach(a; attributes) 
         {
@@ -112,7 +114,7 @@ public:
                "Non-2D texture coordinates are not supported");
         assert(interpCounts[I.Normal] == 0 || interpDimensions[I.Normal] == 3,
                "Normal vertex attribute must be 3D");
-        foreach(count; interpCounts)
+        foreach(count; interpCounts[0 .. cast(ubyte)AttributeInterpretation.Padding])
         {
             assert(count <= 1, "More than one vertex attribute with the same interpretation");
         }

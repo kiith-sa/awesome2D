@@ -175,6 +175,11 @@ void enableVertexAttributes(ref VertexBufferBackend self, ref GLSLShaderProgram 
     enabledAttributesCount_ = 0;
     foreach(attribute; (*attributeSpec_).attributes)
     {
+        if(attribute.interpretation == AttributeInterpretation.Padding)
+        {
+            continue;
+        }
+
         const name = attributeInterpretationNames[attribute.interpretation];
         const outerHandle = shaderProgram.getAttributeOuterHandle(name);
 

@@ -24,9 +24,16 @@ struct SpriteVertex
     // Maximum 3D bounds of the sprite.
     vec3 maxOffsetBounds;
 
+    // Padding to a 32 byte boundary.
+    vec3 padding1;
+    // Ditto.
+    vec3 padding2;
+
     // Metadata for Renderer.
     mixin VertexAttributes!(vec2, AttributeInterpretation.Position,
                             vec2, AttributeInterpretation.TexCoord,
                             vec3, AttributeInterpretation.MinOffsetBounds,
-                            vec3, AttributeInterpretation.MaxOffsetBounds);
+                            vec3, AttributeInterpretation.MaxOffsetBounds,
+                            vec3, AttributeInterpretation.Padding,
+                            vec3, AttributeInterpretation.Padding);
 }
