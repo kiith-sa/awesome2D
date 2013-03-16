@@ -10,13 +10,13 @@ varying vec2  frag_TexCoord;
 uniform vec3 ambientLight;
 
 // Directional lights
-const int directionalLightCount = 4;
+const int directionalLightCount = 2;
 uniform vec3 directionalDirections[directionalLightCount];
 // Diffuse colors for unused light sources must be black.
 uniform vec3 directionalDiffuse[directionalLightCount];
 
 // Point lights
-const int pointLightCount = 8;
+const int pointLightCount = 6;
 uniform vec3  pointPositions[pointLightCount];
 // Diffuse colors for unused light sources must be black.
 uniform vec3  pointDiffuse[pointLightCount];
@@ -54,9 +54,6 @@ vec3 directionalLightingTotal(in vec3 pixelDiffuse, in vec3 pixelNormal)
     // Unused light sources have black color so they won't affect the result.
     result += directionalLighting(0, pixelDiffuse, pixelNormal);
     result += directionalLighting(1, pixelDiffuse, pixelNormal);
-    if(directionalDiffuse[2] == vec3(0.0, 0.0, 0.0)){return result;}
-    result += directionalLighting(2, pixelDiffuse, pixelNormal);
-    result += directionalLighting(3, pixelDiffuse, pixelNormal);
     return result;
 }
 
@@ -99,10 +96,7 @@ vec3 pointLightingTotal(in vec3 pixelDiffuse, in vec3 pixelNormal, in vec3 pixel
 
     result += pointLighting(4, pixelDiffuse, pixelNormal, pixelPosition);
     result += pointLighting(5, pixelDiffuse, pixelNormal, pixelPosition);
-    if(pointDiffuse[6] == vec3(0.0, 0.0, 0.0)){return result;}
 
-    result += pointLighting(6, pixelDiffuse, pixelNormal, pixelPosition);
-    result += pointLighting(7, pixelDiffuse, pixelNormal, pixelPosition);
     return result;
 }
 

@@ -196,14 +196,14 @@ public:
     // Maximum number of directional lights supported.
     //
     // This is hardcoded in the sprite fragment shader. If changed, update the
-    // shader as well as any 4's found in documentation/errors in this file.
-    enum maxDirectionalLights = 4;
+    // shader as well as any 2's found in documentation/errors in this file.
+    enum maxDirectionalLights = 2;
 
     // Maximum number of point lights supported.
     //
     // This is hardcoded in the sprite fragment shader. If changed, update the
-    // shader as well as any 8's found in documentation/errors in this file.
-    enum maxPointLights = 8;
+    // shader as well as any 6's found in documentation/errors in this file.
+    enum maxPointLights = 6;
 
 private:
     // Renderer used for drawing.
@@ -453,7 +453,7 @@ public:
     void registerDirectionalLight(const(DirectionalLight)* light) @safe pure nothrow
     {
         assert(directionalLightsUsed_ <= maxDirectionalLights, 
-               "Only 4 directional lights are supported; can't register more.");
+               "Only 2 directional lights are supported; can't register more.");
         directionalLights_[directionalLightsUsed_++] = light;
         directionalUniformsNeedUpdate_ = true;
     }
@@ -506,7 +506,7 @@ public:
     void registerPointLight(const(PointLight)* light) @safe pure nothrow
     {
         assert(pointLightsUsed_ <= maxPointLights, 
-               "Only 8 point lights are supported; can't register more.");
+               "Only 6 point lights are supported; can't register more.");
         pointLights_[pointLightsUsed_++] = light;
         pointUniformsNeedUpdate_ = true;
     }
