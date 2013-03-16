@@ -78,7 +78,7 @@ vec3 pointLighting(in int light, in vec3 pixelDiffuse, in vec3 pixelNormal,
     // Linear attenuation for now. TODO quadratic once we get HDR.
     float attenuationFactor = 1.0 / (1.0 + pointAttenuations[light] * (distance / 64.0));
     vec3 reflectedColor = pointDiffuse[light] * pixelDiffuse;
-    return attenuationFactor * reflectedColor * max(0.00, dot(pixelNormal, lightDirection));
+    return attenuationFactor * reflectedColor * max(0.0, dot(pixelNormal, lightDirection));
 }
 
 vec3 pointLightingTotal(in vec3 pixelDiffuse, in vec3 pixelNormal, in vec3 pixelPosition)
