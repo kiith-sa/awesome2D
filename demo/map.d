@@ -698,11 +698,14 @@ private:
     void drawCell(const(Cell*) cell, const int xStrip, const int yStrip,
                   const int cellX, const int cellY)
     {
+        auto tileBottom = -0.5 * tileSize.z - 1.0f;
         // Draw the cell's layer stack.
         foreach(ushort layer, const ushort layerIndex; cell.layerIndices(map_))
         {
-            tileBBox_.min.z = (layer - 0.5f) * tileSize.z - 1.0f;
-            tileBBox_.max.z = (layer + 0.5f) * tileSize.z + 1.0f;
+            tileBBox_.min.z = tileBottom;
+            tileBottom += tileSize.z;
+            tileBBox_.max.z = tileBottom + 2.0f;
+
             if(cullTile(cellX, cellY, layer)) {continue;}
             tilePosition_.z = tileSize.z * layer;
             spriteRenderer_.clipBounds = tileBBox_;
