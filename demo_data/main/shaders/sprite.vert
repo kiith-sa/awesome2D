@@ -77,7 +77,7 @@ void main (void)
     mat4 view = xRotation(PI / 2.0 - verticalAngle) * zRotation(PI / 4.0);
     frag_TexCoord = TexCoord;
     vec2 spritePosition2D = vec2(view * vec4(spritePosition3D, 1.0));
-    vec2 pos2D = spritePosition2D + Position;
+    vec2 pos2D = Position + spritePosition2D;
 
     worldSpriteBoundsMin = spritePosition3D + MinOffsetBounds;
     spriteBoundsSize     = MaxOffsetBounds - MinOffsetBounds;
