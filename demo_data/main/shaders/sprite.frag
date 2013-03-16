@@ -129,7 +129,7 @@ void main (void)
     float alpha   = texture2D(texDiffuse, frag_TexCoord).a;
     // Map the normal coordinates from [0.0, 1.0] to [-1.0, 1.0]
     vec3 normal   = vec3(texture2D(texNormal, frag_TexCoord));
-    normal        = normalize(normal * 2.0 - vec3(1.0, 1.0, 1.0));
+    normal        = normal * 2.0 - vec3(1.0, 1.0, 1.0);
 
     // Add up lighting from all types of light sources.
     vec3 totalLighting = ambientLight * diffuse
