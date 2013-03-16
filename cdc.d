@@ -199,13 +199,13 @@ void main(string[] args)
                     compile_(dbg, filesTileGenerator, "tilegenerator-debug");
                     break;
                 case "no-contracts":
-                    compile_(no_contracts, filesPrerenderer, "-ofprerenderer-no-contracts");
-                    compile_(no_contracts, filesDemo, "-ofdemo-no-contracts");
+                    compile_(no_contracts, filesPrerenderer, "prerenderer-no-contracts");
+                    compile_(no_contracts, filesDemo, "demo-no-contracts");
                     compile_(no_contracts, filesTileGenerator, "tilegenerator-no-contracts");
                     break;
                 case "release":
-                    compile_(release, filesPrerenderer, "-ofprerenderer-release");
-                    compile_(release, filesDemo, "-ofdemo-release");
+                    compile_(release, filesPrerenderer, "prerenderer-release");
+                    compile_(release, filesDemo, "demo-release");
                     compile_(release, filesTileGenerator, "tilegenerator-release");
                     break;
                 case "all":
