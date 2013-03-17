@@ -60,6 +60,26 @@ YAMLNode loadYAML(VFSFile file)
 }
 
 /**
+ * Load YAML from a string.
+ *
+ * Params:  source = YAML source in string form.
+ *
+ * Throws:  YAMLException on a parsing error.
+ */
+YAMLNode loadYAML(string source)
+{
+    scope(failure)
+    {
+        import std.stdio;
+        writeln("YAML loading from string failed: ", source);
+    }
+    auto loader = Loader.fromString(source);
+    loader.constructor = iceConstructor();
+    loader.resolver    = iceResolver();
+    return loader.load();
+}
+
+/**
  * Save to a YAML file with support for some custom data types.
  *
  * Params:  file = File to save to.
@@ -112,7 +132,7 @@ class InvalidYAMLValueException : YAMLException
 }
 
 /**
- * Utility function that loads a value froma YAML node, checking its validity.
+ * Utility function that loads a value from a YAML node, checking its validity.
  *
  * If cond is specified, it is used to validate the value (e.g. whether it is 
  * positive). 
