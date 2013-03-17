@@ -14,7 +14,10 @@ import std.random;
 import std.string;
 import std.traits;
 
+import gl3n.linalg;
+
 import math.math;
+alias math.math.clamp clamp;
 import util.unittests;
 
 
@@ -292,6 +295,12 @@ struct Color
     body
     {
         return cast(ubyte)min(cast(real)color * factor, 255.0L);
+    }
+
+    /// Return a vec4 representing this color in normalized floats.
+    vec4 toVec4() @safe pure nothrow const
+    {
+        return vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
     }
 }
 mixin registerTest!(Color.unittestAverage, "Color.average");
