@@ -40,7 +40,7 @@ import color;
  * Throws:  YAMLException if the YAML could not be parsed or other YAML related
  *          errors. VFSException if the file could not be read from.
  */
-YAMLNode loadYAML(VFSFile file)
+YAMLNode loadYAML(VFSFile file) @trusted
 {
     auto stream = VFSStream(file.input, file.bytes);
     auto constructor = new Constructor;
@@ -66,7 +66,7 @@ YAMLNode loadYAML(VFSFile file)
  *
  * Throws:  YAMLException on a parsing error.
  */
-YAMLNode loadYAML(string source)
+YAMLNode loadYAML(string source) @trusted
 {
     scope(failure)
     {
@@ -95,7 +95,7 @@ void saveYAML(VFSFile file, ref YAMLNode yaml)
 }
 
 /// Return a YAML constructor supporting some of our data types.
-Constructor iceConstructor()
+Constructor iceConstructor() @safe
 {
     auto constructor = new Constructor;
     constructor.addConstructorScalar("!color", &constructColorFromYAMLScalar);
@@ -104,7 +104,7 @@ Constructor iceConstructor()
 }
 
 /// Return a YAML resolver supporting some of our data types.
-Resolver iceResolver()
+Resolver iceResolver() @safe
 {
     auto resolver = new Resolver;
     resolver.addImplicitResolver("!color", std.regex.regex(colorYAMLRegex),
