@@ -54,10 +54,10 @@ private:
 
 public:
     /// Access lines of broken text.
-    @property const(S[]) lines() const pure nothrow {return lines_;}
+    @property const(S[]) lines() @safe const pure nothrow {return lines_;}
 
     /// Access line sizes (in pixels) of lines from the "lines" property.
-    @property const(vec2u[]) lineSizes() const pure nothrow {return lineSizes_;}
+    @property const(vec2u[]) lineSizes() @safe const pure nothrow {return lineSizes_;}
 
     /// Parse and break text into lines.
     ///
@@ -72,6 +72,7 @@ public:
     ///          getTextSize = Delegate that takes a string and returns its
     ///                        size in pixels.
     void parse(const S text, const uint width, vec2u delegate(S) getTextSize)
+        @safe pure nothrow
     {
         text_               = text.strip;
         maxLineWidthPixels_ = width;
@@ -103,7 +104,7 @@ public:
 
 private:
     // Add another line to the text.
-    void addLine()
+    void addLine() @safe pure nothrow
     {
         if(line_.empty){return;}
         lines_     ~= line_.strip;
@@ -115,7 +116,7 @@ private:
     }
 
     // Called at the end of a word to break text if the current line is too wide.
-    void breakTextIfNeeded()
+    void breakTextIfNeeded() @safe pure nothrow
     {
         const testLine = text_[lineStart_ .. candidateLineEnd_];
         const testSize = getTextSize_(testLine.strip);
@@ -148,7 +149,7 @@ private:
     }
 
     // Parses a word character, breaking text after encountering whitespace.
-    void parseWord(const dchar c)
+    void parseWord(const dchar c) @safe pure nothrow
     {
         // If we reach a space or end of text, break a line.
         if(!isWhite(c) && candidateLineEnd_ != text_.length) {return;}
@@ -158,7 +159,7 @@ private:
     }
 
     // Parses a character in a gap between words.
-    void parseGap(const dchar c)
+    void parseGap(const dchar c) @safe pure nothrow
     {
         if(!isWhite(c) && candidateLineEnd_ != text_.length) {state_ = &parseWord;}
     }
