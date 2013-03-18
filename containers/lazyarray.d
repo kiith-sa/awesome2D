@@ -36,13 +36,13 @@ struct LazyArrayIndex(T, ID = string)
 
     public:
         ///Is the resource loaded?
-        bool loaded(ref const LazyArray!(T, ID) array) const pure nothrow 
+        bool loaded(ref const LazyArray!(T, ID) array) @safe const pure nothrow 
         {
             return index_ < array.storage_.length;
         }
 
         ///Construct a LazyArrayIndex_ pointing to resource with specified identifier.
-        this(ID id) pure nothrow
+        this(ID id) @safe pure nothrow
         {
             id_ = id;
         }
@@ -64,14 +64,14 @@ struct LazyArrayIndex(T, ID = string)
 
     private:
         ///Set the index once the resource is loaded.
-        @property void index(const uint rhs) 
+        @property void index(const uint rhs) @safe pure nothrow
         {
-            clear(id_);
+            destroy(id_);
             index_ = rhs;
         }
 
         ///Get the resource identitifer.
-        const(ID) id(ref const LazyArray!(T, ID) array) const pure nothrow 
+        const(ID) id(ref const LazyArray!(T, ID) array) @safe const pure nothrow 
         in
         {
             assert(!loaded(array), 
@@ -84,7 +84,7 @@ struct LazyArrayIndex(T, ID = string)
         }
 
         ///Get the resource identitifer (non-const version).
-        @property ID idNonConst(ref const LazyArray!(T, ID) array) pure nothrow 
+        @property ID idNonConst(ref const LazyArray!(T, ID) array) @safe pure nothrow 
         in
         {
             assert(!loaded(array), 
