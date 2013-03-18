@@ -280,14 +280,10 @@ private:
     // Reference to the camera used to set up the projection matrix.
     Camera2D camera_;
 
-    // Sprite page whose texture is currently bound. Only matters when drawing.
+    // Sprite page whose textures, vertex and index buffer are currently bound.
+    //
+    // Only matters when drawing.
     SpritePage* boundSpritePage_ = null;
-
-    // Currently bound vertex buffer. Only matters when drawing.
-    VertexBuffer!(SpriteVertex)* boundVertexBuffer_ = null;
-
-    // Currently bound index buffer. Only matters when drawing.
-    IndexBuffer* boundIndexBuffer_ = null;
 
 public:
     /// Construct a SpriteRenderer.
@@ -341,8 +337,6 @@ public:
         resetUniforms();
         spriteShader_.bind();
         boundSpritePage_   = null;
-        boundVertexBuffer_ = null;
-        boundIndexBuffer_  = null;
     }
 
     /// Stop drawing sprites.
@@ -359,11 +353,12 @@ public:
         spriteShader_.release();
         renderer_.popBlendMode();
         drawing_           = false;
+        if(boundSpritePage_ !is null)
+        {
+            boundSpritePage_.vertices_.release();
+            boundSpritePage_.indices_.release();
+        }
         boundSpritePage_   = null;
-        if(boundVertexBuffer_ !is null){boundVertexBuffer_.release();}
-        if(boundIndexBuffer_  !is null){boundIndexBuffer_.release();}
-        boundVertexBuffer_ = null;
-        boundIndexBuffer_  = null;
     }
 
     /// Draw a 2D sprite at specified 3D position.
@@ -396,20 +391,15 @@ public:
         // Don't rebind a sprite page if we don't have to.
         if(boundSpritePage_ != page)
         {
+            if(boundSpritePage_ !is null)
+            {
+                boundSpritePage_.vertices_.release();
+                boundSpritePage_.indices_.release();
+            }
             page.bind();
-            boundSpritePage_ = page;
-        }
-        if(boundVertexBuffer_ != page.vertices_)
-        {
-            if(boundVertexBuffer_ !is null){boundVertexBuffer_.release();}
             page.vertices_.bind();
-            boundVertexBuffer_ = page.vertices_;
-        }
-        if(boundIndexBuffer_ != page.indices_)
-        {
-            if(boundIndexBuffer_ !is null){boundIndexBuffer_.release();}
             page.indices_.bind();
-            boundIndexBuffer_ = page.indices_;
+            boundSpritePage_ = page;
         }
 
         const indexOffset = facing.indexBufferOffset;
