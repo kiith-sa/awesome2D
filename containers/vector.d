@@ -41,13 +41,13 @@ struct Vector(T, Allocator = DirectAllocator)
 
     public:
         ///Destroy the vector.
-        ~this()
+        @safe ~this()
         {
             destroy();
         }
 
         ///Destroy the vector, resetting it back to default-initialized state.
-        void destroy()
+        void destroy() @trusted
         {
             if(data_ !is null)
             {
@@ -152,7 +152,7 @@ struct Vector(T, Allocator = DirectAllocator)
          *
          * Params:  v = Vector to assign.
          */
-        void opAssign(ref Vector v)
+        void opAssign(ref Vector v) @safe
         {
             opAssign(v.data_[0 .. v.used_]);
         }
@@ -163,12 +163,12 @@ struct Vector(T, Allocator = DirectAllocator)
          *
          * Params:  array = Array to assign.
          */
-        void opAssign(T[] array)
+        void opAssign(T[] array) @trusted
         {
             reserve(array.length);
             static if(hasElaborateDestructor!T) if(array.length < data_.length) 
             {
-                foreach(ref elem; data_[array.length .. $]){clear(elem);}
+                foreach(ref elem; data_[array.length .. $]){.destroy(elem);}
             }
             data_[0 .. array.length] = array;
             used_ = array.length; 
@@ -247,7 +247,7 @@ struct Vector(T, Allocator = DirectAllocator)
         body{return data_[start .. end];}
 
         ///Get a slice of the whole vector as a D array.
-        inout(T[]) opSlice() inout pure nothrow {return this[0 .. used_];}
+        inout(T[]) opSlice() @safe inout pure nothrow {return this[0 .. used_];}
 
         ///Access the first element of the vector.
         ref inout(T) front() @safe inout pure nothrow {return this[0];}
@@ -301,7 +301,7 @@ struct Vector(T, Allocator = DirectAllocator)
         }
 
         ///Reserve space for at least specified number of elements.
-        void reserve(const size_t elements)
+        void reserve(const size_t elements) @trusted
         {
             //Awkward control flow due to optimization. 
             //We realloc if elements > data_.length .
