@@ -190,11 +190,13 @@ package:
     void processMouseMotion(const SDL_MouseMotionEvent event) 
     {
         // Workaround around an SDL2 bug: 
-        // the mouse position is not passed correctly in the event.
-        int x, y;
+        // the mouse position both absolute and relative, is not passed correctly in the event.
+        static int x = int.max;
+        static int y = int.max;
+        const oldPos = vec2i(x, y);
         SDL_GetMouseState(&x, &y);
         //const position = vec2u(event.x, event.y);
-        const positionRelative = vec2i(event.xrel, event.yrel);
+        const positionRelative = oldPos.x != int.max ? vec2i(x, y) - oldPos : vec2i(0, 0);//vec2i(event.xrel, event.yrel);
         mouseMotion.emit(vec2u(x, y), positionRelative);
     }
 }
