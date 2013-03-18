@@ -28,7 +28,7 @@ import std.algorithm;
  *     Used to return back to parent menu.
  * --------------------
  */
-template Signal(Args ...)    
+template Signal(Args ...)
 {
     private:
         alias void delegate(Args) Slot;
@@ -38,7 +38,7 @@ template Signal(Args ...)
 
     public:
         ///Emit the signal (call all slots with specified arguments).
-        void emit(Args args)
+        void emit(Args args) @trusted
         {
             foreach(deleg; slots_){deleg(args);}
         }
@@ -54,7 +54,7 @@ template Signal(Args ...)
          *
          * Params:  slot = Slot to connect.
          */
-        void connect(Slot slot)
+        void connect(Slot slot) @safe nothrow
         in{assert(slot !is null, "Can't connect a null function to a signal");}
         body{slots_ ~= slot;}
 
@@ -66,7 +66,7 @@ template Signal(Args ...)
          *
          * Params:  slot = Slot to disconnect. Must already be connected.
          */
-        void disconnect(Slot slot)
+        void disconnect(Slot slot) @safe nothrow
         in
         {
             assert(std.algorithm.canFind!"a is b"(slots_, slot),
