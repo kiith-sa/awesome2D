@@ -46,7 +46,7 @@ class MathParserException : Exception
  * Throws:  MathParserException if the expression is invalid 
  *          (e.g. parentheses mismatch or redundant operator)
  */
-T parseMath(T)(const string expression, T[string] substitutions = null)
+T parseMath(T)(const string expression, T[string] substitutions = null) @trusted
     if(isNumeric!T)
 {
     enforceEx!MathParserException(expression.length > 0, 
@@ -88,7 +88,7 @@ private:
     uint[dchar] precedence;
 
     ///Static constructor. Set up operator arrays.
-    static this()
+    @safe nothrow static this()
     {
         arithmetic = associative ~ associativeLeft;
         operators = formatting ~ arithmetic;
@@ -103,7 +103,7 @@ private:
      *
      * Returns: Input string with substitutions applied.
      */
-    string substitute(T)(const string input, T[string] substitutions)
+    string substitute(T)(const string input, T[string] substitutions) @trusted
     {
         //ugly hack, could use rewriting
         char[] mutable = input.dup;
@@ -126,7 +126,7 @@ private:
      * Throws:  MathParserException if the expression is invalid 
      *          (e.g. parentheses mismatch or redundant operator)
      */
-    string toPostfix(const string expression)
+    string toPostfix(const string expression) @safe
     {
         dchar[] stack;
 
@@ -203,7 +203,7 @@ private:
         }
         //peek
         dchar tok = stack.length ? stack[$ - 1] : 0;
-                                            
+
         while(tok != 0)
         {
             enforceEx!MathParserException
@@ -229,14 +229,14 @@ private:
      *
      * Throws:  MathParsetException if an invalid token is detected in the expression.
      */
-    T parsePostfix(T)(const string postfix) 
+    T parsePostfix(T)(const string postfix) @trusted
     {
         scope(failure){writeln("Parsing postfix notation failed: " ~ postfix);}
 
         T[] stack;
         const string[] tokens = split(postfix);
 
-        void binOperator(const string op)()
+        void binOperator(const string op)() @safe nothrow
         {
             T x = stack[$ - 1]; T y = stack[$ - 2];
             stack[$ - 2] = binaryFun!op(y, x);
