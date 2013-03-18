@@ -32,11 +32,17 @@ class PlatformException : Exception{this(string msg){super(msg);}}
  *     public mixin Signal!(KeyState, MouseKey, vec2u) mouseKey 
  *
  *     Emitted when a mouse button is pressed. Passes the key, its state and mouse position.
+ *     Note that Y is 0 on the top of the window and increases down, unlike with
+ *     OpenGL and most of our code. It can be translated to OpenGL coordinates 
+ *     by subtracting y from window height.
  *
  * Signal:
  *     public mixin Signal!(vec2u, vec2i) mouseMotion
  *
  *     Emitted when mouse is moved. Passes mouse position and position change. 
+ *     Note that Y is 0 on the top of the window and increases down, unlike with
+ *     OpenGL and most of our code. It can be translated to OpenGL coordinates 
+ *     by subtracting y from window height.
  */
 abstract class Platform
 {
