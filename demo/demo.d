@@ -133,7 +133,7 @@ public:
         camera_ = new Camera2D();
         scope(failure){destroy(camera_); camera_ = null;}
         camera_.size = renderer_.viewportSize;
-        mousePosition_ = vec2u(renderer_.viewportSize.x, renderer_.viewportSize.y);
+        mousePosition_ = vec2u(renderer_.viewportSize.x / 2, renderer_.viewportSize.y / 2);
 
         // Update FPS display every second.
         fpsCounter_ = EventCounter(1.0);
