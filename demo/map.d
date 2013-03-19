@@ -157,7 +157,7 @@ public:
     /// Load tile sprites used to draw the map.
     ///
     /// Separate from map loading to allow tile loading at a different time.
-    void loadTiles(VFSDir gameDir, SpriteManager spriteManager)
+    void loadTiles(VFSDir gameDir, Sprite3DManager spriteManager)
     {
         assert(!tilesLoaded_, "Trying to load tiles when they are already loaded");
 
@@ -225,8 +225,8 @@ public:
     ///                           The bounding box passed is the clipping bounding box.
     ///                           The delegate could calculate it from the 
     ///                           SpriteDrawParams, but we want to avoid recalculation.
-    void draw(SpriteRenderer spriteRenderer, Camera2D camera, 
-              void delegate(SpriteRenderer, ref const AABB, 
+    void draw(Sprite3DRenderer spriteRenderer, Camera2D camera, 
+              void delegate(Sprite3DRenderer, ref const AABB, 
                             ref const SpriteDrawParams) drawInTile)
     {
         MapRenderer(this, spriteRenderer, camera, drawInTile).draw();
@@ -563,14 +563,14 @@ private:
     Map map_;
 
     // Sprite renderer used to draw tiles and entities.
-    SpriteRenderer spriteRenderer_;
+    Sprite3DRenderer spriteRenderer_;
 
     // Camera to view the scene with and determine visibility.
     Camera2D camera_;
 
     alias Map.SpriteDrawParams SpriteDrawParams;
     // Draws all objects in a layer of a cell.
-    void delegate(SpriteRenderer, ref const AABB,
+    void delegate(Sprite3DRenderer, ref const AABB,
                   ref const SpriteDrawParams) drawInTile_;
 
     // 3D bounding box of the current layer on the current cell.
@@ -585,8 +585,8 @@ public:
     /// Params:  map        = Map to render.
     ///          camera     = Camera to view the scene with.
     ///          drawInTile = Delegate that draws any entities in a layer of a cell.
-    this(Map map, SpriteRenderer spriteRenderer, Camera2D camera, 
-         void delegate(SpriteRenderer, ref const AABB,
+    this(Map map, Sprite3DRenderer spriteRenderer, Camera2D camera, 
+         void delegate(Sprite3DRenderer, ref const AABB,
                        ref const SpriteDrawParams) drawInTile) @safe pure nothrow
     {
         map_            = map;

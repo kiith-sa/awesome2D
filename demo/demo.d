@@ -16,19 +16,20 @@ import std.typecons;
 
 import dgamevfs._;
 import gl3n.aabb;
-import gl3n.linalg;
 
 import color;
 import demo.camera2d;
 import demo.light;
 import demo.map;
 import demo.sprite;
+import demo.spriterenderer;
 import demo.spritemanager;
 import memory.memory;
 import platform.platform;
 import time.eventcounter;
 import time.gametime;
 import platform.sdl2platform;
+import util.linalg;
 import util.yaml;
 import video.exceptions;
 import video.renderer;
@@ -64,9 +65,9 @@ private:
     // Camera used to view the scene.
     Camera2D camera_;
     // Constructs and manages sprites.
-    SpriteManager spriteManager_;
+    Sprite3DManager spriteManager_;
     // Handles rendering sprites with lighting.
-    SpriteRenderer spriteRenderer_;
+    Sprite3DRenderer spriteRenderer_;
 
     // Ensures game updates happen with a fixed time step while drawing can happen at any FPS.
     GameTime gameTime_;
@@ -125,10 +126,14 @@ public:
 
         gameTime_ = new GameTime();
 
+        spriteManager_ = new Sprite3DManager(renderer_, dataDir_);
+        scope(failure){destroy(spriteManager_); spriteManager_ = null;}
+
         // Initialize camera.
         camera_ = new Camera2D();
         scope(failure){destroy(camera_); camera_ = null;}
         camera_.size = renderer_.viewportSize;
+        mousePosition_ = vec2u(renderer_.viewportSize.x, renderer_.viewportSize.y);
 
         // Update FPS display every second.
         fpsCounter_ = EventCounter(1.0);
@@ -140,7 +145,8 @@ public:
         // Initialize the sprite renderer.
         try
         {
-            spriteRenderer_ = new SpriteRenderer(renderer_, dataDir_, 30.0f, camera_);
+            spriteRenderer_ = Sprite3DManager.constructSpriteRenderer(renderer_, dataDir_, camera_);
+            spriteRenderer_.verticalAngle = 30.0f;
         }
         catch(SpriteRendererInitException e)
         {
@@ -216,7 +222,8 @@ public:
             const point2AABB = AABB(pointLightSprite_.boundingBox.min + point2.position,
                                     pointLightSprite_.boundingBox.max + point2.position);
             void drawEntitiesInTile
-                (SpriteRenderer spriteRenderer, ref const AABB aabb, ref const Map.SpriteDrawParams params)
+                (Sprite3DRenderer spriteRenderer, ref const AABB aabb, 
+                 ref const Map.SpriteDrawParams params)
             {
                 // Once we have multiple entities, we'll use a spatial manager 
                 // based on cells/layers so we'll just directly draw entities within the cell/layer
@@ -328,8 +335,8 @@ private:
         // Destroy the current renderer.
         assert(renderer_ !is null,
                "Trying to reload renderer, but there's no preexisting renderer");
-        spriteRenderer_.prepareForRendererChange();
-        spriteManager_.prepareForRendererChange();
+        spriteRenderer_.prepareForRendererSwitch();
+        spriteManager_.prepareForRendererSwitch();
         destroyRenderer();
 
         // Ugly, but works.
@@ -342,8 +349,8 @@ private:
             throw new RendererInitException(e.msg);
         }
 
-        spriteManager_.changeRenderer(renderer_);
-        spriteRenderer_.changeRenderer(renderer_);
+        spriteManager_.switchRenderer(renderer_);
+        spriteRenderer_.switchRenderer(renderer_);
     }
 
     /// Destroy the renderer.
@@ -360,7 +367,7 @@ private:
     /// Destroy the Platform subsystem.
     void destroyPlatform()
     {
-        clear(platform_);
+        destroy(platform_);
         platform_ = null;
     }
 
