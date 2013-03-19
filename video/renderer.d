@@ -209,7 +209,10 @@ public:
     }
 
     /// Get the currently set blend mode.
-    final @property BlendMode blendMode() const pure nothrow {return blendModeStack_.back;}
+    final @property BlendMode blendMode() @safe const pure nothrow
+    {
+        return blendModeStack_.back;
+    }
 
     /// Set depth test to use for following draws.
     @property void depthTest(const DepthTest depthTest);
