@@ -1,7 +1,6 @@
 uniform sampler2D texDiffuse;
 uniform sampler2D texNormal;
 uniform sampler2D texOffset;
-uniform vec3  spritePosition3D;
 uniform vec3  minClipBounds;
 uniform vec3  maxClipBounds;
 varying vec2  frag_TexCoord;
