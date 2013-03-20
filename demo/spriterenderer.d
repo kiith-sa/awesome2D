@@ -341,7 +341,8 @@ public:
     ///                     sprite format only supports Z rotation).
     void drawSprite(Sprite* sprite, vec3 position, const vec3 rotation) @trusted
     {
-        assert(drawing_, "SpriteRenderer.drawSprite() called without calling startDrawing()");
+        assert(drawing_,
+               "Sprite3DRenderer.drawSprite() called without calling startDrawing()");
         assert(renderer_.blendMode == BlendMode.Alpha,
                "Non-alpha blend mode when drawing a sprite");
         // Get on a whole-pixel boundary to avoid blurriness.
@@ -362,7 +363,7 @@ public:
         }
 
         const indexOffset = facing.indexBufferOffset;
-        assert(indexOffset % 6 == 0, "Sprite indices don't form sextuples");
+        assert(indexOffset % 6 == 0, "Sprite indices don't form sextets");
         // Assuming a vertex quadruplet per image, added in same order
         // as the indices. See vertex/index adding code in sprite type 
         // structs.
