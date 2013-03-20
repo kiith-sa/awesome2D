@@ -314,15 +314,27 @@ package:
     alias SpritePlainRenderer SpriteRenderer;
 
     /// Implementation of GenericSpritePage.addVertices() for this sprite type.
-    static uint addVertices(VertexBuffer!SpriteVertex* vertices,
-                            IndexBuffer* indices, const vec2u pageSize,
-                            const vec2u size, ref TextureArea area,
-                            const(Sprite)* sprite) 
+    ///
+    /// Adds 4 vertices to draw the sprite quad to passed vertex buffer,
+    /// with data based on the sprite type.
+    ///
+    /// The caller handles buffer unlocking/locking and index buffer.
+    static void addVertices(VertexBuffer!SpriteVertex* vertices, const vec2u pageSize,
+                            const vec2u size, ref TextureArea area, const(Sprite)* sprite)
     {
-        //TODO
-
-        // Vertex positions are relative to the bottom-left corner of the sprite.
-        assert(false, "TODO");
+        // The sprite is positioned based on its lower-left corner.
+        alias SpriteVertex V;
+        // Texture coords depends on the facing's sprite page and texture area on the page.
+        const tMin = vec2(cast(float)area.min.x / pageSize.x,
+                          cast(float)area.min.y / pageSize.y);
+        const tMax = vec2(cast(float)area.max.x / pageSize.x,
+                          cast(float)area.max.y / pageSize.y);
+        const baseIndex = cast(uint)vertices.length;
+        // 2 triangles forming a quad.
+        vertices.addVertex(V(vec2(0.0f, 0.0f),   tMin));
+        vertices.addVertex(V(vec2(size),         tMax));
+        vertices.addVertex(V(vec2(0.0f, size.y), vec2(tMin.x, tMax.y)));
+        vertices.addVertex(V(vec2(size.x, 0.0f), vec2(tMax.x, tMin.y)));
     }
 
     /// Loads plain sprites.
@@ -330,7 +342,133 @@ package:
     /// A plain sprite is loaded directly from an image file.
     struct SpriteLoader
     {
-        //TODO
+    private:
+        // Game data directory to load sprites from.
+        VFSDir gameDir_;
+
+        // Calls SpriteManager method that cleans up a partially initialized facings array.
+        //
+        // Called when sprite loading fails while loading facings.
+        void function(Sprite.Facing[] facings) cleanupFacings_;
+
+        alias Tuple!(TextureArea, void*, uint) delegate 
+              (ref const (Image[layerCount]) layerImages, const(Sprite)* sprite) 
+              PageFitterDelegate;
+
+        // Calls SpriteManager's fitImageToAPage() method.
+        //
+        // See_Also: GenericSpriteManager.fitImageToAPage()
+        PageFitterDelegate fitImageToAPage_;
+
+    public:
+        /// Load a sprite.
+        ///
+        /// Params:  name = File name of the image to load the sprite from.
+        ///
+        /// Returns: Pointer to the sprite on success, null on failure.
+        Sprite* loadSprite(string name) @trusted
+        {
+            auto sprite = alloc!Sprite;
+            try
+            {
+                scope(failure){free(sprite);}
+                buildSprite(sprite, name);
+                return sprite;
+            }
+            catch(VFSException e)
+            {
+                writeln("Filesystem error loading sprite \"", name, "\" : ", e.msg);
+                return null;
+            }
+            catch(SpriteInitException e)
+            {
+                writeln("Sprite initialization error loading sprite \"", name, "\" : ", e.msg);
+                return null;
+            }
+            catch(ImageFileException e)
+            {
+                writeln("Image loading error loading sprite \"", name, "\" : ", e.msg);
+                return null;
+            }
+        }
+
+        // Initialize a sprite object.
+        //
+        // Params:  sprite = Sprite to initialize.
+        //          name   = File name of the image to initialize the sprite from.
+        //
+        // Throws:  SpriteInitException on a sprite construction error.
+        //          VFSException on a file system error.
+        //          ImageFileException on an image loading error.
+        //
+        // See_Also: loadSprite()
+        void buildSprite(Sprite* sprite, string name)
+        {
+            auto spriteFile = gameDir_.file(name);
+            Image[1] spriteImage;
+            readImage(spriteImage[0], spriteFile);
+            spriteImage[0].flipVertical();
+            sprite.name_ = name;
+            sprite.size_ = spriteImage[0].size;
+            // We don't care about sprite bounding box - this is plain 2D.
+
+            auto facings = allocArray!(Sprite.Facing)(1);
+            scope(failure)
+            {
+                // The loading might fail half-way; free the loaded facings (facing, that is)
+                // in that case.
+                cleanupFacings_(facings);
+                free(facings);
+                facings = null;
+            }
+
+            auto areaPageOffset = fitImageToAPage_(spriteImage, sprite);
+            with(facings[0])
+            {
+                // We don't care about rotation of the facing either.
+                textureArea         = areaPageOffset[0];
+                spritePage          = areaPageOffset[1];
+                indexBufferOffset   = areaPageOffset[2];
+                assert(isValid, "Constructed an invalid plain sprite facing");
+                enforce(isValid, new SpriteInitException("Invalid plain sprite " ~ sprite.name));
+            }
+
+            sprite.facings_ = facings;
+        }
+
+        // Initialize a sprite object by building a dummy sprite. Used when sprite reloading fails.
+        //
+        // Params:  sprite = Sprite to initialize.
+        //          name   = Name of the sprite.
+        void buildDummySprite(Sprite* sprite, string name)
+        {
+            sprite.name_ = name;
+
+            // Load sprite metadata.
+            sprite.size_        = vec2u(64, 64);
+
+            auto facings = allocArray!(Sprite.Facing)(1);
+            try with(facings[0])
+            {
+                zRotation = 0.0f;
+                Image[1] spriteImage;
+                spriteImage[0] = Image(64, 64, layerFormats[0]);
+                spriteImage[0].generateCheckers(8);
+
+                auto areaPageOffset = fitImageToAPage_(spriteImage, sprite);
+                textureArea         = areaPageOffset[0];
+                spritePage          = areaPageOffset[1];
+                indexBufferOffset   = areaPageOffset[2];
+                assert(isValid, "Constructed an invalid dummy sprite facing");
+            }
+            catch(SpriteInitException e)
+            {
+                // We can't handle this - crash.
+                auto msg = "Can't create a dummy sprite - out of texture memory? " ~ e.msg;
+                debug{assert(false, msg);}
+                else{throw new Error(msg);}
+            }
+        }
     }
 }
 

@@ -7,7 +7,10 @@
 /// Classes handling rendering of sprites of various types.
 module demo.spriterenderer;
 
+
 import std.algorithm;
+import std.math;
+alias std.math.round round;
 
 import dgamevfs._;
 import gl3n.aabb;
@@ -613,7 +616,7 @@ private:
         pointUniformsNeedUpdate_ = false;
     }
 
-    /// Reset all uniforms, forcing them to be reuploaded at next draw.
+    // Reset all uniforms, forcing them to be reuploaded at next draw.
     void resetUniforms() @safe pure nothrow
     {
         verticalAngleUniform_.reset();
@@ -662,17 +665,162 @@ private:
         pointDiffuseUniform_.uploadIfNeeded(spriteShader_);
         pointAttenuationsUniform_.uploadIfNeeded(spriteShader_);
 
-        // Uniforms reuploaded for each sprite.
+        // Reuploaded for each sprite.
         with(*spriteShader_)
         {
-            // Sprite position and bounds.
             setUniform(positionUniformHandle_, position);
         }
     }
 }
 
 /// Sprite renderer used to draw plain RGBA sprites.
-struct SpritePlainRenderer
+///
+/// These are drawn in plain screen space, not dimetric.
+class SpritePlainRenderer : SpriteRendererBase
 {
-    //TODO
+private:
+    alias GenericSpritePage!(SpriteTypePlain, BinaryTexturePacker) SpritePage;
+
+    // Sprite page whose textures, vertex and index buffer are currently bound.
+    //
+    // Only matters when drawing.
+    SpritePage* boundSpritePage_ = null;
+
+    // Handle to the sprite 2D position uniform.
+    uint positionUniformHandle_;
+
+    // Projection matrix of the camera.
+    Uniform!mat4 projectionUniform_;
+
+    // Diffuse color texture unit.
+    Uniform!int diffuseSamplerUniform_;
+
+    // Minimum bounds of the 2D clipped area. Any pixels outside this area will be discarded.
+    Uniform!vec2 minClipBoundsUniform_;
+    // Maximum bounds of the 2D clipped area. Any pixels outside this area will be discarded.
+    Uniform!vec2 maxClipBoundsUniform_;
+
+package:
+    /// Construct a SpritePlainRenderer.
+    ///
+    /// Params:  renderer = Renderer used for graphics functionality.
+    ///          dataDir  = Data directory (must contain a "shaders" subdirectory
+    ///                     to load shaders from).
+    ///          camera   = Reference to the camera used for viewing.
+    ///
+    /// Throws:  SpriteRendererInitException on failure.
+    this(Renderer renderer, VFSDir dataDir, Camera2D camera) @safe
+    {
+        super(renderer, dataDir, camera, "plainSprite");
+    }
+
+    /// Draw a sprite at specified 2D position.
+    ///
+    /// Must be called between calls to startDrawing() and stopDrawing().
+    ///
+    /// Params:  sprite   = Pointer to the sprite to draw.
+    ///          position = Position of the bottom-left corner of the sprite
+    ///                     in plain 2D space (pixels).
+    void drawSprite(Sprite* sprite, vec2 position) @trusted
+    {
+        assert(drawing_,
+               "SpritePlainRenderer.drawSprite() called without calling startDrawing()");
+        assert(renderer_.blendMode == BlendMode.Alpha,
+               "Non-alpha blend mode when drawing a sprite");
+        // Get on a whole-pixel boundary to avoid blurriness.
+        position.x = round(position.x);
+        position.y = round(position.y);
+
+        uploadUniforms(position);
+
+        assert(sprite.facings_.length == 1,
+               "SpritePlainRenderer trying to draw a sprite with multiple facings");
+        Sprite.Facing* facing = &(sprite.facings_[0]);
+        SpritePage* page = cast(SpritePage*)facing.spritePage;
+        // Don't rebind a sprite page if we don't have to.
+        if(boundSpritePage_ != page)
+        {
+            if(boundSpritePage_ !is null){boundSpritePage_.release();}
+            page.bind();
+            boundSpritePage_ = page;
+        }
+
+        const indexOffset = facing.indexBufferOffset;
+        assert(indexOffset % 6 == 0, "Sprite indices don't form sextets");
+        // Assuming a vertex quadruplet per image, added in same order
+        // as the indices. See vertex/index adding code in sprite type 
+        // structs.
+        const minVertex = (indexOffset / 6) * 4;
+        const maxVertex = minVertex + 3;
+
+        renderer_.drawVertexBuffer(page.vertices_, page.indices_, spriteShader_,
+                                   facing.indexBufferOffset, 6, minVertex, maxVertex);
+    }
+
+    /// Set 2D area to draw in. Any pixels outside of this area will be discarded.
+    @property void clipBounds(const vec2 min, const vec2 max) @safe pure nothrow 
+    {
+        assert(min.x <= max.x && min.y <= max.y, "Invalid 2D clip bounds");
+        minClipBoundsUniform_.value = min;
+        maxClipBoundsUniform_.value = max;
+    }
+
+protected:
+    override void startDrawing_() @trusted
+    {
+        projectionUniform_.value = camera_.projection;
+        resetUniforms();
+        spriteShader_.bind();
+    }
+
+    override void stopDrawing_() @trusted
+    {
+        spriteShader_.release();
+        if(boundSpritePage_ !is null) {boundSpritePage_.release();}
+        boundSpritePage_   = null;
+    }
+
+    override void initializeUniforms()
+    {
+        // Get handles to access uniforms with.
+        with(*spriteShader_)
+        {
+            projectionUniform_            = Uniform!mat4(getUniformHandle("projection"));
+            diffuseSamplerUniform_        = Uniform!int(getUniformHandle("texDiffuse"));
+            minClipBoundsUniform_         = Uniform!vec2(getUniformHandle("min2DClipBounds"));
+            maxClipBoundsUniform_         = Uniform!vec2(getUniformHandle("max2DClipBounds"));
+            positionUniformHandle_        = getUniformHandle("spritePosition2D");
+
+            diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
+            minClipBoundsUniform_.value   = vec2(-100000.0f, -100000.0f);
+            maxClipBoundsUniform_.value   = vec2(100000.0f,  100000.0f);
+        }
+    }
+
+private:
+    // Reset all uniforms, forcing them to be reuploaded at next draw.
+    void resetUniforms() @safe pure nothrow
+    {
+        diffuseSamplerUniform_.reset();
+        minClipBoundsUniform_.reset();
+        maxClipBoundsUniform_.reset();
+    }
+
+    // Upload uniforms that need to be uploaded before drawing.
+    //
+    // Params:  position = 2D position of the bottom-left corner of the sprite.
+    void uploadUniforms(const vec2 position)
+    {
+        // The uniforms encapsulated in Uniform structs don't have to be reuploaded every time.
+
+        projectionUniform_.uploadIfNeeded(spriteShader_);
+        diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);
+        minClipBoundsUniform_.uploadIfNeeded(spriteShader_);
+        maxClipBoundsUniform_.uploadIfNeeded(spriteShader_);
+        // Reuploaded for each sprite.
+        with(*spriteShader_)
+        {
+            setUniform(positionUniformHandle_, position);
+        }
+    }
 }
