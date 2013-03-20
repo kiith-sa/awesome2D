@@ -69,7 +69,7 @@ package:
         // Rotation of the facing around the Z axis in radians.
         //
         // If the sprite is drawn with this (or close) rotation, this facing will be used.
-        float zRotation;
+        float zRotation = 0.0f;
         // Offset into the index buffer of the texture page where the first 
         // index used to draw the facing's image can be found.
         uint indexBufferOffset = uint.max;
@@ -126,6 +126,8 @@ public:
     @property string name() @safe const pure nothrow {return name_;}
 
     /// Return a reference to the bounding box of the sprite.
+    ///
+    /// Only valid for sprite types that use a bounding box (e.g. 3D lit sprites).
     @property ref const(AABB) boundingBox() @safe const pure nothrow {return boundingBox_;}
 
     /// Get the lower bound of number of bytes taken by this struct in RAM (not VRAM).
