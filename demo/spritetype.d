@@ -103,13 +103,13 @@ package:
     struct SpriteLoader
     {
     private:
+        // Game data directory to load sprites from.
+        VFSDir gameDir_;
+
         // Calls SpriteManager method that cleans up a partially initialized facings array.
         //
         // Called when sprite loading fails while loading facings.
         void function(Sprite.Facing[] facings) cleanupFacings_;
-
-        // Game data directory to load sprites from.
-        VFSDir gameDir_;
 
         alias Tuple!(TextureArea, void*, uint) delegate 
               (ref const (Image[layerCount]) layerImages, const(Sprite)* sprite) 
@@ -121,20 +121,6 @@ package:
         PageFitterDelegate fitImageToAPage_;
 
     package:
-        /// Construct a SpriteLoader loading sprites of this type.
-        ///
-        /// Params:  gameDir         = Game data directory.
-        ///          cleanupFacings  = Delegate to call GenericSpriteManager.cleanupFacings().
-        ///          fitImageToAPage = Delegate to call GenericSpriteManager.fitImageToAPage().
-        this(VFSDir gameDir,
-             void function(Sprite.Facing[]) cleanupFacings,
-             PageFitterDelegate fitImageToAPage)
-        {
-            gameDir_         = gameDir;
-            cleanupFacings_  = cleanupFacings;
-            fitImageToAPage_ = fitImageToAPage;
-        }
-
         /// Load a sprite.
         ///
         /// Params:  name = Name of the subdirectory of the game data directory
@@ -293,7 +279,7 @@ package:
                 textureArea         = areaPageOffset[0];
                 spritePage          = areaPageOffset[1];
                 indexBufferOffset   = areaPageOffset[2];
-                assert(isValid, "Constructed an invalid dummy sprite facing");
+                assert(isValid, "Constructed an invalid 3D-lit sprite facing");
 
                 enforce(isValid,
                         new SpriteInitException("Invalid image in sprite " ~ sprite.name));
