@@ -65,14 +65,14 @@ package:
     alias Sprite3DRenderer SpriteRenderer;
 
     /// Implementation of GenericSpritePage.addVertices() for this sprite type.
-    static uint addVertices(VertexBuffer!SpriteVertex* vertices,
-                            IndexBuffer* indices, const vec2u pageSize,
-                            const vec2u size, ref TextureArea area,
-                            const(Sprite)* sprite) 
+    ///
+    /// Adds 4 vertices to draw the sprite quad to passed vertex buffer,
+    /// with data based on the sprite type.
+    ///
+    /// The caller handles buffer unlocking/locking and index buffer.
+    static void addVertices(VertexBuffer!SpriteVertex* vertices, const vec2u pageSize,
+                            const vec2u size, ref TextureArea area, const(Sprite)* sprite)
     {
-        if(vertices.locked()){vertices.unlock();}
-        if(indices.locked()) {indices.unlock();}
-
         // 2D vertex positions are common for all facings.
         // The sprite is centered around [0,0] (2D sprite position will be added to that 
         // on shader).
@@ -94,20 +94,6 @@ package:
         vertices.addVertex(V(vMax,                 tMax,                 bbox.min, bbox.max));
         vertices.addVertex(V(vec2(vMin.x, vMax.y), vec2(tMin.x, tMax.y), bbox.min, bbox.max));
         vertices.addVertex(V(vec2(vMax.x, vMin.y), vec2(tMax.x, tMin.y), bbox.min, bbox.max));
-
-        const indexBufferOffset = cast(uint)indices.length;
-
-        indices.addIndex(baseIndex);
-        indices.addIndex(baseIndex + 1);
-        indices.addIndex(baseIndex + 2);
-        indices.addIndex(baseIndex + 1);
-        indices.addIndex(baseIndex);
-        indices.addIndex(baseIndex + 3);
-
-        vertices.lock();
-        indices.lock();
-
-        return indexBufferOffset;
     }
 
     /// Loads 3D lit sprites.

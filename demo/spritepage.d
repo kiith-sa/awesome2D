@@ -194,8 +194,26 @@ private:
     //           this image.
     uint addVertices(const vec2u size, ref TextureArea area, const(Sprite)* sprite)
     {
-        return SpriteType.addVertices(vertices_, indices_, this.size, size,
-                                      area, sprite);
+        if(vertices_.locked()){vertices_.unlock();}
+        if(indices_.locked()) {indices_.unlock();}
+
+        const baseIndex = cast(uint)vertices_.length;
+        SpriteType.addVertices(vertices_, this.size, size, area, sprite);
+        assert(vertices_.length == baseIndex + 4,
+               "addVertices() didn't add the expected number of vertices");
+
+        const indexBufferOffset = cast(uint)indices_.length;
+        indices_.addIndex(baseIndex);
+        indices_.addIndex(baseIndex + 1);
+        indices_.addIndex(baseIndex + 2);
+        indices_.addIndex(baseIndex + 1);
+        indices_.addIndex(baseIndex);
+        indices_.addIndex(baseIndex + 3);
+
+        vertices_.lock();
+        indices_.lock();
+
+        return indexBufferOffset;
     }
 }
 
