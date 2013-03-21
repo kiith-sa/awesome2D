@@ -162,6 +162,7 @@ public:
         assert(!drawing_,
                "Trying to change Renderer while drawing with a SpriteRenderer");
         renderer_ = newRenderer;
+        switchRenderer_();
         // Reload the shader, reset uniforms, init uniform handles.
         initializeShader("sprite");
     }
@@ -182,7 +183,13 @@ protected:
     // Reset all uniforms, forcing them to be reuploaded at next draw.
     void resetUniforms() @safe pure nothrow;
 
+    // Implementation-specific code executed before a renderer switch.
     void prepareForRendererSwitch_() @safe {}
+
+    // Implementation-specific code executed during a renderer switch.
+    //
+    // renderer_ is already set to the new renderer when this is called.
+    void switchRenderer_() @safe {}
 
 private:
     // Deinitialize the sprite shader (at destruction or when switching renderers).
