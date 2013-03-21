@@ -39,8 +39,9 @@ class SpriteInitException : Exception
 /// the sprite. A SpriteRenderer created by the same SpriteManager must be used to render
 /// the sprite.
 ///
-/// Sprites are created by a SpriteManager and must be deleted 
-/// by free() before the SpriteManager used to create them is destroyed.
+/// Sprites are created by a SpriteManager. They may be destroyed using free() before
+/// the SpriteManager is destroyed. Otherwise, the SpriteManager will destroy them when 
+/// it is destroyed.
 struct Sprite
 {
 package:
