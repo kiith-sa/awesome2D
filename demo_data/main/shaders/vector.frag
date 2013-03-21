@@ -1,6 +1,6 @@
 uniform vec2 min2DClipBounds;
 uniform vec2 max2DClipBounds;
-varying vec2 frag_Color;
+varying vec4 frag_Color;
 
 varying vec2 pixelPosition2D;
 
