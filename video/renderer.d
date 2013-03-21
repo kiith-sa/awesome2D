@@ -152,13 +152,15 @@ public:
                              GLSLShaderProgram* shaderProgram,
                              const uint first,
                              const uint elements,
-                             const uint minIndex,
-                             const uint maxIndex)
+                             const uint minIndex = 0,
+                             const uint maxIndex = uint.max)
     {
         assert(vertexBuffer  !is null, "Vertex buffer must be specified when drawing");
         assert(shaderProgram !is null, "Shader program must be specified when drawing");
         drawVertexBufferBackend(vertexBuffer.backend_, indexBuffer, shaderProgram, 
-                                first, elements, minIndex, maxIndex);
+                                first, elements, minIndex,
+                                maxIndex != uint.max ? maxIndex :
+                                                       cast(uint)vertexBuffer.length);
     }
 
     /// A test function that draws a triangle.
