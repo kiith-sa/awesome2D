@@ -21,6 +21,7 @@ import demo.sprite;
 import demo.spritemanager;
 import demo.spriterenderer;
 alias demo.spriterenderer.Sprite3DRenderer Sprite3DRenderer;
+alias demo.spriterenderer.SpritePlainRenderer SpritePlainRenderer;
 import demo.texturepacker;
 import formats.image;
 import image;

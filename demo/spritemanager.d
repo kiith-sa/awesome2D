@@ -84,6 +84,9 @@ public:
 
     /// Load a sprite.
     ///
+    /// If a sprite with specified name is already loaded, a pointer to it 
+    /// will be returned instead of loading the same sprite again.
+    ///
     /// Note: The meaning of this method depends on the SpriteType parameter.
     /// 
     /// For 3D lit sprites, name refers to the subdirectory containing the 
@@ -97,6 +100,10 @@ public:
     /// Returns: Pointer to the sprite on success, null on failure.
     Sprite* loadSprite(string name) @safe
     {
+        foreach(sprite; sprites_) if(sprite.name == name)
+        {
+            return sprite;
+        }
         Sprite* result = spriteLoader_.loadSprite(name);
         if(result !is null)
         {
@@ -108,7 +115,7 @@ public:
         return result;
     }
 
-    /// Destroy the SpriteManager. Will destroy (with a warning) any remaining sprites
+    /// Destroy the SpriteManager. Will destroy any remaining sprites
     /// created by this manager.
     ///
     /// Must be called before the used renderer is destroyed.
@@ -283,5 +290,5 @@ private:
 
 alias GenericSpriteManager!SpriteType3D Sprite3DManager;
 alias Sprite3DManager.SpriteRenderer Sprite3DRenderer;
-//TODO
-/*alias GenericSpriteManager!SpriteTypePlain SpritePlainManager;*/
+alias GenericSpriteManager!SpriteTypePlain SpritePlainManager;
+alias SpritePlainManager.SpriteRenderer SpritePlainRenderer;
