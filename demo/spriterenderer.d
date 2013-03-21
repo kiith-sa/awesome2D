@@ -688,16 +688,13 @@ private:
     // Projection matrix of the camera.
     Uniform!mat4 projectionUniform_;
 
-    // Diffuse color texture unit.
-    Uniform!int diffuseSamplerUniform_;
-
     // Minimum bounds of the 2D clipped area. Any pixels outside this area will be discarded.
     Uniform!vec2 minClipBoundsUniform_;
     // Maximum bounds of the 2D clipped area. Any pixels outside this area will be discarded.
     Uniform!vec2 maxClipBoundsUniform_;
 
 public:
-    /// Construct a SpritePlainRenderer.
+    /// Construct a SpriteUnlitRenderer.
     ///
     /// Params:  renderer       = Renderer used for graphics functionality.
     ///          dataDir        = Data directory (must contain a "shaders" subdirectory
@@ -729,7 +726,6 @@ protected:
 
     override void resetUniforms() @safe pure nothrow
     {
-        diffuseSamplerUniform_.reset();
         minClipBoundsUniform_.reset();
         maxClipBoundsUniform_.reset();
     }
@@ -739,12 +735,10 @@ protected:
         with(*spriteShader_)
         {
             projectionUniform_            = Uniform!mat4(getUniformHandle("projection"));
-            diffuseSamplerUniform_        = Uniform!int(getUniformHandle("texDiffuse"));
             minClipBoundsUniform_         = Uniform!vec2(getUniformHandle("min2DClipBounds"));
             maxClipBoundsUniform_         = Uniform!vec2(getUniformHandle("max2DClipBounds"));
             positionUniformHandle_        = getUniformHandle("spritePosition2D");
 
-            diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
             minClipBoundsUniform_.value   = vec2(-100000.0f, -100000.0f);
             maxClipBoundsUniform_.value   = vec2(100000.0f,  100000.0f);
         }
@@ -758,7 +752,6 @@ protected:
         // The uniforms encapsulated in Uniform structs don't have to be reuploaded every time.
 
         projectionUniform_.uploadIfNeeded(spriteShader_);
-        diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);
         minClipBoundsUniform_.uploadIfNeeded(spriteShader_);
         maxClipBoundsUniform_.uploadIfNeeded(spriteShader_);
         // Reuploaded for each sprite.
@@ -771,7 +764,7 @@ protected:
 
 /// Sprite renderer used to draw plain RGBA sprites.
 ///
-/// These are drawn in plain screen space, not dimetric.
+/// These are drawn in plain 2D space, not dimetric.
 class SpritePlainRenderer : SpriteUnlitRenderer
 {
 private:
@@ -781,6 +774,9 @@ private:
     //
     // Only matters when drawing.
     SpritePage* boundSpritePage_ = null;
+
+    // Diffuse color texture unit.
+    Uniform!int diffuseSamplerUniform_;
 
 public:
     /// Construct a SpritePlainRenderer.
@@ -844,5 +840,25 @@ protected:
     {
         if(boundSpritePage_ !is null) {boundSpritePage_.release();}
         boundSpritePage_   = null;
+    }
+
+    override void resetUniforms() @safe pure nothrow
+    {
+        super.resetUniforms();
+        diffuseSamplerUniform_.reset();
+    }
+
+    override void initializeUniforms()
+    {
+        super.initializeUniforms();
+        diffuseSamplerUniform_        = 
+            Uniform!int(spriteShader_.getUniformHandle("texDiffuse"));
+        diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
+    }
+
+    override void uploadUniforms(const vec2 position) @trusted
+    {
+        super.uploadUniforms(position);
+        diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);
     }
 }
