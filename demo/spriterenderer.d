@@ -116,23 +116,26 @@ public:
     ///
     /// This is also the point when camera state is passed to the shader.
     /// While drawing, any changes to the camera will have no effect.
-    final void startDrawing() @safe
+    final void startDrawing() @trusted
     {
         assert(!drawing_, "SpriteRenderer.startDrawing() called when already drawing");
         drawing_ = true;
         renderer_.pushBlendMode(BlendMode.Alpha);
         startDrawing_();
+        resetUniforms();
+        spriteShader_.bind();
     }
 
     /// Stop drawing sprites.
     ///
     /// Must be called after drawing sprites to allow other drawing operations.
-    final void stopDrawing() @safe
+    final void stopDrawing() @trusted
     {
         assert(drawing_, "SpriteRenderer.stopDrawing() called without calling startDrawing()");
         assert(renderer_.blendMode == BlendMode.Alpha,
                "Non-alpha blend mode before stopping sprite drawing");
 
+        spriteShader_.release();
         stopDrawing_();
         renderer_.popBlendMode();
         drawing_           = false;
@@ -143,6 +146,7 @@ public:
     {
         assert(!drawing_,
                "Trying to change Renderer while drawing with a SpriteRenderer");
+        prepareForRendererSwitch_();
         // Deinit the shader program for now.
         deinitializeShader();
         renderer_ = null;
@@ -174,6 +178,11 @@ protected:
     //
     // Throws:  GLSLException if a uniform was not found in the shader.
     void initializeUniforms();
+
+    // Reset all uniforms, forcing them to be reuploaded at next draw.
+    void resetUniforms() @safe pure nothrow;
+
+    void prepareForRendererSwitch_() @safe {}
 
 private:
     // Deinitialize the sprite shader (at destruction or when switching renderers).
@@ -493,16 +502,13 @@ public:
     }
 
 protected:
-    override void startDrawing_() @trusted
+    override void startDrawing_() @safe pure nothrow
     {
         projectionUniform_.value = camera_.projection;
-        resetUniforms();
-        spriteShader_.bind();
     }
 
     override void stopDrawing_() @trusted
     {
-        spriteShader_.release();
         if(boundSpritePage_ !is null) {boundSpritePage_.release();}
         boundSpritePage_   = null;
     }
@@ -546,6 +552,22 @@ protected:
 
             positionUniformHandle_        = getUniformHandle("spritePosition3D");
         }
+    }
+
+    override void resetUniforms() @safe pure nothrow
+    {
+        verticalAngleUniform_.reset();
+        diffuseSamplerUniform_.reset();
+        normalSamplerUniform_.reset();
+        offsetSamplerUniform_.reset();
+        ambientLightUniform_.reset();
+        minClipBoundsUniform_.reset();
+        maxClipBoundsUniform_.reset();
+        directionalDirectionsUniform_.reset();
+        directionalDiffuseUniform_.reset();
+        pointPositionsUniform_.reset();
+        pointDiffuseUniform_.reset();
+        pointAttenuationsUniform_.reset();
     }
 
 private:
@@ -616,23 +638,6 @@ private:
         pointUniformsNeedUpdate_ = false;
     }
 
-    // Reset all uniforms, forcing them to be reuploaded at next draw.
-    void resetUniforms() @safe pure nothrow
-    {
-        verticalAngleUniform_.reset();
-        diffuseSamplerUniform_.reset();
-        normalSamplerUniform_.reset();
-        offsetSamplerUniform_.reset();
-        ambientLightUniform_.reset();
-        minClipBoundsUniform_.reset();
-        maxClipBoundsUniform_.reset();
-        directionalDirectionsUniform_.reset();
-        directionalDiffuseUniform_.reset();
-        pointPositionsUniform_.reset();
-        pointDiffuseUniform_.reset();
-        pointAttenuationsUniform_.reset();
-    }
-
     // Upload uniforms that need to be uploaded before drawing.
     //
     // Params:  position = 3D position of the sprite.
@@ -700,7 +705,7 @@ private:
     // Maximum bounds of the 2D clipped area. Any pixels outside this area will be discarded.
     Uniform!vec2 maxClipBoundsUniform_;
 
-package:
+public:
     /// Construct a SpritePlainRenderer.
     ///
     /// Params:  renderer = Renderer used for graphics functionality.
@@ -766,16 +771,13 @@ package:
     }
 
 protected:
-    override void startDrawing_() @trusted
+    override void startDrawing_() @safe pure nothrow
     {
         projectionUniform_.value = camera_.projection;
-        resetUniforms();
-        spriteShader_.bind();
     }
 
     override void stopDrawing_() @trusted
     {
-        spriteShader_.release();
         if(boundSpritePage_ !is null) {boundSpritePage_.release();}
         boundSpritePage_   = null;
     }
@@ -797,15 +799,14 @@ protected:
         }
     }
 
-private:
-    // Reset all uniforms, forcing them to be reuploaded at next draw.
-    void resetUniforms() @safe pure nothrow
+    override void resetUniforms() @safe pure nothrow
     {
         diffuseSamplerUniform_.reset();
         minClipBoundsUniform_.reset();
         maxClipBoundsUniform_.reset();
     }
 
+private:
     // Upload uniforms that need to be uploaded before drawing.
     //
     // Params:  position = 2D position of the bottom-left corner of the sprite.
