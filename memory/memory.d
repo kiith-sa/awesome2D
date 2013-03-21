@@ -328,7 +328,7 @@ private:
         {
             memset(cast(void*)ptr, 0, T.sizeof);
         }
-        else                       
+        else
         {
             emplace(ptr, args);
         }
