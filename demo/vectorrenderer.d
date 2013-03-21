@@ -169,6 +169,8 @@ public:
         {
             free(sprite);
         }
+        free(lineVBuffer_);
+        free(triVBuffer_);
     }
 
     /// Create a new, empty vector sprite.
@@ -188,7 +190,7 @@ public:
     ///
     /// Params:  sprite   = Sprite to draw. Must be locked.
     ///          position = 2D position of the sprite.
-    void drawVectorSprite(VectorSprite* sprite, const vec2 position) @safe
+    void drawVectorSprite(VectorSprite* sprite, const vec2 position) @trusted
     {
         assert(sprites_[].canFind(sprite),
                "Trying to draw a vector sprite that wasn't created by this VectorRenderer");
@@ -223,9 +225,10 @@ protected:
     override void stopDrawing_() @trusted
     {
         if(boundVBuffer_ !is null){boundVBuffer_.release();}
+        boundVBuffer_ = null;
     }
 
-    override void prepareForRendererSwitch_() @safe
+    override void prepareForRendererSwitch_() @trusted
     {
         // Forces vertex data of each sprite to be reuploaded at its first draw after
         // the switch.
@@ -233,6 +236,14 @@ protected:
         {
             sprite.lineVBufferOffset_ = sprite.triVBufferOffset_ = uint.max;
         }
+        free(lineVBuffer_);
+        free(triVBuffer_);
+    }
+
+    override void switchRenderer_() @trusted
+    {
+        lineVBuffer_ = renderer_.createVertexBuffer!VectorVertex(PrimitiveType.Lines);
+        triVBuffer_  = renderer_.createVertexBuffer!VectorVertex(PrimitiveType.Triangles);
     }
 
 private:
@@ -247,7 +258,7 @@ private:
         if(vBufferBound) {vbuffer.release();}
         vbuffer.unlock();
         const oldLength = cast(uint)vbuffer.length;
-        foreach(v; 0 .. oldLength)
+        foreach(v; 0 .. vertices.length)
         {
             vbuffer.addVertex(vertices[v]);
         }
