@@ -70,7 +70,7 @@ struct Vector(T, Allocator = DirectAllocator)
          * Foreach will iterate over all elements of the vector in linear order
          * from start to end.
          */
-        int opApply(int delegate(ref T) dg)
+        int opApply(int delegate(ref T) dg) @trusted
         {
             int result = 0;
             const dataptr = data_.ptr;
@@ -92,7 +92,7 @@ struct Vector(T, Allocator = DirectAllocator)
          * Foreach will iterate over all elements of the vector in linear order
          * from start to end.
          */
-        int opApply(int delegate(size_t, ref T) dg)
+        int opApply(int delegate(size_t, ref T) dg) @trusted
         {
             int result = 0;
             const dataptr = data_.ptr;
