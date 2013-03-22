@@ -147,6 +147,9 @@ public:
         drawing_           = false;
     }
 
+    /// Are we drawing at the moment?
+    final @property bool drawing() @safe const pure nothrow {return drawing_;}
+
     /// When replacing the renderer, this must be called before the renderer is destroyed.
     final void prepareForRendererSwitch() @safe
     {
