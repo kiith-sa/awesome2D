@@ -51,6 +51,8 @@ private:
     //
     // uint.max means the vertices have not yet been uploaded to the vertex buffer.
     uint triVBufferOffset_ = uint.max;
+    // Current line width (while building the vector sprite, before locked).
+    float lineWidth_ = 1.0f;
 
 public:
     @disable this();
@@ -82,6 +84,11 @@ public:
         locked_ = true;
     }
 
+    /// Set the line width of lines added in following addLine() calls.
+    ///
+    /// 1.0 by default.
+    @property void lineWidth(const float rhs) @safe pure nothrow {lineWidth_ = rhs;}
+
     /// Add a line to the vector sprite.
     ///
     /// Must not be called once the sprite is locked.
@@ -94,8 +101,46 @@ public:
                  const vec2 end, const Color endColor) @safe
     {
         assert(!locked_, "Trying to add a line to a locked VectorSprite");
-        lineVertices_ ~= VectorVertex(start, startColor.toVec4());
-        lineVertices_ ~= VectorVertex(end,   endColor.toVec4());
+        if(lineWidth_ > 0.99f && lineWidth_ < 1.01f)
+        {
+            lineVertices_ ~= VectorVertex(start, startColor.toVec4());
+            lineVertices_ ~= VectorVertex(end,   endColor.toVec4());
+            return;
+        }
+        // GL thick/thin lines are ugly, so we roll our own.
+
+        // Equivalent to (v2 - v1).normal;
+        const offsetBase = vec2(start.y - end.y, end.x - start.x).normalized; 
+        const halfWidth  = lineWidth_ * 0.5f;
+        // Offset of line vertices from start and end point of the line.
+        const offset = offsetBase * halfWidth;
+
+        // Offsets of AA vertices from start and end point of the line.
+        const offsetAA = offsetBase * (halfWidth + 0.4);
+
+        Color startColorAA = startColor;
+        Color endColorAA   = endColor;
+        startColorAA.a     = 0;
+        endColorAA.a       = 0;
+
+        addTriangle(start - offsetAA, startColorAA,
+                    end   - offsetAA, endColorAA,
+                    start - offset,   startColor);
+        addTriangle(start - offset,   startColor,
+                    end   - offsetAA, endColorAA,
+                    end   - offset,   endColor);
+        addTriangle(start - offset,   startColor,
+                    end   - offset,   endColor,
+                    start + offset,   startColor);
+        addTriangle(start + offset,   startColor,
+                    end   - offset,   endColor,
+                    end   + offset,   endColor);
+        addTriangle(start + offset,   startColor,
+                    end   + offset,   endColor,
+                    start + offsetAA, startColorAA);
+        addTriangle(start + offsetAA, startColorAA,
+                    end   + offset,   endColor,
+                    end   + offsetAA, endColorAA);
     }
 
     /// Add a triangle to the vector sprite.
