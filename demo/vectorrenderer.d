@@ -263,7 +263,7 @@ private:
             vbuffer.addVertex(vertices[v]);
         }
         vbuffer.lock();
-        if(vBufferBound) {vbuffer.release();}
+        if(vBufferBound) {vbuffer.bind();}
         return oldLength;
     }
 
