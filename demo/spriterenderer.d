@@ -72,6 +72,11 @@ protected:
     // Shader program used to draw sprites. The lighting model is implemented on shader.
     GLSLShaderProgram* spriteShader_;
 
+    // Base part of filenames of shader files used.  
+    //
+    // E.g. "sprite" for "sprite.vert" and "sprite.frag".
+    string shaderBaseName_;
+
 public:
     /// Construct a SpriteRendererBase.
     ///
@@ -86,10 +91,11 @@ public:
     /// Throws:  SpriteRendererInitException on failure.
     this(Renderer renderer, VFSDir dataDir, Camera2D camera, string shaderBaseName) @safe
     {
-        renderer_ = renderer;
-        dataDir_  = dataDir;
-        camera_   = camera;
-        initializeShader(shaderBaseName);
+        renderer_       = renderer;
+        dataDir_        = dataDir;
+        camera_         = camera;
+        shaderBaseName_ = shaderBaseName;
+        initializeShader(shaderBaseName_);
     }
 
     /// Destroy the SpriteRendererBase, freeing all used resources.
@@ -164,7 +170,7 @@ public:
         renderer_ = newRenderer;
         switchRenderer_();
         // Reload the shader, reset uniforms, init uniform handles.
-        initializeShader("sprite");
+        initializeShader(shaderBaseName_);
     }
 
 protected:
