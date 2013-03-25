@@ -1,3 +1,11 @@
+/demo-debug-norangeelements
+/demo-debug-nospritepage
+/tilegenerator-debug
+/prerenderer-debug
+/prerenderer-no-contracts
+/prerenderer-release
+/demo-debug.exe
+/cdc.exe
 /demo_data/main/logs/memoryLog.yaml
 /dependencies/dgamevfs/cdc.obj
 /dependencies/dgamevfs/unittest
@@ -24,4 +32,15 @@ cdc
 *.ebp.dir
 *.caw
 *.bkp
+*.bkp2
+*.bkp3
+*.bkp4
+*.bkp5
+*.bkp6
+*.bkp7
+*.bkp8
+*.bkp9
+*.exe
+*.obj
+*.mtl
 meta/*
