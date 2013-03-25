@@ -676,10 +676,10 @@ private:
         {
             ++ xStrip;
             ++ yStrip;
-            tileBBox_.min.x = (xStrip - 0.5f) * tileSize.x - 1.0f;
-            tileBBox_.min.y = (yStrip - 0.5f) * tileSize.y - 1.0f;
-            tileBBox_.max.x = (xStrip + 0.5f) * tileSize.x + 1.0f;
-            tileBBox_.max.y = (yStrip + 0.5f) * tileSize.y + 1.0f;
+            tileBBox_.min.x = (xStrip - 0.5f) * tileSize.x - 4.0f;
+            tileBBox_.min.y = (yStrip - 0.5f) * tileSize.y - 4.0f;
+            tileBBox_.max.x = (xStrip + 0.5f) * tileSize.x + 4.0f;
+            tileBBox_.max.y = (yStrip + 0.5f) * tileSize.y + 4.0f;
             tilePosition_.x = tilePosition_.x + tileSize.x;
             tilePosition_.y = tilePosition_.y + tileSize.y;
 
@@ -698,13 +698,13 @@ private:
     void drawCell(const(Cell*) cell, const int xStrip, const int yStrip,
                   const int cellX, const int cellY)
     {
-        auto tileBottom = -0.5 * tileSize.z - 1.0f;
+        auto tileBottom = -0.5 * tileSize.z - 4.0f;
         // Draw the cell's layer stack.
         foreach(ushort layer, const ushort layerIndex; cell.layerIndices(map_))
         {
             tileBBox_.min.z = tileBottom;
             tileBottom += tileSize.z;
-            tileBBox_.max.z = tileBottom + 2.0f;
+            tileBBox_.max.z = tileBottom + 8.0f;
 
             if(cullTile(cellX, cellY, layer)) {continue;}
             tilePosition_.z = tileSize.z * layer;
@@ -718,8 +718,8 @@ private:
         // Draw everything _above_ the topmost layer.
         const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
                                             cast(ushort)cell.layerCount, true);
-        tileBBox_.min.z = (cell.layerCount - 0.5f) * tileSize.z - 1.0f;
-        tileBBox_.max.z = (cell.layerCount + 0.5f + 65535.0f) * tileSize.z + 1.0f;
+        tileBBox_.min.z = (cell.layerCount - 0.5f) * tileSize.z - 4.0f;
+        tileBBox_.max.z = (cell.layerCount + 0.5f + 65535.0f) * tileSize.z + 4.0f;
         spriteRenderer_.clipBounds = tileBBox_;
         drawInTile_(spriteRenderer_, tileBBox_, drawParams);
     }
@@ -779,9 +779,9 @@ private:
 
         // POSSIBLE OPTIMIZATION:
         // Whether a cell-layer is obscured could be determined only when the map is modified.
-        const tileSW = map_.cell((cellY % 2 == 0) ? cellX : cellX - 1, cellY - 1)
+        const tileSW = map_.cell((cellY % 2 == 0) ? cellX - 1 : cellX, cellY - 1)
                            .tileAtLayer(layer, map_);
-        const tileSE = map_.cell((cellY % 2 == 0) ? cellX + 1 : cellX, cellY - 1)
+        const tileSE = map_.cell((cellY % 2 == 0) ? cellX : cellX + 1, cellY - 1)
                            .tileAtLayer(layer, map_);
         const tileAbove = map_.cell(cellX, cellY).tileAtLayer(cast(ushort)(layer + 1), map_);
 
@@ -825,7 +825,7 @@ private:
         // Cull the Z coordinates of the tile bounding box.
         if(currentTile.shape == TileShape.Flat && obscuredSE && obscuredSW)
         {
-            tileBBox_.min.z = tileBBox_.max.z - 2.0f;
+            tileBBox_.min.z = tileBBox_.max.z - 6.0f;
         }
         return false;
     }
