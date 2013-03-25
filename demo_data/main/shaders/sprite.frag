@@ -72,10 +72,10 @@ vec3 pointLighting(in int light, in vec3 pixelDiffuse, in vec3 pixelNormal,
     // Normalize lightDirection; no need to compute sqrt again.
     vec3 lightDirection = posToLight / distance;
 
-    // 64 distance units (pixels in our case) are one lighting distance unit.
-    // Avoids needing to use extremely low attenuation values.
+    // 128 distance units (pixels in our case) are one lighting distance unit.
+    // Avoids needing to use extremely high attenuation values.
     // Linear attenuation for now. TODO quadratic once we get HDR.
-    float attenuationFactor = 1.0 / (1.0 + pointAttenuations[light] * (distance / 64.0));
+    float attenuationFactor = 1.0 / (1.0 + pointAttenuations[light] * (distance / 128.0));
     vec3 reflectedColor = pointDiffuse[light] * pixelDiffuse;
     return attenuationFactor * reflectedColor * max(0.0, dot(pixelNormal, lightDirection));
 }
