@@ -149,7 +149,7 @@ package:
     enum SpriteTextureUnit[layerCount] textureUnits = [SpriteTextureUnit.Diffuse];
 
     /// Recommended X as well as Y size of a new sprite page at construction.
-    enum recommendedSpritePageSize = 512;
+    enum recommendedSpritePageSize = 256;
 
     /// We load sprites from a font.
     alias FT_Face SpriteSource;
