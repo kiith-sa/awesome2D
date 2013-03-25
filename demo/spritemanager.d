@@ -63,12 +63,15 @@ private:
 public:
     /// Construct a SpriteManager.
     ///
-    /// Params:  renderer = Renderer to create graphics data.
-    ///          gameDir  = Game data directory to load sprites from.
-    this(Renderer renderer, VFSDir gameDir) @trusted
+    /// Params:  renderer     = Renderer to create graphics data.
+    ///          spriteSource = Serves as the source to load sprites from.
+    ///                         E.g. game data directory for sprites loaded from files,
+    ///                         font for sprites loaded from a font.
+    this(Renderer renderer, SpriteType.SpriteSource spriteSource) @trusted
     {
         renderer_     = renderer;
-        spriteLoader_ = SpriteType.SpriteLoader(gameDir, &cleanupFacings, &fitImageToAPage);
+        spriteLoader_ =
+            SpriteType.SpriteLoader(spriteSource, &cleanupFacings, &fitImageToAPage);
     }
 
     /// Construct a SpriteRenderer capable of rendering sprites created by this SpriteManager.
@@ -123,8 +126,6 @@ public:
     {
         foreach(sprite; sprites_) if(sprite !is null)
         {
-            writeln("WARNING: Undeleted sprite at SpriteManager destruction; ",
-                    "deleting it now");
             free(sprite);
         }
         foreach(page; spritePages_) if(page !is null)
@@ -256,8 +257,8 @@ private:
     //           false on failure (a page of at least minimumSize could not be allocated).
     bool allocatePage(const vec2u minimumSize)
     {
-        auto pageSize = vec2u(max(2048, minimumSize.x.potCeil), 
-                              max(2048, minimumSize.y.potCeil));
+        auto pageSize = vec2u(max(SpriteType.recommendedSpritePageSize, minimumSize.x.potCeil), 
+                              max(SpriteType.recommendedSpritePageSize, minimumSize.y.potCeil));
         while(pageSize.x >= minimumSize.x && pageSize.y >= minimumSize.y &&
               pageSize.x.isPot && pageSize.y.isPot)
         {

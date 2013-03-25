@@ -53,6 +53,12 @@ package:
     enum SpriteTextureUnit[layerCount] textureUnits = 
         [SpriteTextureUnit.Diffuse, SpriteTextureUnit.Normal, SpriteTextureUnit.Offset];
 
+    /// Recommended X as well as Y size of a new sprite page at construction.
+    enum recommendedSpritePageSize = 2048;
+
+    /// We load sprites from a directory.
+    alias VFSDir SpriteSource;
+
     /// Vertex type used to draw this sprite type.
     ///
     /// Stores sprite bounding box along with vertex-specific 2D position and texture
@@ -304,6 +310,12 @@ package:
     enum layerCount = 1;
     enum ColorFormat[layerCount]       layerFormats = [ColorFormat.RGBA_8];
     enum SpriteTextureUnit[layerCount] textureUnits = [SpriteTextureUnit.Diffuse];
+
+    /// Recommended X as well as Y size of a new sprite page at construction.
+    enum recommendedSpritePageSize = 2048;
+
+    /// We load sprites from a directory.
+    alias VFSDir SpriteSource;
 
     /// Vertex type used to draw this sprite type.
     ///
