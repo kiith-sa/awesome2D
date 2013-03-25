@@ -168,6 +168,7 @@ void main(string[] args)
 
     auto dependencies = ["dependencies/Derelict3/import/derelict/opengl3/",
                          "dependencies/Derelict3/import/derelict/sdl2/",
+                         "dependencies/Derelict3/import/derelict/freetype/",
                          "dependencies/Derelict3/import/derelict/assimp/",
                          "dependencies/Derelict3/import/derelict/util/",
                          "dependencies/gl3n",
@@ -183,7 +184,7 @@ void main(string[] args)
     }
 
     auto filesPrerenderer   = dependencies ~ sources ~ ["prerenderer/", "prerenderer.d"];
-    auto filesDemo          = dependencies ~ sources ~ ["demo/", "demo.d"];
+    auto filesDemo          = dependencies ~ sources ~ ["demo/", "demo.d", "font/"];
     auto filesTileGenerator = ["dependencies/gl3n", "demo/tileshape.d", "tilegenerator/"];
 
     void build(string[] targets ...)
