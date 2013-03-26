@@ -1,0 +1,23 @@
+﻿%YAML 1.1
+---
+sprite:
+  verticalAngle: 30.000000
+  size:
+  - 128
+  - 96
+  offsetScale: 45.439999
+  posExtents:
+    min:
+    - -1.469694
+    - -1.469694
+    - -1.469694
+    max:
+    - 1.469694
+    - 1.469694
+    - 1.469694
+images:
+- zRotation: 0.000000
+  layers:
+    diffuse: spacestation-02b-se_diffuse_0.png
+    normal: spacestation-02b-se_normal_0.png
+    offset: spacestation-02b-se_offset_0.png
