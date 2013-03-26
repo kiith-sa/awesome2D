@@ -120,7 +120,8 @@ public:
 
         // Load the model and texture.
         auto modelAndTransform = loadModel!Vertex(modelFileName);
-        loadTexture(textureFileName);
+        bool flipTextureVertically = modelFileName.endsWith(".obj");
+        loadTexture(textureFileName, flipTextureVertically);
         // (Loaded transform is not yet used.)
         model_ = modelAndTransform[0];
         maxDistanceFromOrigin_ = modelAndTransform[1];
@@ -369,9 +370,11 @@ private:
     //
     // Params:  textureFileName = File name of the texture.
     //                            If null, a placeholder texture will be generated.
+    //          flipVertical    = Flip the texture vertically after loading?
+    //                            (Needed with some model formats, e.g. .obj).
     //
     // Throws:  SceneInitException if the texture could not be loaded.
-    void loadTexture(const string textureFileName)
+    void loadTexture(const string textureFileName, const bool flipVertical)
     {
         // Generate placeholder if no texture specified.
         if(textureFileName is null)
@@ -393,6 +396,7 @@ private:
             }
             Image image;
             readImage(image, textureFile);
+            if(flipVertical) {image.flipVertical();}
             texture_ = renderer_.createTexture(image);
         }
         catch(VFSException e)
