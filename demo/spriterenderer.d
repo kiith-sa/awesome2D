@@ -458,6 +458,17 @@ public:
                "was not registered, or is already unregistered.");
     }
 
+    /// Returns true if specified directional light is registered, false otherwise.
+    bool isDirectionalLightRegistered(const(DirectionalLight)* light)
+        @safe pure nothrow const
+    {
+        foreach(ref l; directionalLights_[0 .. directionalLightsUsed_]) if(l is light)
+        {
+            return true;
+        }
+        return false;
+    }
+
     /// Must be called for any changes in parameters of registered directional lights to take effect.
     void directionalLightsChanged() @safe pure nothrow
     {
@@ -509,6 +520,16 @@ public:
         }
         assert(false, "Unregistering a point light that "
                "was not registered, or is already unregistered.");
+    }
+
+    /// Returns true if specified point light is registered, false otherwise.
+    bool isPointLightRegistered(const(PointLight)* light) @safe pure nothrow const
+    {
+        foreach(ref l; pointLights_[0 .. pointLightsUsed_]) if(l is light)
+        {
+            return true;
+        }
+        return false;
     }
 
     /// Must be called for any changes in parameters of registered point lights to take effect.
