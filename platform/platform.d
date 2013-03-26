@@ -100,6 +100,6 @@ abstract class Platform
         ///Determine if specified key is pressed.
         final bool isKeyPressed(const Key key) const pure nothrow
         {
-            return (null is (key in keysPressed_)) ? keysPressed_[key] : false;
+            return (null !is (key in keysPressed_)) ? keysPressed_[key] : false;
         }
 }
