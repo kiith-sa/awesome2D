@@ -68,12 +68,12 @@ struct Color
     static immutable white        = rgb!"FFFFFF";
     static immutable grey         = rgb!"888";
     static immutable black        = rgb!"000";
-                                        
+
     static immutable red          = rgb!"FF0000";
     static immutable green        = rgb!"00FF00";
     static immutable blue         = rgb!"0000FF";
     static immutable burgundy     = rgb!"800";
-                    
+
     static immutable yellow       = rgb!"FFFF00";
     static immutable cyan         = rgb!"00FFFF";
     static immutable magenta      = rgb!"FF00FF";
@@ -95,7 +95,7 @@ struct Color
         this.b = b;
         this.a = a;
     }
-                   
+
     ///Comparison for sorting.
     int opCmp(ref const Color c) @safe const pure nothrow
     {
@@ -145,7 +145,7 @@ struct Color
         Color color = Color(253, 254, 255, 255);
         assert(color.luminance == 254);
     }
-    
+
     ///Add two colors (values are clamped to range 0 .. 255).
     Color opBinary(string op)(const Color c) const pure if(op == "+")
     {
