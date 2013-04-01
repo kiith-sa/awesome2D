@@ -174,8 +174,8 @@ void main(string[] args)
                          "dependencies/gl3n",
                          "dependencies/dgamevfs/dgamevfs",
                          "dependencies/dyaml/dyaml"];
-    auto sources      = ["containers/", "formats/", "math/", 
-                         "memory/", "platform/", "time/", "util/", "video/", 
+    auto sources      = ["containers/", "formats/", "math/",
+                         "memory/", "platform/", "time/", "util/", "video/",
                          "color.d", "image.d"];
 
     void compile_(string[] args, string[] files, string binaryName)
@@ -184,7 +184,7 @@ void main(string[] args)
     }
 
     auto filesPrerenderer   = dependencies ~ sources ~ ["prerenderer/", "prerenderer.d"];
-    auto filesDemo          = dependencies ~ sources ~ ["demo/", "demo.d", "font/"];
+    auto filesDemo          = dependencies ~ sources ~ ["demo/", "demo.d", "gui/", "font/"];
     auto filesTileGenerator = ["dependencies/gl3n", "demo/tileshape.d", "tilegenerator/"];
 
     void build(string[] targets ...)
