@@ -72,7 +72,6 @@ public:
     ///          getTextSize = Delegate that takes a string and returns its
     ///                        size in pixels.
     void parse(const S text, const uint width, vec2u delegate(S) getTextSize)
-        @safe pure nothrow
     {
         text_               = text.strip;
         maxLineWidthPixels_ = width;
@@ -104,7 +103,7 @@ public:
 
 private:
     // Add another line to the text.
-    void addLine() @safe pure nothrow
+    void addLine()
     {
         if(line_.empty){return;}
         lines_     ~= line_.strip;
@@ -116,7 +115,7 @@ private:
     }
 
     // Called at the end of a word to break text if the current line is too wide.
-    void breakTextIfNeeded() @safe pure nothrow
+    void breakTextIfNeeded()
     {
         const testLine = text_[lineStart_ .. candidateLineEnd_];
         const testSize = getTextSize_(testLine.strip);
@@ -149,7 +148,7 @@ private:
     }
 
     // Parses a word character, breaking text after encountering whitespace.
-    void parseWord(const dchar c) @safe pure nothrow
+    void parseWord(const dchar c)
     {
         // If we reach a space or end of text, break a line.
         if(!isWhite(c) && candidateLineEnd_ != text_.length) {return;}
