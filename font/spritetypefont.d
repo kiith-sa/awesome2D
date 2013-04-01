@@ -51,6 +51,9 @@ class SpriteFontRenderer : SpriteUnlitRenderer
     // Diffuse color texture unit.
     Uniform!int diffuseSamplerUniform_;
 
+    // Font color.
+    Uniform!Color fontColorUniform_;
+
 public:
     /// Construct a SpriteFontRenderer.
     ///
@@ -108,6 +111,12 @@ public:
                                    facing.indexBufferOffset, 6, minVertex, maxVertex);
     }
 
+    /// Set font color.
+    @property void fontColor(const Color rhs) @safe pure nothrow
+    {
+        fontColorUniform_.value = rhs;
+    }
+
 protected:
     override void stopDrawing_() @trusted
     {
@@ -119,19 +128,23 @@ protected:
     {
         super.resetUniforms();
         diffuseSamplerUniform_.reset();
+        fontColorUniform_.reset();
     }
 
     override void initializeUniforms()
     {
         super.initializeUniforms();
         diffuseSamplerUniform_ = Uniform!int(spriteShader_.getUniformHandle("texDiffuse"));
-        diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
+        diffuseSamplerUniform_.value = SpriteTextureUnit.Diffuse;
+        fontColorUniform_ = Uniform!Color(spriteShader_.getUniformHandle("fontColor"));
+        fontColorUniform_.value = Color.white;
     }
 
     override void uploadUniforms(const vec2 position) @trusted
     {
         super.uploadUniforms(position);
         diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);
+        fontColorUniform_.uploadIfNeeded(spriteShader_);
     }
 }
 

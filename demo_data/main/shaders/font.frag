@@ -1,6 +1,7 @@
 uniform sampler2D texDiffuse;
 uniform vec2 min2DClipBounds;
 uniform vec2 max2DClipBounds;
+uniform vec4 fontColor;
 varying vec2 frag_TexCoord;
 
 varying vec2 pixelPosition2D;
@@ -17,6 +18,6 @@ void main (void)
     }
 
     // Color of the pixel.
-    gl_FragColor = vec4(texture2D(texDiffuse, frag_TexCoord).rrrr);
+    gl_FragColor = fontColor * vec4(texture2D(texDiffuse, frag_TexCoord).rrrr);
 }
 

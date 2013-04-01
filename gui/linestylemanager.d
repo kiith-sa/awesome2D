@@ -204,7 +204,7 @@ public:
         fontRenderer.font = style_.font;
         fontRenderer.fontSize = style_.fontSize;
         const textSize = fontRenderer.textSize(text);
-        // TODO set font color
+        fontRenderer.fontColor = style_.fontColor;
         if(textSize.x > (boundsMax.x - boundsMin.x))
         {
             drawTextMultiLine(fontRenderer, text, boundsMin, boundsMax);

@@ -281,6 +281,12 @@ public:
         if(forceLoad){loadFont();}
     }
 
+    /// Set color of the font.
+    @property void fontColor(const Color color) @safe pure nothrow
+    {
+        fontSpriteRenderer_.fontColor = color;
+    }
+
     /// Draw a text line.
     ///
     /// Params:  position = Position to draw the text at (left-bottom corner of the text).
