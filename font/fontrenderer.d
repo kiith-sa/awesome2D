@@ -104,18 +104,6 @@ public:
         PenX += glyph.advance;
         return glyph.sprite;
     }
-
-    // Get size of text as it would be drawn in pixels.
-    //
-    // Params:  text = Text to get size of.
-    //
-    // Returns: Size of the text in X and Y. Y might be slightly imprecise.
-    vec2u textSize(const string text)
-    {
-        // Y size could be determined more precisely by getting
-        // minimum and maximum extents of the text.
-        return vec2u(drawFont_.textWidth(text, kerning_), drawFont_.size);
-    }
 }
 
 /// Renders text and manages all font resources.
@@ -322,6 +310,19 @@ public:
             if(sprite is null){continue;}
             fontSpriteRenderer_.drawSprite(sprite, vec2(position + offset));
         }
+    }
+
+    // Get size of text as it would be drawn in pixels with current font settings.
+    //
+    // Params:  text = Text to get size of.
+    //
+    // Returns: Size of the text in X and Y. Y might be slightly imprecise.
+    vec2u textSize(const string text)
+    {
+        loadFont();
+        // Y size could be determined more precisely by getting
+        // minimum and maximum extents of the text.
+        return vec2u(currentFont_.textWidth(text, kerning_), currentFont_.size);
     }
 
     /// Is kerning enabled?
