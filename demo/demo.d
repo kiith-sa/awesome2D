@@ -24,7 +24,14 @@ import demo.map;
 import demo.sprite;
 import demo.spriterenderer;
 import demo.spritemanager;
+import demo.vectorrenderer;
+import font.fontrenderer;
+import gui.exceptions;
+import gui.guisystem;
+import math.math;
+alias math.math.clamp clamp;
 import memory.memory;
+import platform.key;
 import platform.platform;
 import time.eventcounter;
 import time.gametime;
@@ -57,6 +64,10 @@ private:
     Renderer renderer_;
     // Container managing the renderer and its dependencies.
     RendererContainer rendererContainer_;
+
+    // GUI subsystem.
+    GUISystem guiSystem_;
+
     // Main config file (YAML).
     YAMLNode config_;
     // Continue running?
@@ -66,8 +77,20 @@ private:
     Camera2D camera_;
     // Constructs and manages sprites.
     Sprite3DManager spriteManager_;
-    // Handles rendering sprites with lighting.
+    // Renders sprites with lighting.
     Sprite3DRenderer spriteRenderer_;
+
+    // Camera used to view GUI.
+    Camera2D guiCamera_;
+    // Constructs and manages sprites used in GUI.
+    SpritePlainManager guiSpriteManager_;
+    // Renderers GUI sprites.
+    SpritePlainRenderer guiSpriteRenderer_;
+    // Renders GUI vector graphics.
+    VectorRenderer guiVectorRenderer_;
+
+    // Loads, manages and renders fonts.
+    FontRenderer fontRenderer_;
 
     // Ensures game updates happen with a fixed time step while drawing can happen at any FPS.
     GameTime gameTime_;
@@ -75,13 +98,15 @@ private:
     EventCounter fpsCounter_;
     // Mouse position. Used for camera movement.
     vec2u mousePosition_;
+    // Mouse position change since the previous position.
+    vec2i mousePositionChange_;
 
-
-
-    // Demo data follows.
 
     // Sprite used to draw the "player".
     Sprite* sprite_;
+
+    // Big sprite to show off lighting.
+    Sprite* bigSprite_;
 
     // Sprite used to draw point lights.
     Sprite* pointLightSprite_;
@@ -97,6 +122,10 @@ private:
 
     // Test directional light 1.
     DirectionalLight directional1;
+
+    // Rotation of directional light 1 around the X and Z axis.
+    float directional1RotationZ;
+
     // Test directional light 2.
     DirectionalLight directional2;
 
@@ -104,6 +133,8 @@ private:
     PointLight point1;
     // Test point light 2.
     PointLight point2;
+    // Test point light 3.
+    PointLight point3;
 
 public:
     /// Construct Demo with specified data directory.
@@ -121,18 +152,24 @@ public:
         initRenderer();
         writeln("Initialized Video");
         scope(failure){destroyRenderer();}
-        spriteManager_ = new SpriteManager(renderer_, dataDir_);
-        scope(failure){destroy(spriteManager_); spriteManager_ = null;}
 
         gameTime_ = new GameTime();
 
         spriteManager_ = new Sprite3DManager(renderer_, dataDir_);
         scope(failure){destroy(spriteManager_); spriteManager_ = null;}
+        guiSpriteManager_ = new SpritePlainManager(renderer_, dataDir_);
+        scope(failure){destroy(guiSpriteManager_); guiSpriteManager_ = null;}
 
         // Initialize camera.
         camera_ = new Camera2D();
         scope(failure){destroy(camera_); camera_ = null;}
         camera_.size = renderer_.viewportSize;
+        // Initialize GUI camera.
+        guiCamera_ = new Camera2D();
+        scope(failure){destroy(guiCamera_); guiCamera_ = null;}
+        guiCamera_.size = renderer_.viewportSize;
+        guiCamera_.center = vec2i(guiCamera_.size.x / 2, guiCamera_.size.y / 2);
+
         mousePosition_ = vec2u(renderer_.viewportSize.x / 2, renderer_.viewportSize.y / 2);
 
         // Update FPS display every second.
@@ -145,36 +182,65 @@ public:
         // Initialize the sprite renderer.
         try
         {
-            spriteRenderer_ = Sprite3DManager.constructSpriteRenderer(renderer_, dataDir_, camera_);
+            spriteRenderer_ =
+                Sprite3DManager.constructSpriteRenderer(renderer_, dataDir_, camera_);
             spriteRenderer_.verticalAngle = 30.0f;
+            guiSpriteRenderer_ =
+                SpritePlainManager.constructSpriteRenderer(renderer_, dataDir_, guiCamera_);
+            guiVectorRenderer_ = new VectorRenderer(renderer_, dataDir_, guiCamera_);
         }
         catch(SpriteRendererInitException e)
         {
             throw new StartupException("Failed to initialize sprite renderer: " ~ e.msg);
         }
-        scope(failure){destroy(spriteRenderer_); spriteRenderer_ = null;}
+        scope(failure)
+        {
+            destroy(guiVectorRenderer_);
+            guiVectorRenderer_ = null;
+            destroy(guiSpriteRenderer_);
+            guiSpriteRenderer_ = null;
+            destroy(spriteRenderer_);
+            spriteRenderer_ = null;
+        }
+
+        fontRenderer_ = new FontRenderer(renderer_, dataDir_, guiCamera_);
+        scope(failure){destroy(fontRenderer_);}
+        initGUI();
+        scope(failure){destroyGUI();}
+
 
         // Initialize the test sprite.
         sprite_ = spriteManager_.loadSprite("sprites/player");
+        bigSprite_ = spriteManager_.loadSprite("sprites/test/big");
         pointLightSprite_ = spriteManager_.loadSprite("sprites/lights/point");
-        if(sprite_ is null) {throw new StartupException("Failed to initialize test sprite.");}
-        scope(failure){free(sprite_); sprite_ = null;}
+        if(sprite_ is null || bigSprite_ is null || pointLightSprite_ is null)
+        {
+            throw new StartupException("Failed to initialize test sprites.");
+        }
+        scope(failure)
+        {
+            free(sprite_);           sprite_ = null;
+            free(bigSprite_);        bigSprite_ = null;
+            free(pointLightSprite_); pointLightSprite_ = null;
+        }
 
         // Create and register light sources.
-        directional1 = DirectionalLight(vec3(1.0, 0.0, 0.8), rgb!"C0C0F0");
-        directional2 = DirectionalLight(vec3(1.0, 1.0, 0.0), rgb!"F02020");
-        point1 = PointLight(vec3(40.0, 200.0, 70.0), rgb!"FF0000", 1.1f);
-        point2 = PointLight(vec3(100.0, 400.0, 70.0), rgb!"FFFF00", 1.1f);
+        directional1 = DirectionalLight(vec3(1.0, 0.0, 0.8), rgb!"181830");
+        directional2 = DirectionalLight(vec3(0.0, -1.0, 0.2), rgb!"FFEFCF");
+        point1 = PointLight(vec3(40.0, 200.0, 70.0), rgb!"FF0000", 0.9f);
+        point2 = PointLight(vec3(100.0, 400.0, 70.0), rgb!"FFFF00", 0.9f);
+        point3 = PointLight(vec3(100.0, 400.0, 70.0), rgb!"E0E0FF", 0.7f);
         spriteRenderer_.registerDirectionalLight(&directional1);
         spriteRenderer_.registerDirectionalLight(&directional2);
         spriteRenderer_.registerPointLight(&point1);
         spriteRenderer_.registerPointLight(&point2);
-        spriteRenderer_.ambientLight = vec3(0.1, 0.1, 0.1);
+        spriteRenderer_.registerPointLight(&point3);
+        spriteRenderer_.ambientLight = vec3(0.03, 0.03, 0.06);
         spriteRenderer_.directionalLightsChanged();
         spriteRenderer_.pointLightsChanged();
 
-        map_ = generateTestMap(vec2u(64, 64));
-        /*map_ = loadMap(dataDir_, "maps/testMap.yaml");*/
+        /*map_ = generateTestMap(vec2u(64, 64));*/
+        map_ = loadMap(dataDir_, "maps/testMap.yaml");
         map_.loadTiles(dataDir_, spriteManager_);
         writeln("Map size in bytes: ", map_.memoryBytes);
     }
@@ -186,9 +252,16 @@ public:
         map_.deleteTiles();
         destroy(map_);
         if(sprite_ !is null){free(sprite_);}
+        if(bigSprite_ !is null){free(bigSprite_);}
         if(pointLightSprite_ !is null){free(pointLightSprite_);}
+        destroyGUI();
+        if(fontRenderer_ !is null){destroy(fontRenderer_);}
+        if(guiVectorRenderer_ !is null){destroy(guiVectorRenderer_);}
+        if(guiSpriteRenderer_ !is null){destroy(guiSpriteRenderer_);}
         if(spriteRenderer_ !is null){destroy(spriteRenderer_);}
+        if(guiCamera_ !is null){destroy(guiCamera_);}
         if(camera_ !is null){destroy(camera_);}
+        if(guiSpriteManager_ !is null){destroy(guiSpriteManager_);}
         if(spriteManager_ !is null){destroy(spriteManager_);}
         destroyRenderer();
         destroyPlatform();
@@ -211,6 +284,12 @@ public:
             // Game logic has a locked time step. Rendering does not.
             gameTime_.doGameUpdates
             ({
+                point3.position = playerPosition_ + vec3(40.0f, 0.0f, 0.0f);
+                directional2.direction =
+                    vec3(mat4.xrotation(directional1RotationZ * degToRad) *
+                         vec4(0.0, -1.0, 0.2, 1.0));
+                spriteRenderer_.directionalLightsChanged();
+                spriteRenderer_.pointLightsChanged();
                 handleCameraMovement();
                 return false;
             });
@@ -254,6 +333,14 @@ public:
             {
                 fpsCounter_.event();
                 map_.draw(spriteRenderer_, camera_, &drawEntitiesInTile);
+                fontRenderer_.drawText(vec2i(0, 32), "Lorem Ipsum dolor sit amet.");
+                spriteRenderer_.startDrawing();
+                spriteRenderer_.clipBounds = AABB(vec3(-10000, -10000, -10000),
+                                                  vec3( 10000,  10000,  10000));
+                spriteRenderer_.drawSprite(bigSprite_, vec3(0.0f, 1024.0f, 128.0f),
+                                           vec3(0.0f, 0.0f, playerRotationZ_));
+                spriteRenderer_.stopDrawing();
+                guiSystem_.render();
                 return true;
             }
             renderer_.renderFrame(&frame);
@@ -291,6 +378,37 @@ private:
         {
             platform_ = null;
             throw new StartupException("Failed to initialize platform: " ~ e.msg);
+        }
+    }
+
+    /// Init the GUI subsystem.
+    ///
+    /// Throws: StartupException on failure.
+    void initGUI()
+    {
+        try
+        {
+            guiSystem_ = new GUISystem(platform_, guiSpriteManager_,
+                                       guiSpriteRenderer_, guiVectorRenderer_, 
+                                       fontRenderer_, dataDir_);
+            guiSystem_.setGUIArea(vec2i(0, 0), vec2i(renderer_.viewportSize));
+            auto guiFile = dataDir_.dir("gui").file("mainGUI.yaml");
+            auto guiRoot = guiSystem_.loadWidgetTree(loadYAML(guiFile));
+            guiSystem_.rootSlot.connect(guiRoot);
+        }
+        catch(GUIInitException e)
+        {
+            throw new StartupException("Failed to initialize GUI: " ~ to!string(e));
+        }
+        catch(YAMLException e)
+        {
+            throw new StartupException(
+                "Failed to initialize GUI due to a YAML error: " ~ to!string(e));
+        }
+        catch(VFSException e)
+        {
+            throw new StartupException(
+                "Failed to initialize GUI due to a VFS error: " ~ e.msg);
         }
     }
 
@@ -336,7 +454,11 @@ private:
         assert(renderer_ !is null,
                "Trying to reload renderer, but there's no preexisting renderer");
         spriteRenderer_.prepareForRendererSwitch();
+        guiVectorRenderer_.prepareForRendererSwitch();
+        guiSpriteRenderer_.prepareForRendererSwitch();
         spriteManager_.prepareForRendererSwitch();
+        guiSpriteManager_.prepareForRendererSwitch();
+        fontRenderer_.prepareForRendererSwitch();
         destroyRenderer();
 
         // Ugly, but works.
@@ -349,7 +471,11 @@ private:
             throw new RendererInitException(e.msg);
         }
 
+        fontRenderer_.switchRenderer(renderer_);
+        guiSpriteManager_.switchRenderer(renderer_);
         spriteManager_.switchRenderer(renderer_);
+        guiSpriteRenderer_.switchRenderer(renderer_);
+        guiVectorRenderer_.switchRenderer(renderer_);
         spriteRenderer_.switchRenderer(renderer_);
     }
 
@@ -369,6 +495,13 @@ private:
     {
         destroy(platform_);
         platform_ = null;
+    }
+
+    /// Destroy the GUI subsystem.
+    void destroyGUI()
+    {
+        destroy(guiSystem_);
+        guiSystem_ = null;
     }
 
     /// Exit the demo.
@@ -395,13 +528,146 @@ private:
             // "Player" movement.
             case Left:  playerRotationZ_ += 0.1;             break;
             case Right: playerRotationZ_ -= 0.1;             break;
-            case Up, K_w:   playerPosition_ += rotate(vec2(8.0f, 0.0f), angle); break;
-            case Down, K_s: playerPosition_ -= rotate(vec2(8.0f, 0.0f), angle); break;
-            case K_a:       playerPosition_ += rotate(vec2(0.0f, 8.0f), angle); break;
-            case K_d:       playerPosition_ -= rotate(vec2(0.0f, 8.0f), angle); break;
-            case K_q:       playerPosition_ += vec3(0.0f, 0.0f, 8.0f); break;
-            case K_e:       playerPosition_ -= vec3(0.0f, 0.0f, 8.0f); break;
-
+            case Up, K_w:
+                if(platform_.isKeyPressed(LeftCtrl))
+                {
+                    point1.position += vec3(4.0f, 0.0f, 0.0f);
+                }
+                else if(platform_.isKeyPressed(LeftShift))
+                {
+                    point2.position += vec3(4.0f, 0.0f, 0.0f);
+                }
+                else 
+                {
+                    playerPosition_ += rotate(vec2(8.0f, 0.0f), angle);
+                }
+                break;
+            case Down, K_s:
+                if(platform_.isKeyPressed(LeftCtrl))
+                {
+                    point1.position -= vec3(4.0f, 0.0f, 0.0f);
+                }
+                else if(platform_.isKeyPressed(LeftShift))
+                {
+                    point2.position -= vec3(4.0f, 0.0f, 0.0f);
+                }
+                else 
+                {
+                    playerPosition_ -= rotate(vec2(8.0f, 0.0f), angle);
+                }
+                break;
+            case K_a:
+                if(platform_.isKeyPressed(LeftCtrl))
+                {
+                    point1.position += vec3(0.0f, 4.0f, 0.0f);
+                }
+                else if(platform_.isKeyPressed(LeftShift))
+                {
+                    point2.position += vec3(0.0f, 4.0f, 0.0f);
+                }
+                else 
+                {
+                    playerPosition_ += rotate(vec2(0.0f, 8.0f), angle);
+                }
+                break;
+            case K_d:
+                if(platform_.isKeyPressed(LeftCtrl))
+                {
+                    point1.position -= vec3(0.0f, 4.0f, 0.0f);
+                }
+                else if(platform_.isKeyPressed(LeftShift))
+                {
+                    point2.position -= vec3(0.0f, 4.0f, 0.0f);
+                }
+                else 
+                {
+                    playerPosition_ -= rotate(vec2(0.0f, 8.0f), angle);
+                }
+                break;
+            case K_q:
+                if(platform_.isKeyPressed(LeftCtrl))
+                {
+                    point1.position += vec3(0.0f, 0.0f, 4.0f);
+                }
+                else if(platform_.isKeyPressed(LeftShift))
+                {
+                    point2.position += vec3(0.0f, 0.0f, 4.0f);
+                }
+                else 
+                {
+                    playerPosition_ += vec3(0.0f, 0.0f, 8.0f);
+                }
+                break;
+            case K_e:
+                if(platform_.isKeyPressed(LeftCtrl))
+                {
+                    point1.position -= vec3(0.0f, 0.0f, 4.0f);
+                }
+                else if(platform_.isKeyPressed(LeftShift))
+                {
+                    point2.position -= vec3(0.0f, 0.0f, 4.0f);
+                }
+                else 
+                {
+                    playerPosition_ -= vec3(0.0f, 0.0f, 8.0f);
+                }
+                break;
+                // Light on-off switches
+            case K_1:
+                if(spriteRenderer_.isDirectionalLightRegistered(&directional1))
+                {
+                    spriteRenderer_.unregisterDirectionalLight(&directional1);
+                }
+                else 
+                {
+                    spriteRenderer_.registerDirectionalLight(&directional1);
+                }
+                spriteRenderer_.directionalLightsChanged();
+                break;
+            case K_2:
+                if(spriteRenderer_.isDirectionalLightRegistered(&directional2))
+                {
+                    spriteRenderer_.unregisterDirectionalLight(&directional2);
+                }
+                else 
+                {
+                    spriteRenderer_.registerDirectionalLight(&directional2);
+                }
+                spriteRenderer_.directionalLightsChanged();
+                break;
+            case K_3:
+                if(spriteRenderer_.isPointLightRegistered(&point1))
+                {
+                    spriteRenderer_.unregisterPointLight(&point1);
+                }
+                else 
+                {
+                    spriteRenderer_.registerPointLight(&point1);
+                }
+                spriteRenderer_.pointLightsChanged();
+                break;
+            case K_4:
+                if(spriteRenderer_.isPointLightRegistered(&point2))
+                {
+                    spriteRenderer_.unregisterPointLight(&point2);
+                }
+                else 
+                {
+                    spriteRenderer_.registerPointLight(&point2);
+                }
+                spriteRenderer_.pointLightsChanged();
+                break;
+            case K_5:
+                if(spriteRenderer_.isPointLightRegistered(&point3))
+                {
+                    spriteRenderer_.unregisterPointLight(&point3);
+                }
+                else 
+                {
+                    spriteRenderer_.registerPointLight(&point3);
+                }
+                spriteRenderer_.pointLightsChanged();
+                break;
             // Camera zoom.
             case Plus, NP_Plus:   camera_.zoom = camera_.zoom * 1.25; break;
             case Minus, NP_Minus: camera_.zoom = camera_.zoom * 0.8;  break;
@@ -416,6 +682,10 @@ private:
     void mouseMotionHandler(vec2u position, vec2i change)
     {
         mousePosition_ = position;
+        if(platform_.isKeyPressed(Key.LeftCtrl))
+        {
+            mousePositionChange_ = change;
+        }
     }
 
     /// Move the camera if mouse is on a window edge.
@@ -431,5 +701,10 @@ private:
         if(mousePosition_.y < borderWidth)           {offset.y = cameraMovement;}
         if(mousePosition_.y > bounds.y - borderWidth){offset.y = -cameraMovement;}
         camera_.center = camera_.center + offset;
+        if(platform_.isKeyPressed(Key.LeftCtrl))
+        {
+            directional1RotationZ += mousePositionChange_.y * gameTime_.timeStep * 30;
+            directional1RotationZ = clamp(directional1RotationZ, -90.0f, 90.0f);
+        }
     }
 }
