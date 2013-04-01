@@ -199,6 +199,7 @@ package:
 
         foreach(dchar chr; str) 
         {
+            if(!hasGlyph(chr)){loadGlyph(chr);}
             const glyph = getGlyph(chr);
             glyphIndex = glyph.freetypeIndex;
 
