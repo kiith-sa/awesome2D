@@ -676,10 +676,10 @@ private:
         {
             ++ xStrip;
             ++ yStrip;
-            tileBBox_.min.x = (xStrip - 0.5f) * tileSize.x - 4.0f;
-            tileBBox_.min.y = (yStrip - 0.5f) * tileSize.y - 4.0f;
-            tileBBox_.max.x = (xStrip + 0.5f) * tileSize.x + 4.0f;
-            tileBBox_.max.y = (yStrip + 0.5f) * tileSize.y + 4.0f;
+            tileBBox_.min.x = (xStrip - 0.5f) * tileSize.x - 5.0f;
+            tileBBox_.min.y = (yStrip - 0.5f) * tileSize.y - 5.0f;
+            tileBBox_.max.x = (xStrip + 0.5f) * tileSize.x + 5.0f;
+            tileBBox_.max.y = (yStrip + 0.5f) * tileSize.y + 5.0f;
             tilePosition_.x = tilePosition_.x + tileSize.x;
             tilePosition_.y = tilePosition_.y + tileSize.y;
 
