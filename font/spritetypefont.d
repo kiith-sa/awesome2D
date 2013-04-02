@@ -36,21 +36,13 @@ import video.uniform;
 import video.vertexbuffer;
 
 
+private alias GenericSpritePage!(SpriteTypeFont, BinaryTexturePacker) FontSpritePage;
 /// Sprite renderer used to draw font glyph sprites.
 ///
 /// These are drawn in plain 2D space.
-class SpriteFontRenderer : SpriteUnlitRenderer 
+class SpriteFontRenderer : SpriteUnlitPixelRenderer!FontSpritePage
 {
-    alias GenericSpritePage!(SpriteTypeFont, BinaryTexturePacker) SpritePage;
-
-    // Sprite page whose textures, vertex and index buffer are currently bound.
-    //
-    // Only matters when drawing.
-    SpritePage* boundSpritePage_ = null;
-
-    // Diffuse color texture unit.
-    Uniform!int diffuseSamplerUniform_;
-
+private:
     // Font color.
     Uniform!Color fontColorUniform_;
 
@@ -67,50 +59,6 @@ public:
     {
         super(renderer, dataDir, camera, "font");
     }
-
-    /// Draw a sprite at specified 2D position.
-    ///
-    /// Must be called between calls to startDrawing() and stopDrawing().
-    ///
-    /// Params:  sprite   = Pointer to the sprite to draw.
-    ///          position = Position of the bottom-left corner of the sprite
-    ///                     in plain 2D space (pixels).
-    void drawSprite(Sprite* sprite, vec2 position) @trusted
-    {
-        assert(drawing_,
-               "SpriteFontRenderer.drawSprite() called without calling startDrawing()");
-        assert(renderer_.blendMode == BlendMode.Alpha,
-               "Non-alpha blend mode when drawing a font glyph sprite");
-        // Get on a whole-pixel boundary to avoid blurriness.
-        position.x = round(position.x);
-        position.y = round(position.y);
-
-        uploadUniforms(position);
-
-        assert(sprite.facings_.length == 1,
-               "SpriteFontRenderer trying to draw a font glyph sprite with multiple facings");
-        Sprite.Facing* facing = &(sprite.facings_[0]);
-        SpritePage* page = cast(SpritePage*)facing.spritePage;
-        // Don't rebind a sprite page if we don't have to.
-        if(boundSpritePage_ != page)
-        {
-            if(boundSpritePage_ !is null){boundSpritePage_.release();}
-            page.bind();
-            boundSpritePage_ = page;
-        }
-
-        const indexOffset = facing.indexBufferOffset;
-        assert(indexOffset % 6 == 0, "Sprite indices don't form sextets");
-        // Assuming a vertex quadruplet per image, added in same order
-        // as the indices. See vertex/index adding code in sprite type 
-        // structs.
-        const minVertex = (indexOffset / 6) * 4;
-        const maxVertex = minVertex + 3;
-
-        renderer_.drawVertexBuffer(page.vertices_, page.indices_, spriteShader_,
-                                   facing.indexBufferOffset, 6, minVertex, maxVertex);
-    }
-
     /// Set font color.
     @property void fontColor(const Color rhs) @safe pure nothrow
     {
@@ -118,24 +66,15 @@ public:
     }
 
 protected:
-    override void stopDrawing_() @trusted
-    {
-        if(boundSpritePage_ !is null) {boundSpritePage_.release();}
-        boundSpritePage_ = null;
-    }
-
     override void resetUniforms() @safe pure nothrow
     {
         super.resetUniforms();
-        diffuseSamplerUniform_.reset();
         fontColorUniform_.reset();
     }
 
     override void initializeUniforms()
     {
         super.initializeUniforms();
-        diffuseSamplerUniform_ = Uniform!int(spriteShader_.getUniformHandle("texDiffuse"));
-        diffuseSamplerUniform_.value = SpriteTextureUnit.Diffuse;
         fontColorUniform_ = Uniform!Color(spriteShader_.getUniformHandle("fontColor"));
         fontColorUniform_.value = Color.white;
     }
@@ -143,7 +82,6 @@ protected:
     override void uploadUniforms(const vec2 position) @trusted
     {
         super.uploadUniforms(position);
-        diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);
         fontColorUniform_.uploadIfNeeded(spriteShader_);
     }
 }

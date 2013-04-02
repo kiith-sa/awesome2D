@@ -799,14 +799,11 @@ protected:
     }
 }
 
-/// Sprite renderer used to draw plain RGBA sprites.
-///
-/// These are drawn in plain 2D space, not dimetric.
-class SpritePlainRenderer : SpriteUnlitRenderer
+
+/// Base class for sprite renderers drawing pixel (i.e. not vector) data without lighting.
+abstract class SpriteUnlitPixelRenderer(SpritePage) : SpriteUnlitRenderer
 {
 private:
-    alias GenericSpritePage!(SpriteTypePlain, BinaryTexturePacker) SpritePage;
-
     // Sprite page whose textures, vertex and index buffer are currently bound.
     //
     // Only matters when drawing.
@@ -816,17 +813,12 @@ private:
     Uniform!int diffuseSamplerUniform_;
 
 public:
-    /// Construct a SpritePlainRenderer.
+    /// Construct a SpriteUnlitPixelRenderer.
     ///
-    /// Params:  renderer = Renderer used for graphics functionality.
-    ///          dataDir  = Data directory (must contain a "shaders" subdirectory
-    ///                     to load shaders from).
-    ///          camera   = Reference to the camera used for viewing.
-    ///
-    /// Throws:  SpriteRendererInitException on failure.
-    this(Renderer renderer, VFSDir dataDir, Camera2D camera) @safe
+    /// See_Also: SpriteUnlitRenderer.this()
+    this(Renderer renderer, VFSDir dataDir, Camera2D camera, string shaderBaseName) @safe
     {
-        super(renderer, dataDir, camera, "plainSprite");
+        super(renderer, dataDir, camera, shaderBaseName);
     }
 
     /// Draw a sprite at specified 2D position.
@@ -888,8 +880,7 @@ protected:
     override void initializeUniforms()
     {
         super.initializeUniforms();
-        diffuseSamplerUniform_        = 
-            Uniform!int(spriteShader_.getUniformHandle("texDiffuse"));
+        diffuseSamplerUniform_ = Uniform!int(spriteShader_.getUniformHandle("texDiffuse"));
         diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
     }
 
@@ -897,5 +888,26 @@ protected:
     {
         super.uploadUniforms(position);
         diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);
+    }
+}
+
+private alias GenericSpritePage!(SpriteTypePlain, BinaryTexturePacker) PlainSpritePage;
+/// Sprite renderer used to draw plain RGBA sprites.
+///
+/// These are drawn in plain 2D space, not dimetric.
+class SpritePlainRenderer : SpriteUnlitPixelRenderer!PlainSpritePage
+{
+public:
+    /// Construct a SpritePlainRenderer.
+    ///
+    /// Params:  renderer = Renderer used for graphics functionality.
+    ///          dataDir  = Data directory (must contain a "shaders" subdirectory
+    ///                     to load shaders from).
+    ///          camera   = Reference to the camera used for viewing.
+    ///
+    /// Throws:  SpriteRendererInitException on failure.
+    this(Renderer renderer, VFSDir dataDir, Camera2D camera) @safe
+    {
+        super(renderer, dataDir, camera, "plainSprite");
     }
 }
