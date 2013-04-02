@@ -67,6 +67,8 @@ private:
 
     // GUI subsystem.
     GUISystem guiSystem_;
+    // If true, the GUI is enabled and drawn.
+    bool guiEnabled_ = true;
 
     // Main config file (YAML).
     YAMLNode config_;
@@ -135,6 +137,7 @@ private:
     PointLight point2;
     // Test point light 3.
     PointLight point3;
+
 
 public:
     /// Construct Demo with specified data directory.
@@ -333,14 +336,16 @@ public:
             {
                 fpsCounter_.event();
                 map_.draw(spriteRenderer_, camera_, &drawEntitiesInTile);
-                fontRenderer_.drawText(vec2i(0, 32), "Lorem Ipsum dolor sit amet.");
                 spriteRenderer_.startDrawing();
                 spriteRenderer_.clipBounds = AABB(vec3(-10000, -10000, -10000),
                                                   vec3( 10000,  10000,  10000));
                 spriteRenderer_.drawSprite(bigSprite_, vec3(0.0f, 1024.0f, 128.0f),
                                            vec3(0.0f, 0.0f, playerRotationZ_));
                 spriteRenderer_.stopDrawing();
-                guiSystem_.render();
+                if(guiEnabled_)
+                {
+                    guiSystem_.render();
+                }
                 return true;
             }
             renderer_.renderFrame(&frame);
@@ -611,6 +616,9 @@ private:
                 {
                     playerPosition_ -= vec3(0.0f, 0.0f, 8.0f);
                 }
+                break;
+            case K_g:
+                guiEnabled_ = !guiEnabled_;
                 break;
                 // Light on-off switches
             case K_1:
