@@ -373,9 +373,6 @@ public:
                "Sprite3DRenderer.drawSprite() called without calling startDrawing()");
         assert(renderer_.blendMode == BlendMode.Alpha,
                "Non-alpha blend mode when drawing a sprite");
-        // Get on a whole-pixel boundary to avoid blurriness.
-        position.x = cast(int)(position.x);
-        position.y = cast(int)(position.y);
 
         updateUniforms(position);
 
