@@ -11,10 +11,10 @@ module video.gl2vertexbuffer;
 import core.stdc.string;
 
 import derelict.opengl3.gl;
-import gl3n.linalg;
 
 import color;
 import memory.memory;
+import util.linalg;
 import video.exceptions;
 import video.gl2bufferobject;
 import video.gl2bufferobject;

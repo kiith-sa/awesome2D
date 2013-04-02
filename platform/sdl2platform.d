@@ -14,10 +14,10 @@ import std.string;
 
 import derelict.sdl2.sdl;
 import derelict.util.exception;
-import gl3n.linalg;
 
 import platform.key;
 import platform.platform;
+import util.linalg;
 import util.string;
 
 

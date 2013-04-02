@@ -14,7 +14,6 @@ import std.stdio;
 import std.typecons;
 
 import gl3n.aabb;
-import gl3n.linalg;
 import dgamevfs._;
 
 import demo.camera2d;
@@ -24,6 +23,7 @@ import demo.tileshape;
 import containers.vector;
 import math.math;
 import memory.memory;
+import util.linalg;
 import util.yaml;
 import video.renderer;
 

@@ -8,10 +8,9 @@
 module video.framebuffer;
 
 
-import gl3n.linalg;
-
 import color;
 import image;
+import util.linalg;
 import video.gl2framebuffer;
 import video.texture;
 

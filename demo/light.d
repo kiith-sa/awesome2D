@@ -8,9 +8,8 @@
 module demo.light;
 
 
-import gl3n.linalg;
-
 import color;
+import util.linalg;
 
 
 /// A directional light source.

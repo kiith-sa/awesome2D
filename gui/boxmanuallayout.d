@@ -11,12 +11,11 @@ module gui.boxmanuallayout;
 
 import std.stdio;
 
-import gl3n.linalg;
-
 import gui.layout;
 import gui.widget;
 import gui.widgetutils;
 import formats.mathparser;
+import util.linalg;
 import util.yaml;
 
 

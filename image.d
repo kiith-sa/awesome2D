@@ -9,12 +9,11 @@
 module image;
 
 
-import gl3n.linalg;
-
 import core.stdc.string;
 
 import color;
 import memory.memory;
+import util.linalg;
 
 
 //could be optimized by adding a pitch data member (bytes per row)    

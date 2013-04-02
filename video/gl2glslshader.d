@@ -14,9 +14,9 @@ import std.stdio;
 import std.string;
 
 import derelict.opengl3.gl;
-import gl3n.linalg;
 
 import color;
+import util.linalg;
 import util.string;
 import video.exceptions;
 import video.glslshader;

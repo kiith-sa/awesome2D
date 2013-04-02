@@ -9,9 +9,8 @@
 module platform.platform;
 
 
-import gl3n.linalg;
-
 public import platform.key;
+import util.linalg;
 import util.weaksingleton;
 import util.signal;
 

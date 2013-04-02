@@ -14,10 +14,9 @@ import std.random;
 import std.string;
 import std.traits;
 
-import gl3n.linalg;
-
 import math.math;
 alias math.math.clamp clamp;
+import util.linalg;
 import util.unittests;
 
 

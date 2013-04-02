@@ -9,9 +9,9 @@
 module gui.layout;
 
 
-import gl3n.linalg;
-
 import gui.widget;
+import util.linalg;
+
 
 /// Manages layout of a widget and its children.
 /// 

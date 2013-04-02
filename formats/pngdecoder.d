@@ -21,18 +21,17 @@ module formats.pngdecoder;
 
 import core.bitop;
 
-import gl3n.linalg;
-
 import std.algorithm;
 import std.conv;
 import std.exception;
 import std.string;
 
+import color;
+import containers.vector;
 import formats.pngcommon;
 import formats.zlib;
 import memory.memory;
-import containers.vector;
-import color;
+import util.linalg;
 
 
 alias containers.vector.Vector Vector;

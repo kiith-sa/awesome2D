@@ -13,11 +13,11 @@ import std.string;
 import std.typecons;
 
 import derelict.opengl3.gl;
-import gl3n.linalg;
 
 import color;
 import image;
 import memory.memory;
+import util.linalg;
 import video.exceptions;
 import video.framebuffer;
 import video.glutils;

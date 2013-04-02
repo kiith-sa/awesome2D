@@ -12,10 +12,10 @@ import std.conv;
 import std.stdio;
 
 import derelict.opengl3.gl;
-import gl3n.linalg;
 
 import color;
 import image;
+import util.linalg;
 import video.exceptions;
 import video.glutils;
 import video.texture;

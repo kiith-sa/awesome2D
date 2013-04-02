@@ -11,8 +11,6 @@ module gui.buttonwidget;
 
 import std.typecons;
 
-import gl3n.linalg;
-
 import gui.event;
 import gui.guisystem;
 import gui.labelwidget;
@@ -21,6 +19,7 @@ import gui.stylemanager;
 import gui.widget;
 import gui.widgetutils;
 import platform.key;
+import util.linalg;
 import util.signal;
 import util.yaml;
 

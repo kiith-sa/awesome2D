@@ -20,7 +20,6 @@ import std.typecons;
 import derelict.assimp.assimp;
 import derelict.util.exception;
 import dgamevfs._;
-import gl3n.linalg;
 
 import prerenderer.prerenderer;
 import prerenderer.dimetriccamera;
@@ -29,6 +28,7 @@ import color;
 import formats.image;
 import image;
 import memory.memory;
+import util.linalg;
 import util.yaml;
 import video.framebuffer;
 import video.glslshader;

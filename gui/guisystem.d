@@ -16,7 +16,6 @@ import std.stdio;
 import std.typecons;
 
 import dgamevfs._;
-import gl3n.linalg;
 
 import containers.vector;
 import demo.spritemanager;
@@ -42,6 +41,7 @@ import image;
 import memory.memory;
 import platform.key;
 import platform.platform;
+import util.linalg;
 import util.yaml;
 
 

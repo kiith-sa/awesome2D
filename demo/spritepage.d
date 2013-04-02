@@ -12,7 +12,6 @@ import std.conv;
 import std.typecons;
 
 import gl3n.aabb;
-import gl3n.linalg;
 
 import color;
 import demo.sprite;
@@ -21,6 +20,7 @@ import demo.texturepacker;
 import image;
 import math.math;
 import memory.memory;
+import util.linalg;
 import video.renderer;
 import video.texture;
 import video.indexbuffer;

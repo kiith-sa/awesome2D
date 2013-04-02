@@ -7,7 +7,7 @@
 module demo.camera2d;
 
 
-import gl3n.linalg;
+import util.linalg;
 
 
 /// Camera used in a 2D scene.

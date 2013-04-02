@@ -10,8 +10,7 @@ module video.vertexattribute;
 
 import std.traits;
 
-import gl3n.linalg;
-
+import util.linalg;
 import video.limits;
 
 

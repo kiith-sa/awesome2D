@@ -17,7 +17,6 @@ import std.math;
 import std.traits;
 
 import dgamevfs._;
-import gl3n.linalg;
 
 import dyaml.constructor;
 import dyaml.dumper;
@@ -30,6 +29,7 @@ public import dyaml.exception;
 public import dyaml.node : YAMLNode = Node;
 
 import color;
+import util.linalg;
 
 
 /**

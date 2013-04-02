@@ -613,16 +613,6 @@ alias Vector!(int, 2) vec2i; /// ditto
 alias Vector!(int, 3) vec3i; /// ditto
 alias Vector!(int, 4) vec4i; /// ditto
 
-alias Vector!(uint, 2) vec2u; /// ditto
-alias Vector!(uint, 3) vec3u; /// ditto
-alias Vector!(uint, 4) vec4u; /// ditto
-
-alias Vector!(ushort, 2) vec2us; /// ditto
-
-/*alias Vector!(ubyte, 2) vec2ub;
-alias Vector!(ubyte, 3) vec3ub;
-alias Vector!(ubyte, 4) vec4ub;*/
-
 
 /// Base template for all matrix-types.
 /// Params:

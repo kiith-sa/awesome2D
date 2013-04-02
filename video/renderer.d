@@ -13,14 +13,13 @@ import std.conv;
 import std.stdio;
 import std.typecons;
 
-import gl3n.linalg;
-
 import color;
 import image;
 import memory.memory;
 
 import containers.vector;
 import platform.platform;
+import util.linalg;
 public import video.blendmode;
 public import video.depthtest;
 import video.exceptions;

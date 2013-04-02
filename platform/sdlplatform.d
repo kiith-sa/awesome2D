@@ -16,10 +16,10 @@ import std.string;
 
 import derelict.sdl.sdl;
 import derelict.util.exception;
-import gl3n.linalg;
 
 import platform.key;
 import platform.platform;
+import util.linalg;
 
 
 ///Platform implementation based on SDL 1.2 .

@@ -18,11 +18,10 @@ import derelict.opengl3.gl3;
 import derelict.opengl3.gl;
 import derelict.util.exception;
 
-import gl3n.linalg;
-
 import color;
 import image;
 import memory.memory;
+import util.linalg;
 import video.blendmode;
 import video.depthtest;
 import video.exceptions;

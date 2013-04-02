@@ -14,8 +14,6 @@ import std.array;
 import std.conv;
 import std.exception;
 
-import gl3n.linalg;
-
 import color;
 import demo.sprite;
 import demo.spritemanager;
@@ -27,6 +25,7 @@ import gui.stylemanager;
 import gui.textbreaker;
 import gui.widgetutils;
 import memory.memory;
+import util.linalg;
 import util.yaml;
 
 

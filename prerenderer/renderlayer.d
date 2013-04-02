@@ -8,9 +8,8 @@
 module prerenderer.renderlayer;
 
 
-import gl3n.linalg;
-
 import memory.memory;
+import util.linalg;
 import video.exceptions;
 import video.glslshader;
 

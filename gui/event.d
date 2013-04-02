@@ -9,13 +9,12 @@
 module gui.event;
 
 
-import gl3n.linalg;
-
 import demo.spritemanager;
 import demo.vectorrenderer;
 import font.fontrenderer;
 import gui.widget;
 import platform.key;
+import util.linalg;
 
 
 /// Base class for all events.

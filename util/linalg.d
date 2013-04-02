@@ -24,3 +24,10 @@ bool rectangleIntersectsPoint(VA, VB)(const VA min, const VA max, const VB point
     return point.x >= min.x && point.x <= max.x &&
            point.y >= min.y && point.y <= max.y;
 }
+
+/// Convenience aliases for vectors used in Awesome2D code.
+alias Vector!(uint, 2) vec2u;
+alias Vector!(uint, 3) vec3u;
+alias Vector!(uint, 4) vec4u;
+alias Vector!(ushort, 2) vec2us;
+

@@ -12,9 +12,9 @@ import std.algorithm;
 import std.array;
 
 import derelict.opengl3.gl;
-import gl3n.linalg;
 
 import color;
+import util.linalg;
 import video.primitivetype;
 import video.texture;
 import video.vertexattribute;

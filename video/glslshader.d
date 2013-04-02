@@ -9,9 +9,9 @@
 module video.glslshader;
 
 import derelict.opengl3.gl;
-import gl3n.linalg;
 
 import color;
+import util.linalg;
 import video.gl2glslshader;
 import video.limits;
 

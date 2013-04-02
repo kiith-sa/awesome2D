@@ -14,7 +14,7 @@ import std.stdio;
 import std.string;
 
 import gl3n.aabb;
-import gl3n.linalg;
+import util.linalg;
 
 import color;
 import demo.texturepacker;

@@ -10,7 +10,7 @@ module demo.texturepacker;
 
 import std.stdio;
 
-import gl3n.linalg;
+import util.linalg;
 
 
 /// Binary tree based texture packer. Handles allocation of texture page space.

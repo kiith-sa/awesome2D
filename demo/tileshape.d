@@ -12,7 +12,7 @@ import std.algorithm;
 import std.math;
 import std.traits;
 
-import gl3n.linalg;
+import util.linalg;
 
 
 // 3D shape of a tile, used to differentiate between various slopes and flat tiles.

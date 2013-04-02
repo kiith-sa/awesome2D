@@ -9,10 +9,9 @@
 module video.texture;
 
 
-import gl3n.linalg;
-
 import color;
 import image;
+import util.linalg;
 import video.gl2texture;
 
 /// Texture filtering modes.

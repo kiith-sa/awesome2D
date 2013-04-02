@@ -13,7 +13,6 @@ import std.typecons;
 
 import dgamevfs._;
 import gl3n.aabb;
-import gl3n.linalg;
 
 import color;
 import demo.camera2d;
@@ -26,8 +25,9 @@ import formats.image;
 import image;
 import math.math;
 import memory.memory;
-import video.renderer;
+import util.linalg;
 import util.yaml;
+import video.renderer;
 
 /// Constructs and manages sprites.
 ///

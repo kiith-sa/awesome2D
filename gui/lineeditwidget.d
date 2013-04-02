@@ -13,12 +13,11 @@ import std.algorithm;
 import std.array;
 import std.uni;
 
-import gl3n.linalg;
-
 import gui.event;
 import gui.widget;
 import gui.widgetutils;
 import platform.key;
+import util.linalg;
 import util.signal;
 import util.yaml;
 import video.renderer;

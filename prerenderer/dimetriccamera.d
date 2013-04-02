@@ -8,7 +8,7 @@
 module prerenderer.dimetriccamera;
 
 
-import gl3n.linalg;
+import util.linalg;
 
 
 /// Camera with a dimetric projection.
