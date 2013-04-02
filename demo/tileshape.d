@@ -80,7 +80,7 @@ bool isTileShapeString(string shape) @safe pure nothrow
 /// enum tileSize = vec3(90.88, 90.88, 36.352);
 
 /// Size of a tile in world space.
-const tileSize = vec3(90, 90, 36);
+const tileSize = vec3(89, 89, 36);
 
 /// Size of a tile on screen (the Z value is on the Y axis together with the Y value).
 const tilePixelSize = vec3u(128, 64, 32);
