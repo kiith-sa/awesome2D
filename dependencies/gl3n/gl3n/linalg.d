@@ -325,22 +325,10 @@ struct Vector(type, int dimension_) if((dimension_ >= 2) && (dimension_ <= 4)) {
 
     /// Implements dynamic swizzling.
     /// Returns: a static array of coordinates.
-    @property vt[s.length] opDispatch(string s)() const {
+    @property Vector!(vt, s.length) opDispatch(string s)() const {
         vt[s.length] ret;
         dispatchImpl!(0, s)(ret);
-        return ret;
-    }
-    
-    unittest {
-        vec2 v2 = vec2(1.0f, 2.0f);
-        assert(v2.xytsy == [1.0f, 2.0f, 2.0f, 1.0f, 2.0f]);
-
-        assert(vec3(1.0f, 2.0f, 3.0f).xybzyr == [1.0f, 2.0f, 3.0f, 3.0f, 2.0f, 1.0f]);
-        assert(vec4(v2, 3.0f, 4.0f).xyzwrgbastpq == [1.0f, 2.0f, 3.0f, 4.0f,
-                                                     1.0f, 2.0f, 3.0f, 4.0f,
-                                                     1.0f, 2.0f, 3.0f, 4.0f]);
-        assert(vec4(v2, 3.0f, 4.0f).wgyzax == [4.0f, 2.0f, 2.0f, 3.0f, 4.0f, 1.0f]);
-        assert(vec4(v2.xyst).vector == [1.0f, 2.0f, 1.0f, 2.0f]);
+        return Vector!(vt, s.length)(ret);
     }
     
     /// Returns the squared magnitude of the vector.
