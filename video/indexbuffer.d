@@ -52,6 +52,9 @@ package:
     // Pointer to release implementation.
     void function(ref Self)             release_;
 
+    /// True when any index buffer is bound. Avoids binding multiple index buffers at once.
+    static bool isAnIndexBufferBound_ = false;
+
 public:
     /// Destroy the buffer, freeing any resources used.
     ~this()
@@ -92,6 +95,9 @@ public:
     /// another buffer.
     void bind()
     {
+        assert(!isAnIndexBufferBound_,
+               "Trying to bind an index buffer while another index buffer is bound");
+        isAnIndexBufferBound_ = true;
         assert(locked_, "Trying to bind an unlocked index buffer");
         assert(!bound_, "Trying to bind an already bound index buffer");
         bind_(this);
@@ -105,6 +111,7 @@ public:
         assert(bound_,  "Trying to release an index buffer that is not bound");
         release_(this);
         bound_ = false;
+        isAnIndexBufferBound_ = false;
     }
 
     /// Is the buffer locked?

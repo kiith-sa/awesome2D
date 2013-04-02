@@ -86,6 +86,9 @@ package:
     /// work together.
     VertexBufferBackend backend_;
 
+    /// True when any vertex buffer is bound. Avoids binding multiple vertex buffers at once.
+    static bool isAVertexBufferBound_ = false;
+
 public:
     /// Destroy the vertex buffer.
     ~this()
@@ -140,6 +143,9 @@ public:
     /// another buffer.
     void bind()
     {
+        assert(!isAVertexBufferBound_,
+               "Trying to bind a vertex buffer while another vertex buffer is bound");
+        isAVertexBufferBound_ = true;
         assert(backend_.locked_, "Trying to bind an unlocked vertex buffer");
         assert(!backend_.bound_, "Trying to bind an already bound vertex buffer");
         backend_.bind_(backend_);
@@ -153,6 +159,7 @@ public:
         assert(backend_.bound_,  "Trying to release a vertex buffer that is not bound");
         backend_.release_(backend_);
         backend_.bound_ = false;
+        isAVertexBufferBound_ = false;
     }
 
     /// Is the buffer currently locked?

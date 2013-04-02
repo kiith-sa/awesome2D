@@ -85,6 +85,9 @@ package:
     // Pointer to getAttributeGLHandle implementation.
     GLint function(ref Self, const uint)                     getAttributeGLHandle_;
 
+    // True when any shader program is bound. Avoids binding multiple programs at once.
+    static bool isAShaderProgramBound_ = false;
+
 public:
     /// Destroy the shader program.
     ~this()
@@ -171,6 +174,9 @@ public:
     /// Can only be called while the shader program is locked.
     void bind()
     {
+        assert(!isAShaderProgramBound_,
+               "Trying to bind a shader program while another shader program is bound");
+        isAShaderProgramBound_ = true;
         bind_(this);
     }
 
@@ -182,6 +188,7 @@ public:
     void release()
     {
         release_(this);
+        isAShaderProgramBound_ = false;
     }
 
     /// Get a handle to a uniform variable.
