@@ -90,10 +90,19 @@ public:
             {
                 foreach(xSample; xSource .. xSource + downSamplingLevel)
                 {
-                    total += getPixel(xSample, ySample).toVec4();
+                    const pixel = getPixel(xSample, ySample).toVec4();
+                    total = vec4(total.rgb + pixel.rgb * pixel.a, total.a + pixel.a);
                 }
             }
-            const average = total * (1.0f / (downSamplingLevel * downSamplingLevel));
+
+            // Transparent area of the pixels doesn't contribute to the total color.
+            //
+            // We average the opague area for the color,
+            // while alpha is the average of all pixels.
+            const totalPixels  = downSamplingLevel * downSamplingLevel;
+            const opaguePixels = total.a;
+            const average = vec4(total.rgb * (1.0f / opaguePixels),
+                                 total.a   * (1.0f / totalPixels));
             result.setPixel(x, y, Color.fromVec4(average));
         }
 
