@@ -79,7 +79,7 @@ public:
     /// Any drawing operations after bind() will draw to the frame buffer.
     void bind()
     {
-        assert(!isAFrameBufferBound_, 
+        assert(!isAFrameBufferBound_,
                "Trying to bind a framebuffer object before releasing the previous one");
         bound_ = true;
         isAFrameBufferBound_ = true;

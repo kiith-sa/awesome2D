@@ -124,6 +124,11 @@ struct GL2FrameBufferData
     GLuint fbo_;
     /// Depth renderbuffer of the FBO.
     GLuint depthRenderBuffer_ = 0;
+    /// Stores GL viewport parameters that were set before the FBO was bound 
+    ///
+    /// (We have to change viewport when binding the FBO, and need to restore it 
+    /// when releasing.)
+    GLint[4] viewportParamsBeforeBind_;
 }
 
 
@@ -180,6 +185,8 @@ void bind(ref FrameBuffer self)
 {with(self.gl2_)
 {
     bindFrameBuffer(fbo_);
+    glGetIntegerv(GL_VIEWPORT, &(viewportParamsBeforeBind_[0]));
+    glViewport(0, 0, self.dimensions_.x, self.dimensions_.y);
 }}
 
 /// Release the framebuffer object to allow drawing to the screen.
@@ -189,6 +196,9 @@ void release(ref FrameBuffer self)
 {with(self.gl2_)
 {
     bindFrameBuffer(0);
+    // Restore the original viewport.
+    glViewport(viewportParamsBeforeBind_[0], viewportParamsBeforeBind_[1],
+               viewportParamsBeforeBind_[2], viewportParamsBeforeBind_[3]);
 }}
 
 /// Clear any data rendered to the framebuffer.
