@@ -85,7 +85,7 @@ mixin registerTest!(unittestClamp, "math.math.clamp");
  *
  * Returns: Nearest int to given value.
  */
-U round(U, T)(const T f)
+U round(U, T)(const T f) @safe nothrow
     if(isIntegral!U && isNumeric!T)
 {
     return cast(U)std.math.round(f);
