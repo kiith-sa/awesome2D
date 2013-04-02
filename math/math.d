@@ -95,7 +95,7 @@ U round(U, T)(const T f) @safe nothrow
  * Floor a number to an integer of type U.
  *
  * Params:  f = Float to round. Must be less than U.max and more or equal to U.min .
- *                                                                                   
+ *
  * Returns: Floor of given value as U.
  */
 U floor(U, T)(T f)
