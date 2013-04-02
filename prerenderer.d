@@ -95,44 +95,67 @@ void help(string commandName)
         "                             Currently, only models with normals and UV texture",
         "                             coordinates are supported.",
         "    Local options:",
-        "      --rotation=<angles>    Rotation of the model around its Z axis in degrees.",
-        "                             This is the direction the object is facing",
-        "                             in a game. Multiple values can be specified,",
-        "                             separated by commas, rendering an image for each",
-        "                             orientation. E.g; '--rotation=0,90,180,270' will",
-        "                             render the model in 4 facings.",
-        "                             Default: '0,45,90,135,180,225,270,315'",
-        "      --width=<pixels>       Width of the rendered images in pixels.",
-        "                             This doesn't affect the area viewed by the camera.",
-        "                             Use --zoom for that.",
-        "                             Default: '64'",
-        "      --height=<pixels>      Height of the rendered images in pixels.",
-        "                             This doesn't affect the area viewed by the camera.",
-        "                             Use --zoom for that.",
-        "                             Default: '48'",
-        "      --angle=<degrees>      Vertical angle of the camera in degrees.",
-        "                             45 is plain isometric; 30 is common in many",
-        "                             RTS's; 90 is top-down.",
-        "                             Default: '45'",
-        "      --texture=<filename>   Texture to use with the model. Must be in PNG",
-        "                             format. A placeholder texture will be used",
-        "                             if no texture is specified.",
-        "                             This texture is used for the diffuse layer.",
-        "                             It doesn't affect the output when rendering other",
-        "                             data.",
-        "      --zoom=<zoomfactor>    Camera zoom. Greater values are 'closer', rendering",
-        "                             a smaller area. Use this if the model is too",
-        "                             large to fit the rendered images or very small.",
-        "                             Default: '0.08'",
-        "      --layer=<layers>       Data 'layers' that should be rendered, separated",
-        "                             by commas. Different layers can contain different",
-        "                             data, e.g. color or normals.",
-        "                             Data for each layer is rendered into a separate",
-        "                             image.",
-        "                             Supported layer types: 'diffuse' (texture color),",
-        "                             'normal' (world space normals), 'offset'",
-        "                             (3D position at each pixel relative to origin)",
-        "                             Default: 'diffuse'",
+        "      --rotation=<angles>     Rotation of the model around its Z axis (degrees).",
+        "                              This is the direction the object is facing",
+        "                              in a game. Multiple values can be specified,",
+        "                              separated by commas, rendering an image for each",
+        "                              orientation. E.g; '--rotation=0,90,180,270' will",
+        "                              render the model in 4 facings.",
+        "                              Default: '0,45,90,135,180,225,270,315'",
+        "      --width=<pixels>        Width of the rendered images in pixels.",
+        "                              This doesn't affect the area viewed by the camera.",
+        "                              Use --zoom for that.",
+        "                              Default: '64'",
+        "      --height=<pixels>       Height of the rendered images in pixels.",
+        "                              This doesn't affect the area viewed by the camera.",
+        "                              Use --zoom for that.",
+        "                              Default: '48'",
+        "      --angle=<degrees>       Vertical angle of the camera in degrees.",
+        "                              45 is plain isometric; 30 is common in many",
+        "                              RTS's; 90 is top-down.",
+        "                              Default: '45'",
+        "      --texture=<filename>    Texture to use with the model. Must be in PNG",
+        "                              format. A placeholder texture will be used",
+        "                              if no texture is specified.",
+        "                              This texture is used for the diffuse layer.",
+        "                              It doesn't affect the output when rendering other",
+        "                              data.",
+        "      --zoom=<zoomfactor>     Camera zoom. Greater values are 'closer',",
+        "                              rendering a smaller area. Use this if the model",
+        "                              is too largelarge to fit the rendered images or",
+        "                              very small.",
+        "                              Default: '0.08'",
+        "      --layer=<layers>        Data 'layers' that should be rendered, separated",
+        "                              by commas. Different layers can contain different",
+        "                              data, e.g. color or normals.",
+        "                              Data for each layer is rendered into a separate",
+        "                              image.",
+        "                              Supported layer types: 'diffuse' (texture color),",
+        "                              'normal' (world space normals), 'offset'",
+        "                              (3D position at each pixel relative to origin)",
+        "                              Default: 'diffuse'",
+        "      --supersampling=<level> Level of supersampling (antialiasing) to use.",
+        "                              If greater than 1, the sprite is rendered in a",
+        "                              greater resolution and then downsampled.",
+        "                              For example, a 64x32 sprite with supersampling of",
+        "                              2 will be rendered in the resolution of 128x64 and",
+        "                              then downsampled, averaging the pixels. Note that",
+        "                              this will result in semi-transparent (using alpha)",
+        "                              pixels on the edges of the sprite.",
+        "                              This improves image quality, but requires alpha",
+        "                              transparency support in the game drawing the",
+        "                              sprite.",
+        "                              Must not be 0.",
+        "                              Note that very high values might result in",
+        "                              ridiculously huge OpenGL viewports, which your",
+        "                              GPU might not be able to handle. Keep it below 10",
+        "                              if you can.",
+        "                              Note that supersampling will only affect layers",
+        "                              where it makes sense, e.g. the diffuse color, but",
+        "                              not layers like normals or offsets (averaging ",
+        "                              vectors would result in completely different",
+        "                              lighting)",
+        "                              Default: 1",
         "    Example:",
         "      " ~ commandName ~ " render --texture=box.png --width=48 --height=20 box.obj",
         "                             Renders model box.obj with texture box.png with the",
@@ -210,6 +233,9 @@ private:
 
         // Layers specifying data to render.
         string[] layers = ["diffuse"];
+
+        // Supersampling level (1 for no supersampling, 2 for 2x2, etc.).
+        uint superSamplingLevel = 1;
     }
 
 public:
@@ -306,6 +332,11 @@ private:
                             new PrerendererCLIException("Unknown render layer: " ~ layer));
                 }
                 break;
+            case "supersampling":
+                superSamplingLevel = to!int(args[0]);
+                enforce(superSamplingLevel > 0,
+                        new PrerendererCLIException("Supersampling must not be 0"));
+                break;
             default:
                 throw new PrerendererCLIException("Unrecognized render option: --" ~ opt);
         }
@@ -389,6 +420,8 @@ private:
                 foreach(layer; layers)
                 {
                     params.layer = layer;
+                    // Supersampling makes no sense with normals or offsets.
+                    params.superSamplingLevel = layer == "diffuse" ? superSamplingLevel : 1;
                     const fileName = prerender.prerender(params);
                     layersMetaKeys ~= layer;
                     layersMetaValues ~= fileName;

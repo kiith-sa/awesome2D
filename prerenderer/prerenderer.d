@@ -49,6 +49,10 @@ struct RenderParams
     float zoom = 1.0f;
     /// Render layer (data) to render. E.g. diffuse, normal, offset.
     string layer = "diffuse";
+    /// Supersampling multiplier used for antialiasing.
+    ///
+    /// 1 means no supersampling, 2 means double X and Y resolution, 3 triple, and so on.
+    uint superSamplingLevel = 1;
 }
 
 /// "Main class" of the Awesome2D prerenderer.
@@ -159,7 +163,11 @@ public:
                 default:        assert(false, "Unknown color format " ~ params.layer);
             }
 
-            auto fbo = renderer_.createFrameBuffer(params.width, params.height, colorFormat);
+            assert(params.superSamplingLevel > 0, "Can't use a super sampling level of 0");
+
+            auto fbo = renderer_.createFrameBuffer(params.width * params.superSamplingLevel,
+                                                   params.height * params.superSamplingLevel,
+                                                   colorFormat);
             scope(exit){free(fbo);}
 
             // Bind FBO and draw.
@@ -173,6 +181,7 @@ public:
             // Write to an image file.
             Image fboImage;
             fbo.toImage(fboImage);
+            fboImage = fboImage.downSampled(params.superSamplingLevel);
             try
             {
                 auto file = outputDir_.file(fileName);
