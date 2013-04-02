@@ -127,14 +127,14 @@ struct Color
     }
 
     ///Return lightness of the color.
-    @property ubyte lightness() const
+    @property ubyte lightness() @safe const nothrow
     {
         uint d = max(r, g, b) + min(r, g, b);
         return round!ubyte(0.5f * d); 
     }
 
     ///Return luminance of the color.
-    @property ubyte luminance() const
+    @property ubyte luminance() @safe const nothrow
     {
         return round!ubyte(0.3 * r + 0.59 * g + 0.11 * b);
     }
@@ -300,6 +300,18 @@ struct Color
     vec4 toVec4() @safe pure nothrow const
     {
         return vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+    }
+
+    /// Convert a vec4 representing an RGBA color to Color.
+    ///
+    /// Values in interval [0.0, 1.0] will be mapped to [0, 255].
+    /// Values outside this range will be clamped.
+    static Color fromVec4(const vec4 color) @safe pure nothrow
+    {
+        return Color(cast(ubyte)clamp(cast(int)(color.r * 255), 0, 255),
+                     cast(ubyte)clamp(cast(int)(color.g * 255), 0, 255),
+                     cast(ubyte)clamp(cast(int)(color.b * 255), 0, 255),
+                     cast(ubyte)clamp(cast(int)(color.a * 255), 0, 255));
     }
 }
 mixin registerTest!(Color.unittestAverage, "Color.average");
