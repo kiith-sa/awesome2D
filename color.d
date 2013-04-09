@@ -39,6 +39,20 @@ enum ColorFormat
     GRAY_8
 }
 
+/// Return a color format corresponding to specified format, but using lower bit depth.
+///
+/// If there is no equivalent lower-bitdepth format, the original format will
+/// be returned.
+ColorFormat lowerBitDepth(const ColorFormat format) @safe pure nothrow
+{
+    final switch(format) with(ColorFormat)
+    {
+        case RGB_565, RGB_5, RGBA_5551, RGBA_4, GRAY_8: return format;
+        case RGB_8:                                     return RGB_5;
+        case RGBA_8:                                    return RGBA_4;
+    }
+}
+
 /**
  * Return number of bytes specified color format uses per pixel.
  *
