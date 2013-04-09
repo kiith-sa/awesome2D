@@ -61,7 +61,9 @@ void constructTextureGL2
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrap);
 
         // Texture loading parameters.
-        const internalFormat = colorFormat.glTextureInternalFormat();
+        const internalFormat = params_.gpuFormatOverridden_ 
+                             ? params_.gpuFormatOverride_.glTextureInternalFormat()
+                             : colorFormat.glTextureInternalFormat();
         const loadFormat     = colorFormat.glTextureLoadFormat();
         const type           = colorFormat.glTextureType();
 

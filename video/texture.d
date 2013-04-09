@@ -74,7 +74,7 @@ struct TextureParams
     /// if the GPU or Renderer implementation doesn't support the format.
     ref TextureParams overrideGPUFormat(const ColorFormat format) @safe pure nothrow
     {
-        gpuFormatOverride_  = format;
+        gpuFormatOverride_   = format;
         gpuFormatOverridden_ = true;
         return this;
     }
