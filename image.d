@@ -240,20 +240,15 @@ public:
             if(cast(bool)(y / size % 2)){white = !white;}
             if(white) final switch(format_)
             {
-                case ColorFormat.RGB_565:
+                case ColorFormat.RGB_565, 
+                     ColorFormat.RGB_5,
+                     ColorFormat.RGBA_5551,
+                     ColorFormat.RGBA_4:
                     data_[y * pitch + x * 2] = 255;
                     data_[y * pitch + x * 2 + 1] = 255;
                     break;
-                case ColorFormat.RGB_8:
-                    data_[y * pitch + x * 3] = 255;
-                    data_[y * pitch + x * 3 + 1] = 255;
-                    data_[y * pitch + x * 3 + 2] = 255;
-                    break;
-                case ColorFormat.RGBA_8:
+                case ColorFormat.RGB_8, ColorFormat.RGBA_8, ColorFormat.GRAY_8:
                     setPixel(x, y, Color.white);
-                    break;
-                case ColorFormat.GRAY_8:
-                    setPixelGray8(x, y, 255);
                     break;
             }
             else switch(format_)
@@ -279,20 +274,15 @@ public:
         {
             if(cast(bool)(x % distance == y % distance)) final switch(format_)
             {
-                case ColorFormat.RGB_565:
+                case ColorFormat.RGB_565, 
+                     ColorFormat.RGB_5,
+                     ColorFormat.RGBA_5551,
+                     ColorFormat.RGBA_4:
                     data_[y * pitch + x * 2] = 255;
                     data_[y * pitch + x * 2 + 1] = 255;
                     break;
-                case ColorFormat.RGB_8:
-                    data_[y * pitch + x * 3] = 255;
-                    data_[y * pitch + x * 3 + 1] = 255;
-                    data_[y * pitch + x * 3 + 2] = 255;
-                    break;
-                case ColorFormat.RGBA_8:
+                case ColorFormat.RGB_8, ColorFormat.RGBA_8, ColorFormat.GRAY_8:
                     setPixel(x, y, Color.white);
-                    break;
-                case ColorFormat.GRAY_8:
-                    setPixelGray8(x, y, 255);
                     break;
             }
         }

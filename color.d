@@ -25,6 +25,12 @@ enum ColorFormat
 {
     ///16-bit RGB without alpha.
     RGB_565,
+    ///16-bit RGB, all components use 5 bits.
+    RGB_5,
+    ///16-bit RGBA, RGB use 5 bits, 1-bit alpha.
+    RGBA_5551,
+    ///16-bit RGBA, 4 bits for each component.
+    RGBA_4,
     ///24-bit RGB.
     RGB_8,
     ///32-bit RGBA.
@@ -42,12 +48,12 @@ enum ColorFormat
  */
 uint bytesPerPixel(const ColorFormat format) @safe pure nothrow
 {
-    final switch(format)
+    final switch(format) with(ColorFormat)
     {
-        case ColorFormat.RGB_565: return 2;
-        case ColorFormat.RGB_8:   return 3;
-        case ColorFormat.RGBA_8:  return 4;
-        case ColorFormat.GRAY_8:  return 1;
+        case RGB_565, RGB_5, RGBA_5551, RGBA_4: return 2;
+        case RGB_8:                             return 3;
+        case RGBA_8:                            return 4;
+        case GRAY_8:                            return 1;
     }
 }
 

@@ -80,7 +80,6 @@ void constructTextureGL2
         {
             writeln("GL error after loading a texture: ", errorMsg);
         }
-
     }
 }
 

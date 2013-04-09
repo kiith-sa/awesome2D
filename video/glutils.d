@@ -66,36 +66,45 @@ GLint glTextureWrap(const TextureWrap wrap) @safe pure nothrow
 /// corresponding to a ColorFormat.
 GLint glTextureInternalFormat(const ColorFormat format) @safe pure nothrow
 {
-    final switch(format)
+    final switch(format) with(ColorFormat)
     {
-        case ColorFormat.RGB_565: return GL_RGB5;
-        case ColorFormat.RGB_8:   return GL_RGB8;
-        case ColorFormat.RGBA_8:  return GL_RGBA8;
-        case ColorFormat.GRAY_8:  return GL_RED;
+        case RGB_565:   return GL_RGB5;
+        case RGB_5:     return GL_RGB5;
+        case RGBA_5551: return GL_RGB5_A1;
+        case RGBA_4:    return GL_RGBA4;
+        case RGB_8:     return GL_RGB8;
+        case RGBA_8:    return GL_RGBA8;
+        case GRAY_8:    return GL_RED;
     }
 }
 
 /// Get a GL enum representing the format of pixel data to be loaded to a GL texture.
 GLenum glTextureLoadFormat(const ColorFormat format) @safe pure nothrow
 {
-    final switch(format)
+    final switch(format) with(ColorFormat)
     {
-        case ColorFormat.RGB_565: return GL_RGB;
-        case ColorFormat.RGB_8:   return GL_RGB;
-        case ColorFormat.RGBA_8:  return GL_RGBA;
-        case ColorFormat.GRAY_8:  return GL_RED;
+        case RGB_565:   return GL_RGB;
+        case RGB_5:     return GL_RGB;
+        case RGBA_5551: return GL_RGBA;
+        case RGBA_4:    return GL_RGBA;
+        case RGB_8:     return GL_RGB;
+        case RGBA_8:    return GL_RGBA;
+        case GRAY_8:    return GL_RED;
     }
 }
 
 /// Get a GL enum representing the data type of pixel data to be loaded to a GL texture.
 GLenum glTextureType(const ColorFormat format) @safe pure nothrow
 {
-    final switch(format)
+    final switch(format) with(ColorFormat)
     {
-        case ColorFormat.RGB_565: return GL_UNSIGNED_SHORT_5_6_5;
-        case ColorFormat.RGB_8:   return GL_UNSIGNED_BYTE;
-        case ColorFormat.RGBA_8:  return GL_UNSIGNED_BYTE;
-        case ColorFormat.GRAY_8:  return GL_UNSIGNED_BYTE;
+        case RGB_565:   return GL_UNSIGNED_SHORT_5_6_5;
+        case RGB_5:     return GL_UNSIGNED_SHORT_5_5_5_1;
+        case RGBA_5551: return GL_UNSIGNED_SHORT_5_5_5_1;
+        case RGBA_4:    return GL_UNSIGNED_SHORT_4_4_4_4;
+        case RGB_8:     return GL_UNSIGNED_BYTE;
+        case RGBA_8:    return GL_UNSIGNED_BYTE;
+        case GRAY_8:    return GL_UNSIGNED_BYTE;
     }
 }
 
@@ -109,12 +118,12 @@ GLenum glTextureType(const ColorFormat format) @safe pure nothrow
 /// Returns: Alignment for specified format.
 static GLint packAlignment(const ColorFormat format) @safe pure nothrow
 {
-    final switch(format)
+    final switch(format) with(ColorFormat)
     {
-        case ColorFormat.RGB_565: return 2;
-        case ColorFormat.RGB_8:   return 1;
-        case ColorFormat.RGBA_8:  return 4;
-        case ColorFormat.GRAY_8:  return 1;
+        case RGB_565, RGB_5, RGBA_5551, RGBA_4: return 2;
+        case RGB_8:                             return 1;
+        case RGBA_8:                            return 4;
+        case GRAY_8:                            return 1;
     }
 }
 
