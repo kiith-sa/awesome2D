@@ -42,9 +42,16 @@ enum TextureWrap
 struct TextureParams
 {
     /// Texture filtering mode.
-    TextureFiltering filtering_ = TextureFiltering.Linear;
+    TextureFiltering filtering_  = TextureFiltering.Linear;
     /// Texture wrapping mode.
-    TextureWrap      wrap_      = TextureWrap.Repeat;
+    TextureWrap wrap_            = TextureWrap.Repeat;
+
+    /// True if the GPU format is overridden.
+    bool gpuFormatOverridden_      = false;
+
+    /// Used to override on-GPU format. 
+    /// Allows to create RGB5 textures from RGB8 images .
+    ColorFormat gpuFormatOverride_;
 
     /// Set texture filtering mode.
     ref TextureParams filtering(const TextureFiltering filtering) @safe pure nothrow
@@ -57,6 +64,18 @@ struct TextureParams
     ref TextureParams wrap(const TextureWrap wrap) @safe pure nothrow
     {
         wrap_ = wrap;
+        return this;
+    }
+
+    /// Override on-GPU texture color format. 
+    /// Allows to create RGB5 textures from RGB8 images .
+    ///
+    /// Note that this might still be different from the final on-GPU format 
+    /// if the GPU or Renderer implementation doesn't support the format.
+    ref TextureParams overrideGPUFormat(const ColorFormat format) @safe pure nothrow
+    {
+        gpuFormatOverride_  = format;
+        gpuFormatOverridden_ = true;
         return this;
     }
 }
