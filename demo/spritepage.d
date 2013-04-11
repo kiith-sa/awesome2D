@@ -50,6 +50,10 @@ import video.vertexbuffer;
 package struct GenericSpritePage(SpriteType, TexturePacker)
     if(SpriteType.layerCount >= 1)
 {
+public:
+    // Use lower bit depth on the GPU?
+    static bool lowBitDepth = false;
+
 private:
     // Textures - layers of the page, storing data such as color, normals, etc.
     Texture*[SpriteType.layerCount] textureLayers_;
@@ -248,11 +252,17 @@ createGenericSpritePage(SpriteType, TexturePacker)
     {
         image = Image(size.x, size.y, SpriteType.layerFormats[i]);
     }
-    const textureParams    = TextureParams().filtering(TextureFiltering.Nearest);
 
     result.textureLayers_[] = null;
     foreach(t, ref texture; result.textureLayers_)
     {
+        alias GenericSpritePage!(SpriteType, TexturePacker)* SpritePage;
+        const gpuFormat =
+            SpritePage.lowBitDepth ? lowerBitDepth(emptyImages[t].format)
+                                     : emptyImages[t].format;
+        const textureParams =
+            TextureParams().filtering(TextureFiltering.Nearest)
+                           .overrideGPUFormat(gpuFormat);
         texture = renderer.createTexture(emptyImages[t], textureParams);
     }
 
