@@ -158,11 +158,6 @@ public:
 
         gameTime_ = new GameTime();
 
-        spriteManager_ = new Sprite3DManager(renderer_, dataDir_);
-        scope(failure){destroy(spriteManager_); spriteManager_ = null;}
-        guiSpriteManager_ = new SpritePlainManager(renderer_, dataDir_);
-        scope(failure){destroy(guiSpriteManager_); guiSpriteManager_ = null;}
-
         // Initialize camera.
         camera_ = new Camera2D();
         scope(failure){destroy(camera_); camera_ = null;}
@@ -180,31 +175,10 @@ public:
         fpsCounter_.update.connect((real fps){platform_.windowCaption = "FPS: " ~ to!string(fps);});
 
 
-        // Initialize the demo itself.
+        initSprites();
+        scope(failure){destroySprites();}
 
-        // Initialize the sprite renderer.
-        try
-        {
-            spriteRenderer_ =
-                Sprite3DManager.constructSpriteRenderer(renderer_, dataDir_, camera_);
-            spriteRenderer_.verticalAngle = 30.0f;
-            guiSpriteRenderer_ =
-                SpritePlainManager.constructSpriteRenderer(renderer_, dataDir_, guiCamera_);
-            guiVectorRenderer_ = new VectorRenderer(renderer_, dataDir_, guiCamera_);
-        }
-        catch(SpriteRendererInitException e)
-        {
-            throw new StartupException("Failed to initialize sprite renderer: " ~ e.msg);
-        }
-        scope(failure)
-        {
-            destroy(guiVectorRenderer_);
-            guiVectorRenderer_ = null;
-            destroy(guiSpriteRenderer_);
-            guiSpriteRenderer_ = null;
-            destroy(spriteRenderer_);
-            spriteRenderer_ = null;
-        }
+        // Initialize the demo itself.
 
         fontRenderer_ = new FontRenderer(renderer_, dataDir_, guiCamera_);
         scope(failure){destroy(fontRenderer_);}
@@ -259,13 +233,9 @@ public:
         if(pointLightSprite_ !is null){free(pointLightSprite_);}
         destroyGUI();
         if(fontRenderer_ !is null){destroy(fontRenderer_);}
-        if(guiVectorRenderer_ !is null){destroy(guiVectorRenderer_);}
-        if(guiSpriteRenderer_ !is null){destroy(guiSpriteRenderer_);}
-        if(spriteRenderer_ !is null){destroy(spriteRenderer_);}
         if(guiCamera_ !is null){destroy(guiCamera_);}
         if(camera_ !is null){destroy(camera_);}
-        if(guiSpriteManager_ !is null){destroy(guiSpriteManager_);}
-        if(spriteManager_ !is null){destroy(spriteManager_);}
+        destroySprites();
         destroyRenderer();
         destroyPlatform();
     }
@@ -417,6 +387,45 @@ private:
         }
     }
 
+    /// Initialize sprite loading/rendering objects.
+    void initSprites()
+    {
+        spriteManager_ = new Sprite3DManager(renderer_, dataDir_);
+        scope(failure){destroy(spriteManager_); spriteManager_ = null;}
+        guiSpriteManager_ = new SpritePlainManager(renderer_, dataDir_);
+        scope(failure){destroy(guiSpriteManager_); guiSpriteManager_ = null;}
+
+        // Initialize the sprite renderer.
+        try
+        {
+            spriteRenderer_ =
+                Sprite3DManager.constructSpriteRenderer(renderer_, dataDir_, camera_);
+            spriteRenderer_.verticalAngle = 30.0f;
+            guiSpriteRenderer_ =
+                SpritePlainManager.constructSpriteRenderer(renderer_, dataDir_, guiCamera_);
+            guiVectorRenderer_ = new VectorRenderer(renderer_, dataDir_, guiCamera_);
+        }
+        catch(SpriteRendererInitException e)
+        {
+            throw new StartupException("Failed to initialize sprite renderer: " ~ e.msg);
+        }
+
+        try
+        {
+            auto sprites      = config_["sprites"];
+            const lowBitDepth = sprites["lowBitDepth"].as!bool;
+
+            if(lowBitDepth){writeln("Using lower sprite bit depth");}
+            Sprite3DManager.SpritePage.lowBitDepth    = lowBitDepth;
+            SpritePlainManager.SpritePage.lowBitDepth = lowBitDepth;
+        }
+        catch(YAMLException e)
+        {
+            // Not an error if these are not specified.
+            return;
+        }
+    }
+
     /// Initialize the renderer. Throws StartupException on failure.
     void initRenderer()
     {
@@ -426,7 +435,6 @@ private:
             throw new StartupException("Failed to initialize renderer dependencies: " ~ e.msg);
         }
 
-        // Load config options (not sure if anyone will use this...).
         auto video       = config_["video"];
         const width      = video["width"].as!uint;
         const height     = video["height"].as!uint;
@@ -482,6 +490,16 @@ private:
         guiSpriteRenderer_.switchRenderer(renderer_);
         guiVectorRenderer_.switchRenderer(renderer_);
         spriteRenderer_.switchRenderer(renderer_);
+    }
+
+    /// Destroy sprite loading/rendering objects.
+    void destroySprites()
+    {
+        destroy(guiVectorRenderer_); guiVectorRenderer_ = null;
+        destroy(guiSpriteRenderer_); guiSpriteRenderer_ = null;
+        destroy(spriteRenderer_);    spriteRenderer_    = null;
+        destroy(spriteManager_);     spriteManager_     = null;
+        destroy(guiSpriteManager_);  guiSpriteManager_  = null;
     }
 
     /// Destroy the renderer.
