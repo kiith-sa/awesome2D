@@ -70,8 +70,6 @@ private:
     VFSDir utilDir_;
     /// Directory to write output files to.
     VFSDir outputDir_;
-    /// Directory to load the model and texture from.
-    VFSDir loadDir_;
     /// Main config file (YAML).
     YAMLNode config_;
 
@@ -86,19 +84,17 @@ public:
     ///
     /// Params: utilDir         = Directory for configuration files and logging output.
     ///         outputDir       = Directory to write output files to.
-    ///         loadDir         = Directory to load the model and texture from.
     ///         width           = Video mode width in pixels.
     ///         height          = Video mode height in pixels.
     ///         modelFileName   = File name of the model to render.
     ///         textureFileName = File name of the texture to use. Can be null.
     ///
     /// Throws: StartupException on failure.
-    this(VFSDir utilDir, VFSDir outputDir, VFSDir loadDir, 
+    this(VFSDir utilDir, VFSDir outputDir,
          const uint width, const uint height, string modelFileName, string textureFileName)
     {
         utilDir_   = utilDir;
         outputDir_ = outputDir;
-        loadDir_   = loadDir;
         writeln("Initializing Prerenderer...");
         modelFileName_ = modelFileName;
 
@@ -284,7 +280,7 @@ private:
     {
         try
         {
-            scene_ = new Scene(loadDir_, renderer_, modelFileName, textureFileName);
+            scene_ = new Scene(renderer_, modelFileName, textureFileName);
         }
         catch(SceneInitException e)
         {

@@ -80,8 +80,6 @@ private:
     float maxDistanceFromOrigin_;
     // Texture used with the model. If none is specified by user, a placeholder is generated.
     Texture* texture_;
-    // Directory to load the texture and model from.
-    VFSDir loadDir_;
 
     // Renderer used to create graphics data structures and for rendering.
     Renderer renderer_;
@@ -93,18 +91,15 @@ private:
 public:
     /// Construct a Scene.
     ///
-    /// Params:  loadDir         = Directory to load the model and texture from.
-    ///          renderer        = Renderer used to draw the scene.
+    /// Params:  renderer        = Renderer used to draw the scene.
     ///          modelFileName   = Filename of the model to use. The model format must
     ///                            be supported by Assimp (lots of formats).
     ///          textureFileName = Filename of the texture to use with the model.
     ///                            If null, a placeholder texture will be generated.
     ///
     /// Throws:  SceneInitException on failure.
-    this(VFSDir loadDir, Renderer renderer,
-         const string modelFileName, const string textureFileName)
+    this(Renderer renderer, const string modelFileName, const string textureFileName)
     {
-        loadDir_ = loadDir;
         renderer_ = renderer;
 
         // Load the Assimp library.
@@ -389,7 +384,7 @@ private:
         try
         {
             // Load the texture.
-            auto textureFile = loadDir_.file(textureFileName);
+            auto textureFile = physicalFSFile(textureFileName);
             if(!textureFile.exists)
             {
                 throw new E("Texture file " ~ textureFileName ~ " does not exist");

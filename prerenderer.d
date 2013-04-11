@@ -157,7 +157,7 @@ void help(string commandName)
         "                              lighting)",
         "                              Default: 1",
         "    Example:",
-        "      " ~ commandName ~ " render --texture=box.png --width=48 --height=20 box.obj",
+        "      " ~ commandName ~ " render '--texture=box.png' --width=48 --height=20 'box.obj'",
         "                             Renders model box.obj with texture box.png with the",
         "                             default 8 rotations and a 45 degree vertical angle.",
         "                             The rendered images will be 48x20 pixels. Only the",
@@ -400,10 +400,9 @@ private:
             YAMLNode[] imagesMeta;
             outputDir_ = outputDir_.dir(modelBaseName ~ "_prerender");
             outputDir_.create();
-            auto prerender = 
-                new Prerenderer(utilDir_, outputDir_, new FSDir("loadDir", "."),
-                                renderWidth, renderHeight, 
-                                modelFileName, textureFileName);
+            auto prerender = new Prerenderer(utilDir_, outputDir_,
+                                             renderWidth, renderHeight, 
+                                             modelFileName, textureFileName);
             writeln("Initialized prerender...");
             scope(exit){clear(prerender);}
             RenderParams params;
