@@ -718,8 +718,8 @@ private:
         // Draw everything _above_ the topmost layer.
         const drawParams = SpriteDrawParams(cast(short)xStrip, cast(ushort)yStrip,
                                             cast(ushort)cell.layerCount, true);
-        tileBBox_.min.z = (cell.layerCount - 0.5f) * tileSize.z - 4.0f;
-        tileBBox_.max.z = (cell.layerCount + 0.5f + 65535.0f) * tileSize.z + 4.0f;
+        tileBBox_.min.z = (cell.layerCount - 0.5f) * tileSize.z - 5.0f;
+        tileBBox_.max.z = (cell.layerCount + 0.5f + 65535.0f) * tileSize.z + 5.0f;
         spriteRenderer_.clipBounds = tileBBox_;
         drawInTile_(spriteRenderer_, tileBBox_, drawParams);
     }
@@ -825,7 +825,7 @@ private:
         // Cull the Z coordinates of the tile bounding box.
         if(currentTile.shape == TileShape.Flat && obscuredSE && obscuredSW)
         {
-            tileBBox_.min.z = tileBBox_.max.z - 6.0f;
+            tileBBox_.min.z = tileBBox_.max.z - 10.0f;
         }
         return false;
     }
