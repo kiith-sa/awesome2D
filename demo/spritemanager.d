@@ -36,8 +36,11 @@ import video.renderer;
 class GenericSpriteManager(SpriteType)
 {
 public:
-    // SpriteRenderer used to draw sprites managed by this manager.
+    /// SpriteRenderer used to draw sprites managed by this manager.
     alias SpriteType.SpriteRenderer SpriteRenderer;
+
+    /// Sprite page type used to pack sprites created by this manager.
+    alias GenericSpritePage!(SpriteType, BinaryTexturePacker) SpritePage;
 
 private:
     import containers.vector;
@@ -47,12 +50,10 @@ private:
     // Might contain null pointers, left behind deleted sprites.
     Vector!(Sprite*) sprites_;
 
-    // Sprite page type used to pack sprites created by this manager.
-    alias GenericSpritePage!(SpriteType, BinaryTexturePacker) SpritePageType;
     // Sprite pages storing image data of the sprites.
     //
     // Might contain null pointers, left behind deleted sprites.
-    Vector!(SpritePageType*) spritePages_;
+    Vector!(SpritePage*) spritePages_;
 
     // Currently used renderer. Used to build textures and vertex buffers.
     Renderer renderer_;
@@ -143,7 +144,7 @@ public:
         {
             foreach(ref facing; sprite.facings_)
             {
-                (cast(SpritePageType*)facing.spritePage)
+                (cast(SpritePage*)facing.spritePage)
                     .removeImage(facing.textureArea, facing.indexBufferOffset);
             }
             free(sprite.facings_);
@@ -188,7 +189,7 @@ package:
             foreach(ref facing; s.facings_)
             {
                 assert(facing.isValid, "Invalid sprite facing at destruction");
-                (cast(SpritePageType*)(facing.spritePage))
+                (cast(SpritePage*)(facing.spritePage))
                     .removeImage(facing.textureArea, facing.indexBufferOffset);
             }
             free(s.facings_);
@@ -283,7 +284,7 @@ private:
     {
         foreach(ref facing; facings) if(facing.isValid)
         {
-            (cast(SpritePageType*)(facing.spritePage))
+            (cast(SpritePage*)(facing.spritePage))
                 .removeImage(facing.textureArea, facing.indexBufferOffset);
         }
     }
