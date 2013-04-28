@@ -205,6 +205,10 @@ int main(string[] args)
 
     runUnitTests();
 
+    writeln("================================================================================");
+    writeln("                              MAIN, unittests done");
+    writeln("================================================================================");
+
     try{return DemoCLI(args).execute();}
     catch(ConvException e)
     {
