@@ -3,3 +3,5 @@ video:
   height:     768
   depth:      32
   fullscreen: false
+sprites:
+  lowBitDepth: false
