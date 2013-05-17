@@ -123,6 +123,12 @@ public:
     /// Get size of the sprite in pixels.
     @property vec2u size() @safe const pure nothrow {return size_;}
 
+    /// Get X size of the sprite in pixels.
+    @property uint width() @safe const pure nothrow {return size_.x;}
+
+    /// Get Y size of the sprite in pixels.
+    @property uint height() @safe const pure nothrow {return size_.y;}
+
     /// Get the name of the sprite.
     @property string name() @safe const pure nothrow {return name_;}
 
