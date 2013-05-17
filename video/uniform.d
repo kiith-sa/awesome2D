@@ -33,18 +33,18 @@ struct Uniform(Type)
             handle_ = handle;
         }
 
-        /// Set the uniform's value (triggers reupload).
+        /// Set the uniform's value (triggers reupload if changed).
         @property void value(const Type rhs) @safe pure nothrow 
         {
+            if(value_ != rhs) {needReupload_ = true;}
             value_ = rhs;
-            needReupload_ = true;
         }
 
         /// Ditto.
         @property void value(ref const Type rhs) @safe pure nothrow 
         {
+            if(value_ != rhs) {needReupload_ = true;}
             value_ = rhs;
-            needReupload_ = true;
         }
 
         /// Access the value directly, allowing modification (triggers reupload).
