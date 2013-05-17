@@ -19,7 +19,7 @@ struct CenteredSquare
     /// Center of the square.
     vec2 center;
     /// Half-size of the square ("radius").
-    float halfSize;
+    float halfSize = 0.0f;
 
     /// Does this square fully contain the other square?
     bool contains(const CenteredSquare rhs)
