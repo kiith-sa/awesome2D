@@ -16,5 +16,5 @@ struct BoundingSphere
     /// Center of the sphere.
     vec3 center;
     /// Radius of the sphere.
-    float radius;
+    float radius = 0.0f;
 }
