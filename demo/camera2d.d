@@ -73,7 +73,7 @@ public:
     @property ref const(mat4) projection() @safe const pure nothrow {return projection_;}
 
 private:
-    // Update the projection matrix (called when a camera parameter changes.
+    // Update the projection matrix (called when a camera parameter changes).
     void updateProjection() @safe pure nothrow
     {
         auto zoomedHalfSize = (vec2(size_.x, size_.y) * 0.5f) * (1.0f / zoom_);
