@@ -88,6 +88,9 @@ package:
     // True when any shader program is bound. Avoids binding multiple programs at once.
     static bool isAShaderProgramBound_ = false;
 
+    // Is the shader program bound at the moment?
+    bool bound_ = false;
+
 public:
     /// Destroy the shader program.
     ~this()
@@ -174,9 +177,11 @@ public:
     /// Can only be called while the shader program is locked.
     void bind()
     {
+        assert(!bound, "Trying to bind an already bound shader program");
         assert(!isAShaderProgramBound_,
                "Trying to bind a shader program while another shader program is bound");
         isAShaderProgramBound_ = true;
+        bound_                 = true;
         bind_(this);
     }
 
@@ -187,9 +192,14 @@ public:
     /// Can only be called while the shader program is bound.
     void release()
     {
+        assert(bound_, "Trying to release a shader program that is not bound");
         release_(this);
         isAShaderProgramBound_ = false;
+        bound_                 = false;
     }
+
+    /// Is the shader program bound at the moment?
+    @property bool bound() @safe const pure nothrow {return bound_;}
 
     /// Get a handle to a uniform variable.
     ///
