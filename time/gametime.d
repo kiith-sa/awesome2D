@@ -33,7 +33,7 @@ class GameTime
 {
     private:
         ///Time taken by single game update.
-        immutable real timeStep_ = 1.0 / 120.0; 
+        static immutable real timeStep_ = 1.0 / 120.0; 
         ///Time this update started, in game time (i.e; the current game time).
         real gameTime_ = 0.0;
         ///Time update() function started, in absolute time.

@@ -58,10 +58,11 @@ struct Vector(T, Allocator = DirectAllocator)
         }
 
         ///Compute a hash.
-        hash_t toHash() const nothrow @safe
+        hash_t toHash() const nothrow @trusted
         {
             static type = typeid(T);
-            return type.getHash(&data_[0 .. used_]);
+            const slice = data_[0 .. used_];
+            return type.getHash(&slice);
         }
 
         /**
@@ -170,7 +171,7 @@ struct Vector(T, Allocator = DirectAllocator)
             {
                 foreach(ref elem; data_[array.length .. $]){.destroy(elem);}
             }
-            data_[0 .. array.length] = array;
+            data_[0 .. array.length] = array[];
             used_ = array.length; 
         }
 
@@ -181,7 +182,7 @@ struct Vector(T, Allocator = DirectAllocator)
          *
          * Returns: Element at the specified index.
          */
-        auto ref inout(T) opIndex(const size_t index) @safe inout pure nothrow
+        ref inout(T) opIndex(const size_t index) @trusted inout
         in{assert(index < used_, "Vector index out of bounds");}
         body{return data_[index];}
 
@@ -250,10 +251,10 @@ struct Vector(T, Allocator = DirectAllocator)
         inout(T[]) opSlice() @safe inout pure nothrow {return this[0 .. used_];}
 
         ///Access the first element of the vector.
-        ref inout(T) front() @safe inout pure nothrow {return this[0];}
+        ref inout(T) front() inout {return this[0];}
 
         ///Access the last element of the vector.
-        ref inout(T) back() @safe inout pure nothrow {return this[this.length - 1];}
+        ref inout(T) back() @trusted inout {return this[this.length - 1];}
 
         ///Remove the last element of the vector.
         void popBack() @trusted {length = length - 1;}

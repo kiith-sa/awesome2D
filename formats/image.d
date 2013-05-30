@@ -126,7 +126,7 @@ void readImage(ref Image image, VFSFile file,
 
         clear(image);
         image = Image(width, height, format);
-        image.dataUnsafe[] = imageData;
+        image.dataUnsafe[] = imageData[];
         free(imageData);
     }
     catch(ImageFileException e)

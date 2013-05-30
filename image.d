@@ -55,7 +55,7 @@ public:
         const oldData = data_;
         const bytes = width * height * bytesPerPixel(format_);
         data_ = allocArray!ubyte(bytes);
-        memcpy(data_, oldData, bytes);
+        memcpy(data_.ptr, oldData.ptr, bytes);
     }
 
     /// Downsample a high-resolution image to a lower resolution.

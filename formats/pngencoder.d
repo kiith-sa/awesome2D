@@ -106,7 +106,8 @@ struct PNGEncoder
             foreach(chunk; chunks){writeChunk(buffer, chunk);}
 
             ubyte[] output = allocArray!ubyte(cast(uint)buffer.length);
-            output[] = buffer[];
+            // This is the same as buffer[], but it shuts up a compiler warning.
+            output[] = buffer[][];
 
             return output;
         }

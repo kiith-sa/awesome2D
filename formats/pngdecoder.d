@@ -194,7 +194,8 @@ struct PNGDecoder
             else{reconstruct(buffer, info.image);}
 
             ubyte[] output = allocArray!ubyte(cast(uint)buffer.length);
-            output[] = buffer[];
+            // This is the same as buffer[], but it shuts up a compiler warning.
+            output[] = buffer[][];
 
             return output;
         }
@@ -294,12 +295,12 @@ class PNGChunkIterator
  *          filter     = Filter to unapply.
  */
 void unfilterLine(ubyte[] result, const ubyte[] line, const ubyte[] previous, 
-                  uint pixelBytes, const PNGFilter filter) pure
+                  uint pixelBytes, const PNGFilter filter) //pure
 {
     switch(filter)
     {
         case PNGFilter.Paeth:
-            result[0 .. line.length] = line;
+            result[0 .. line.length] = line[];
             //first pixel
             result[0 .. pixelBytes] += previous[0 .. pixelBytes];
 
