@@ -376,7 +376,7 @@ final class Constructor
         }
 
         //Get the array of constructor functions for scalar, sequence or mapping.
-        auto delegates(T)() pure @safe nothrow
+        @property auto delegates(T)() pure @safe nothrow
         {
             static if(is(T : string))          {return &fromScalar_;}
             else static if(is(T : Node[]))     {return &fromSequence_;}
@@ -428,11 +428,11 @@ long constructLong(ref Node node)
         //Zero.
         if(value == "0")               {result = cast(long)0;}
         //Binary.
-        else if(value.startsWith("0b")){result = sign * parse!int(value[2 .. $], 2);}
+        else if(value.startsWith("0b")){result = sign * to!int(value[2 .. $], 2);}
         //Hexadecimal.
-        else if(value.startsWith("0x")){result = sign * parse!int(value[2 .. $], 16);}
+        else if(value.startsWith("0x")){result = sign * to!int(value[2 .. $], 16);}
         //Octal.
-        else if(value[0] == '0')       {result = sign * parse!int(value, 8);}
+        else if(value[0] == '0')       {result = sign * to!int(value, 8);}
         //Sexagesimal.
         else if(value.canFind(":"))
         {
@@ -618,7 +618,7 @@ SysTime constructTimestamp(ref Node node)
         value = matches.front.post;
         matches = match(value, TZRegexp);
         if(matches.empty || matches.front.captures[0] == "Z")
-        {                                                 
+        {
             return SysTime(DateTime(year, month, day, hour, minute, second),
                            FracSec.from!"hnsecs"(hectonanosecond), UTC());
         }
@@ -631,12 +631,12 @@ SysTime constructTimestamp(ref Node node)
             if(captures[1][0] == '-'){sign = -1;}
             tzHours   = to!int(captures[1][1 .. $]);
         }
-        const tzMinutes = (!captures[2].empty) ? to!int(captures[2][1 .. $]) : 0;
-        const tzOffset = sign * (60 * tzHours + tzMinutes);
+        auto tzMinutes = (!captures[2].empty) ? to!int(captures[2][1 .. $]) : 0;
+        auto tzOffset = sign * (60 * tzHours + tzMinutes);
 
         return SysTime(DateTime(year, month, day, hour, minute, second),
                        FracSec.from!"hnsecs"(hectonanosecond), 
-                       new SimpleTimeZone(tzOffset));
+                       new immutable SimpleTimeZone(tzOffset));
     }
     catch(ConvException e)
     {

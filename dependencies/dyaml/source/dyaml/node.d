@@ -259,15 +259,17 @@ struct Node
         }
         unittest
         {
-            with(Node(42))
             {
-                assert(isScalar() && !isSequence && !isMapping && !isUserType);
-                assert(as!int == 42 && as!float == 42.0f && as!string == "42");
-                assert(!isUserType());
+                auto node = Node(42);
+                assert(node.isScalar && !node.isSequence && 
+                       !node.isMapping && !node.isUserType);
+                assert(node.as!int == 42 && node.as!float == 42.0f && node.as!string == "42");
+                assert(!node.isUserType);
             }
-            with(Node(new class{int a = 5;}))
+
             {
-                assert(isUserType());
+                auto node = Node(new class{int a = 5;});
+                assert(node.isUserType);
             }
         }
 
@@ -581,7 +583,7 @@ struct Node
                 {
                     return (cast(YAMLContainer!T)object).value_;
                 }
-                throw new Error("Node stores unexpected type: " ~ object.type.toString ~ 
+                throw new Error("Node stores unexpected type: " ~ object.type.toString() ~ 
                                 ". Expected: " ~ typeid(T).toString, startMark_);
             }
 
@@ -594,7 +596,7 @@ struct Node
                 static if(!stringConversion) 
                 {
                     if(isString){return to!T(value_.get!string);}
-                    throw new Error("Node stores unexpected type: " ~ type.toString ~ 
+                    throw new Error("Node stores unexpected type: " ~ type.toString() ~ 
                                     ". Expected: " ~ typeid(T).toString, startMark_);
                 }
                 else
@@ -622,12 +624,12 @@ struct Node
                 {
                     const temp = value_.get!(const long);
                     enforce(temp >= T.min && temp <= T.max,
-                            new Error("Integer value of type " ~ typeid(T).toString ~ 
+                            new Error("Integer value of type " ~ typeid(T).toString() ~ 
                                       " out of range. Value: " ~ to!string(temp), startMark_));
                     return to!T(temp);
                 }
-                throw new Error("Node stores unexpected type: " ~ type.toString ~ 
-                                ". Expected: " ~ typeid(T).toString, startMark_);
+                throw new Error("Node stores unexpected type: " ~ type.toString() ~ 
+                                ". Expected: " ~ typeid(T).toString(), startMark_);
             }
             assert(false, "This code should never be reached");
         }
@@ -651,7 +653,7 @@ struct Node
                 {
                     return (cast(const YAMLContainer!(Unqual!T))object).value_;
                 }
-                throw new Error("Node has unexpected type: " ~ object.type.toString ~ 
+                throw new Error("Node has unexpected type: " ~ object.type.toString() ~ 
                                 ". Expected: " ~ typeid(T).toString, startMark_);
             }
 
@@ -664,8 +666,8 @@ struct Node
                 static if(!stringConversion) 
                 {
                     if(isString){return to!T(value_.get!(const string));}
-                    throw new Error("Node stores unexpected type: " ~ type.toString ~ 
-                                    ". Expected: " ~ typeid(T).toString, startMark_);
+                    throw new Error("Node stores unexpected type: " ~ type.toString() ~ 
+                                    ". Expected: " ~ typeid(T).toString(), startMark_);
                 }
                 else
                 {
@@ -693,11 +695,11 @@ struct Node
                 {
                     const temp = value_.get!(const long);
                     enforce(temp >= T.min && temp <= T.max,
-                            new Error("Integer value of type " ~ typeid(T).toString ~ 
+                            new Error("Integer value of type " ~ typeid(T).toString() ~ 
                                       " out of range. Value: " ~ to!string(temp), startMark_));
                     return to!T(temp);
                 }
-                throw new Error("Node stores unexpected type: " ~ type.toString ~ 
+                throw new Error("Node stores unexpected type: " ~ type.toString() ~ 
                                 ". Expected: " ~ typeid(T).toString, startMark_);
             }
         }
@@ -1536,7 +1538,7 @@ struct Node
             {
                 return value_.get!(const YAMLObject).cmp(rhs.value_.get!(const YAMLObject));
             }
-            assert(false, "Unknown type of node for comparison : " ~ type.toString);
+            assert(false, "Unknown type of node for comparison : " ~ type.toString());
         }
 
         /*
@@ -1576,7 +1578,7 @@ struct Node
             if(isScalar)
             {
                 return indent ~ "scalar(" ~ 
-                       (convertsTo!string ? get!string : type.toString) ~ ")\n";
+                       (convertsTo!string ? get!string : type.toString()) ~ ")\n";
             }
             assert(false);
         }
@@ -1626,7 +1628,7 @@ struct Node
         }
 
         //Determine if the value can be converted to specified type.
-        bool convertsTo(T)() const @safe
+        @property bool convertsTo(T)() const @safe
         {
             if(isType!T){return true;}
 
@@ -1677,9 +1679,9 @@ struct Node
             {
                 static long getIndex(ref Node node, ref T rhs)
                 {
-                    foreach(idx, ref elem; node.get!(Node[])) with(elem)
+                    foreach(idx, ref elem; node.get!(Node[]))
                     {
-                        if(convertsTo!T && as!(T, No.stringConversion) == rhs)
+                        if(elem.convertsTo!T && elem.as!(T, No.stringConversion) == rhs)
                         {
                             return idx;
                         }

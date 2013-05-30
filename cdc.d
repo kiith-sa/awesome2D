@@ -173,7 +173,7 @@ void main(string[] args)
                          "dependencies/Derelict3/import/derelict/util/",
                          "dependencies/gl3n",
                          "dependencies/dgamevfs/dgamevfs",
-                         "dependencies/dyaml/dyaml"];
+                         "dependencies/dyaml/source"];
     auto sources      = ["containers/", "formats/", "math/",
                          "memory/", "platform/", "time/", "util/", "video/",
                          "color.d", "image.d"];

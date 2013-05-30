@@ -1,4 +1,3 @@
-
 //          Copyright Ferdinand Majerech 2011.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
@@ -1285,7 +1284,7 @@ struct ScalarWriter
         @disable bool opEquals(ref Emitter);
 
         ///Used as "null" UTF-32 character.
-        immutable dcharNone = dchar.max;
+        static immutable dcharNone = dchar.max;
 
         ///Emitter used to emit the scalar.
         Emitter* emitter_;
@@ -1555,7 +1554,7 @@ struct ScalarWriter
 
     private:
         ///Get next character and move end of the text range to it.
-        dchar nextChar() pure @safe
+        @property dchar nextChar() pure @safe
         {
             ++endChar_;
             endByte_ = nextEndByte_;
@@ -1571,21 +1570,21 @@ struct ScalarWriter
         }
 
         ///Get character at start of the text range.
-        dchar charAtStart() const pure @safe
+        @property dchar charAtStart() const pure @safe
         {
             size_t idx = startByte_;
             return decode(text_, idx);
         }
 
         ///Is the current line too wide?
-        bool tooWide() const pure @safe nothrow
+        @property bool tooWide() const pure @safe nothrow
         {
             return startChar_ + 1 == endChar_ && 
                    emitter_.column_ > emitter_.bestWidth_;
         }
 
         ///Determine hints (indicators) for block scalar.
-        size_t determineBlockHints(ref char[] hints, uint bestIndent) const pure @trusted 
+        size_t determineBlockHints(char[] hints, uint bestIndent) const pure @trusted 
         {
             size_t hintsIdx = 0;
             if(text_.length == 0){return hintsIdx;}
