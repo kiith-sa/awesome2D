@@ -7,6 +7,7 @@
 module util.linalg;
 
 
+import std.math;
 public import gl3n.linalg;
 
 
@@ -31,3 +32,11 @@ alias Vector!(uint, 3) vec3u;
 alias Vector!(uint, 4) vec4u;
 alias Vector!(ushort, 2) vec2us;
 
+/// Return a vector where each component is set to its power using corresponding component from
+/// powers as exponent.
+vec3 pow(const vec3 v, const vec3 powers) @safe pure nothrow
+{
+    return vec3(std.math.pow(v.x, powers.x), 
+                std.math.pow(v.y, powers.y),
+                std.math.pow(v.z, powers.z));
+}
