@@ -177,16 +177,16 @@ public:
 class VectorRenderer : SpriteUnlitRenderer
 {
 private:
-    /// Vector sprites created by this renderer.
+    // Vector sprites created by this renderer.
     Vector!(VectorSprite*) sprites_;
 
-    /// Currently bound vertex buffer (only relevant when drawing).
+    // Currently bound vertex buffer (only relevant when drawing).
     VertexBuffer!VectorVertex* boundVBuffer_ = null;
 
-    /// Vertex buffer storing vertices of lines in sprites.
+    // Vertex buffer storing vertices of lines in sprites.
     VertexBuffer!VectorVertex* lineVBuffer_;
 
-    /// Vertex buffer storing vertices of triangles in sprites.
+    // Vertex buffer storing vertices of triangles in sprites.
     VertexBuffer!VectorVertex* triVBuffer_;
 
 public:
@@ -235,7 +235,7 @@ public:
     ///
     /// Params:  sprite   = Sprite to draw. Must be locked.
     ///          position = 2D position of the sprite.
-    void drawVectorSprite(VectorSprite* sprite, const vec2 position) @trusted
+    void drawVectorSprite(VectorSprite* sprite, const vec3 position) @trusted
     {
         assert(sprites_[].canFind(sprite),
                "Trying to draw a vector sprite that wasn't created by this VectorRenderer");
@@ -346,6 +346,30 @@ private:
         }
         assert(false, "Deleting a nonexistent (or already deleted) sprite");
     }
+}
+
+import spatial.centeredsquare;
+/// Draw a centered square (wireframe). Used for debugging.
+///
+/// Params:  renderer = VectorRenderer to draw the square.
+///                     Must be between startDrawing() and stopDrawing() calls.
+///          square   = Square to draw.
+///          color    = Color to draw with.
+void drawCenteredSquare(VectorRenderer renderer, const CenteredSquare square,
+                        const Color color)
+{
+    auto sprite = renderer.createVectorSprite();
+    scope(exit){free(sprite);}
+    with(*sprite)
+    {
+        const h = square.halfSize;
+        addLine(vec2(-h, -h), color, vec2(h, -h), color);
+        addLine(vec2(h, -h), color, vec2(h, h), color);
+        addLine(vec2(h, h), color, vec2(-h, h), color);
+        addLine(vec2(-h, h), color, vec2(-h, -h), color);
+        lock();
+    }
+    renderer.drawVectorSprite(sprite , vec3(square.center, 0));
 }
 
 private:

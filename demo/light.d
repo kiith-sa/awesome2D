@@ -76,6 +76,8 @@ struct PointLight
 private:
     // 3D position of the light source.
     vec3 position_     = vec3(0.0f, 0.0f, 1.0f);
+    // Intensity of the light. Acts as a multiplier for diffuse color.
+    float intensity_   = 1.0f;
     // Diffuse color of the light.
     Color diffuse_     = rgb!"000000";
     // Attenuation factor of the light.
@@ -106,6 +108,9 @@ public:
     /// Get 3D position of the light source.
     @property vec3 position() @safe const pure nothrow {return position_;}
 
+    /// Get the intensity of the light.
+    @property float intensity() @safe const pure nothrow {return intensity_;}
+
     /// Get diffuse color of the light.
     @property Color diffuse() @safe const pure nothrow {return diffuse_;}
 
@@ -125,6 +130,13 @@ public:
     {
         assert(!locked_, "Can't modify a point light - lights are locked'");
         position_ = rhs;
+    }
+
+    /// Set the intensity of the light.
+    @property void intensity(const float rhs) @safe pure nothrow 
+    {
+        intensity_ = rhs;
+        boundingSphere_.radius = 384 * intensity / attenuation_;
     }
 
     /// Set diffuse color of the light.
@@ -149,7 +161,6 @@ public:
     {
         assert(!locked_, "Can't modify a point light - lights are locked'");
         attenuation_ = rhs;
-        // TODO decrease once HDR and quadratic attentuation is implemented
-        boundingSphere_.radius = 256 / attenuation_;
+        boundingSphere_.radius = 384 * intensity / attenuation_;
     }
 }

@@ -11,18 +11,24 @@ module demo.spriterenderer;
 import std.algorithm;
 import std.math;
 alias std.math.round round;
+import std.stdio;
 
 import dgamevfs._;
 import gl3n.aabb;
 
 import demo.camera2d;
 import demo.light;
+import demo.lightmanager;
+import demo.lightuniforms;
 import demo.sprite;
 import demo.spritepage;
 import demo.spritetype;
 import demo.texturepacker;
 import math.math;
 import memory.memory;
+import spatial.boundingsphere;
+import spatial.centeredsquare;
+import spatial.spatialmanager;
 import util.linalg;
 import video.exceptions;
 import video.glslshader;
@@ -241,6 +247,7 @@ private:
     }
 }
 
+//XXX DOCUMENT UNIFORMS THE PROGAM MUST HAVE
 /// Sprite renderer used to draw sprites with 3D lighting support.
 ///
 /// Has methods to register/unregister point and directional lights 
@@ -254,19 +261,6 @@ private:
 /// the clipped area will not be drawn.
 class Sprite3DRenderer : SpriteRendererBase
 {
-public:
-    // Maximum number of directional lights supported.
-    //
-    // This is hardcoded in the sprite fragment shader. If changed, update the
-    // shader as well as any 2's found in documentation/errors in this file.
-    enum maxDirectionalLights = 2;
-
-    // Maximum number of point lights supported.
-    //
-    // This is hardcoded in the sprite fragment shader. If changed, update the
-    // shader as well as any 6's found in documentation/errors in this file.
-    enum maxPointLights = 6;
-
 private:
     alias GenericSpritePage!(SpriteType3D, BinaryTexturePacker) SpritePage;
 
@@ -298,58 +292,45 @@ private:
     // Maximum bounds of the 3D clipped area. Any pixels outside this area will be discarded.
     Uniform!vec3 maxClipBoundsUniform_;
 
-    // Ambient light color.
-    Uniform!vec3 ambientLightUniform_;
+    // Inverses of gamma correction exponents for every color channel.
+    vec3 invGamma_ = vec3(2.2f, 2.2f, 2.2f);
 
-    // We pass every light attribute as a separate array as there is no
-    // way to pass struct arrays to shaders (at least with GL 2.1).
+    // Manages light sources; maps many virtual lights to a few actual lights and reduces 
+    // light uniform reuploads.
+    LightManager lightManager_;
 
-    // Directions of currently enabled directional lights.
-    Uniform!(vec3[maxDirectionalLights]) directionalDirectionsUniform_;
-    // Diffuse colors of currently enabled directional lights.
-    Uniform!(vec3[maxDirectionalLights]) directionalDiffuseUniform_;
-    // Do directional uniforms need to be updated? (E.g. after lights have been changed)
-    bool directionalUniformsNeedUpdate_;
-
-    // Positions of currently enabled point lights.
-    Uniform!(vec3[maxPointLights]) pointPositionsUniform_;
-    // Diffuse colors of currently enabled point lights.
-    Uniform!(vec3[maxPointLights]) pointDiffuseUniform_;
-    // Attenuations of currently enabled point lights.
-    Uniform!(float[maxPointLights]) pointAttenuationsUniform_;
-    // Do point uniforms need to be updated? (E.g. after lights have been changed)
-    bool pointUniformsNeedUpdate_;
-
-    // Number of directional light pointers currently stored in directionalLights_.
-    uint directionalLightsUsed_ = 0;
-    // Pointers to registered directional lights. Fixed size as the maximum number 
-    // of directional lights is known at compile time. Only the first 
-    // directionalLightsUsed_ elements are valid.
-    const(DirectionalLight)*[maxDirectionalLights] directionalLights_;
-
-    // Number of point light pointers currently stored in pointLights_.
-    uint pointLightsUsed_ = 0;
-    // Pointers to registered point lights. Fixed size as the maximum number 
-    // of point lights is known at compile time. Only the first 
-    // pointLightsUsed_ elements are valid.
-    const(PointLight)*[maxPointLights] pointLights_;
+    // Wraps uniform values representing light sources.
+    LightUniforms lightUniforms_;
 
 package:
     /// Construct a Sprite3DRenderer.
     ///
-    /// Params:  renderer = Renderer used for graphics functionality.
-    ///          dataDir  = Data directory (must contain a "shaders" subdirectory
-    ///                     to load shaders from).
-    ///          camera   = Reference to the camera used for viewing.
+    /// Params:  renderer     = Renderer used for graphics functionality.
+    ///          dataDir      = Data directory (must contain a "shaders" subdirectory
+    ///                         to load shaders from).
+    ///          camera       = Reference to the camera used for viewing.
     ///
     /// Throws:  SpriteRendererInitException on failure.
     this(Renderer renderer, VFSDir dataDir, Camera2D camera) @safe
     {
         verticalAngleDegrees_ = 30.0;
         super(renderer, dataDir, camera, "sprite");
+        lightManager_ = new LightManager(&lightUniforms_);
     }
 
 public:
+    /// Destroy the Sprite3DRenderer.
+    ~this()
+    {
+        destroy(lightManager_);
+        lightManager_ = null;
+    }
+
+    /// Get the light manager to manage lights used with this Sprite3DRenderer.
+    ///
+    /// Note that the LightManager must be locked before any drawSprite() call.
+    @property LightManager lightManager() @safe pure nothrow {return lightManager_;}
+
     /// Set vertical view angle in degrees (30.0 by default).
     @property void verticalAngle(const float rhs) @safe pure nothrow 
     {
@@ -360,6 +341,8 @@ public:
     /// Draw a sprite at specified 3D position.
     ///
     /// Must be called between calls to startDrawing() and stopDrawing().
+    /// Also, the LightManager passed to the constructor of this Sprite3DRenderer
+    /// must be locked.
     ///
     /// Params:  sprite   = Pointer to the sprite to draw.
     ///          position = Position of the sprite in 3D space. The final 2D position
@@ -374,7 +357,11 @@ public:
         assert(renderer_.blendMode == BlendMode.Alpha,
                "Non-alpha blend mode when drawing a sprite");
 
-        updateUniforms(position);
+        // Taking X and Y sprite size instead of bbox size is not ideal,
+        // but likely "good enough".
+        lightManager_.setLitArea
+            (CenteredSquare(position.xy, max(sprite.width, sprite.height) * 0.5));
+        uploadUniforms(position);
 
         const facingIndex = sprite.closestFacing(rotation);
         Sprite.Facing* facing = &(sprite.facings_[facingIndex]);
@@ -406,133 +393,12 @@ public:
         maxClipBoundsUniform_.value = rhs.max;
     }
 
-    /// Set the ambient light color.
-    @property void ambientLight(const vec3 rhs) @safe pure nothrow
+    /// Set the inverse gamma correction exponents for the R, G and B channels.
+    ///
+    /// By default, this is vec3(2.2f, 2.2f, 2.2f).
+    @property void invGamma(const vec3 rhs) @safe pure nothrow 
     {
-        ambientLightUniform_.value = rhs;
-    }
-
-    /// Register a directional (infinite-distance) light, and use it in future sprite draws.
-    ///
-    /// Useful for light sources with "parallel" rays such as the sun.
-    ///
-    /// Note: After any modifications to registered directional lights,
-    ///       a call to directionalLightsChanged() is needed for the changes
-    ///       to take effect.
-    ///
-    /// Note: Number of directional lights that may be registered simultaneously
-    ///       is limited by maxDirectionalLights. Trying to register more will
-    ///       result in undefined behavior (or assertion failure in debug build).
-    ///
-    /// Params:  light = Pointer to the light to register. The light must exist
-    ///                  at the location the pointer points to until the light
-    ///                  is unregistered or the SpriteRenderer is destroyed.
-    void registerDirectionalLight(const(DirectionalLight)* light) @safe pure nothrow
-    {
-        assert(directionalLightsUsed_ <= maxDirectionalLights, 
-               "Only 2 directional lights are supported; can't register more.");
-        directionalLights_[directionalLightsUsed_++] = light;
-        directionalUniformsNeedUpdate_ = true;
-    }
-
-    /// Unregister a directional light so it's not used in future sprite draws.
-    ///
-    /// Params:  light = Pointer to the light to unregister. Must be a pointer
-    ///                  to one of currently registered lights.
-    void unregisterDirectionalLight(const(DirectionalLight)* light) @safe pure nothrow
-    {
-        directionalUniformsNeedUpdate_ = true;
-        foreach(idx, ref l; directionalLights_[0 .. directionalLightsUsed_]) if(l is light)
-        {
-            // Swap the last used light with one we're removing. 
-            // Then we can just decrease directionalLightsUsed_ and the swapped 
-            // pointer will get overwritten on next registerDirectionalLight().
-            swap(l, directionalLights_[directionalLightsUsed_ - 1]);
-            --directionalLightsUsed_;
-            return;
-        }
-        assert(false, "Unregistering a directional light that "
-               "was not registered, or is already unregistered.");
-    }
-
-    /// Returns true if specified directional light is registered, false otherwise.
-    bool isDirectionalLightRegistered(const(DirectionalLight)* light)
-        @safe pure nothrow const
-    {
-        foreach(ref l; directionalLights_[0 .. directionalLightsUsed_]) if(l is light)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    /// Must be called for any changes in parameters of registered directional lights to take effect.
-    void directionalLightsChanged() @safe pure nothrow
-    {
-        directionalUniformsNeedUpdate_ = true;
-    }
-
-    /// Register a point light, and use it in future sprite draws.
-    ///
-    /// Useful for light sources such as lamps, explosions and so on.
-    ///
-    /// Note: After any modifications to registered point lights,
-    ///       a call to pointLightsChanged() is needed for the changes to take effect.
-    ///
-    /// Note: Number of point lights that may be registered simultaneously.
-    ///       is limited by maxPointLights. Trying to register more will 
-    ///       result in undefined behavior (or assertion failure in debug build).
-    ///
-    ///       Repeatedly registering and unregistering lights can be used to 
-    ///       emulate more lights than the maximum light count; every
-    ///       individual draw supports only maxPointLights point lights but
-    ///       these can be different for each draw.
-    ///
-    /// Params:  light = Pointer to the light to register. The light must exist
-    ///                  at the location the pointer points to until the light
-    ///                  is unregistered or the SpriteRenderer is destroyed.
-    void registerPointLight(const(PointLight)* light) @safe pure nothrow
-    {
-        assert(pointLightsUsed_ <= maxPointLights, 
-               "Only 6 point lights are supported; can't register more.");
-        pointLights_[pointLightsUsed_++] = light;
-        pointUniformsNeedUpdate_ = true;
-    }
-
-    /// Unregister a point light so it's not used in future sprite draws.
-    ///
-    /// Params:  light = Pointer to the light to unregister. Must be a pointer
-    ///                  to one of currently registered lights.
-    void unregisterPointLight(const(PointLight)* light) @safe pure nothrow
-    {
-        pointUniformsNeedUpdate_ = true;
-        foreach(idx, ref l; pointLights_[0 .. pointLightsUsed_]) if(l is light)
-        {
-            // Swap the last used light with the one we're removing. 
-            // Then we can just decrease pointLightsUsed_ and the swapped 
-            // pointer will get overwritten on next registerPointLight().
-            swap(l, pointLights_[pointLightsUsed_ - 1]);
-            --pointLightsUsed_;
-            return;
-        }
-        assert(false, "Unregistering a point light that "
-               "was not registered, or is already unregistered.");
-    }
-
-    /// Returns true if specified point light is registered, false otherwise.
-    bool isPointLightRegistered(const(PointLight)* light) @safe pure nothrow const
-    {
-        foreach(ref l; pointLights_[0 .. pointLightsUsed_]) if(l is light)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    /// Must be called for any changes in parameters of registered point lights to take effect.
-    void pointLightsChanged() @safe pure nothrow
-    {
-        pointUniformsNeedUpdate_ = true;
+        lightUniforms_.invGamma = rhs;
     }
 
 protected:
@@ -549,11 +415,6 @@ protected:
 
     override void initializeUniforms()
     {
-        directionalUniformsNeedUpdate_ = true;
-        pointUniformsNeedUpdate_       = true;
-        // Ambient is stored directly in the Uniform struct - need to preserve it 
-        // between renderer reloads.
-        const previousAmbient = ambientLightUniform_.value;
         // Get handles to access uniforms with.
         with(*spriteShader_)
         {
@@ -562,29 +423,20 @@ protected:
             diffuseSamplerUniform_        = Uniform!int(getUniformHandle("texDiffuse"));
             normalSamplerUniform_         = Uniform!int(getUniformHandle("texNormal"));
             offsetSamplerUniform_         = Uniform!int(getUniformHandle("texOffset"));
-            ambientLightUniform_          = Uniform!vec3(getUniformHandle("ambientLight"));
             minClipBoundsUniform_         = Uniform!vec3(getUniformHandle("minClipBounds"));
             maxClipBoundsUniform_         = Uniform!vec3(getUniformHandle("maxClipBounds"));
-            directionalDirectionsUniform_ = Uniform!(vec3[maxDirectionalLights]) 
-                                                (getUniformHandle("directionalDirections"));
-            directionalDiffuseUniform_    = Uniform!(vec3[maxDirectionalLights])
-                                                (getUniformHandle("directionalDiffuse"));
-            pointPositionsUniform_        = Uniform!(vec3[maxPointLights])
-                                                (getUniformHandle("pointPositions"));
-            pointDiffuseUniform_          = Uniform!(vec3[maxPointLights])
-                                                (getUniformHandle("pointDiffuse"));
-            pointAttenuationsUniform_     = Uniform!(float[maxPointLights])
-                                                (getUniformHandle("pointAttenuations"));
 
             verticalAngleUniform_.value   = verticalAngleDegrees_ * degToRad;
             diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
             normalSamplerUniform_.value   = SpriteTextureUnit.Normal;
             offsetSamplerUniform_.value   = SpriteTextureUnit.Offset;
-            ambientLightUniform_.value    = previousAmbient;
             minClipBoundsUniform_.value   = vec3(-100000.0f, -100000.0f, -100000.0f);
             maxClipBoundsUniform_.value   = vec3(100000.0f,  100000.0f, 100000.0f);
 
             positionUniformHandle_        = getUniformHandle("spritePosition3D");
+
+            lightUniforms_.useProgram(spriteShader_);
+            lightUniforms_.invGamma = invGamma_;
         }
     }
 
@@ -594,84 +446,13 @@ protected:
         diffuseSamplerUniform_.reset();
         normalSamplerUniform_.reset();
         offsetSamplerUniform_.reset();
-        ambientLightUniform_.reset();
         minClipBoundsUniform_.reset();
         maxClipBoundsUniform_.reset();
-        directionalDirectionsUniform_.reset();
-        directionalDiffuseUniform_.reset();
-        pointPositionsUniform_.reset();
-        pointDiffuseUniform_.reset();
-        pointAttenuationsUniform_.reset();
+
+        lightUniforms_.reset();
     }
 
 private:
-    // Update and upload uniforms before drawing.
-    void updateUniforms(const vec3 spritePosition)
-    {
-        if(directionalUniformsNeedUpdate_) {updateDirectionalUniforms();}
-        if(pointUniformsNeedUpdate_)       {updatePointUniforms();}
-
-        uploadUniforms(spritePosition);
-    }
-
-    // Update data to upload as directional light uniforms.
-    void updateDirectionalUniforms() @safe pure nothrow
-    {
-        // This will probably need optimization (but need a stress test first).
-        //
-        // Currently we just overwrite all data but much of it could be retained
-        // as lights are not always modified.
-        foreach(l; 0 .. directionalLightsUsed_)
-        {
-            directionalDirectionsUniform_.value[l] = directionalLights_[l].direction;
-            directionalDirectionsUniform_.value[l].normalize;
-            const color = directionalLights_[l].diffuse;
-            directionalDiffuseUniform_.value[l]    = vec3(color.toVec4.rgb);
-        }
-        // Due to optimization, the shader always processes all lights,
-        // including those that are unspecified, so we specify data that
-        // will result in no effect (black color, etc.).
-        directionalDirectionsUniform_.value[directionalLightsUsed_ .. $] = vec3(0.0, 0.0, 1.0);
-        directionalDiffuseUniform_.value[directionalLightsUsed_ .. $]    = vec3(0.0, 0.0, 0.0);
-
-        // Force reupload.
-        directionalDirectionsUniform_.reset();
-        directionalDiffuseUniform_.reset();
-
-        directionalUniformsNeedUpdate_ = false;
-    }
-
-    // Update data to upload as point light uniforms.
-    void updatePointUniforms() @safe pure nothrow
-    {
-        // This will probably need optimization (but need a stress test first).
-        //
-        // Currently we just overwrite all data but much of it could be retained
-        // as lights are not always modified.
-        foreach(l; 0 .. pointLightsUsed_)
-        {
-            const color           = pointLights_[l].diffuse;
-            const colorNormalized = vec3(color.toVec4.rgb);
-
-            pointPositionsUniform_.value[l]    = pointLights_[l].position;
-            pointDiffuseUniform_.value[l]      = colorNormalized;
-            pointAttenuationsUniform_.value[l] = pointLights_[l].attenuation;
-        }
-        // Due to optimization, the shader always processes all lights,
-        // including those that are unspecified, so we specify data that
-        // will result in no effect (black color, etc.).
-        pointPositionsUniform_.value[pointLightsUsed_ .. $]    = vec3(0.0, 0.0, 0.0);
-        pointDiffuseUniform_.value[pointLightsUsed_ .. $]      = vec3(0.0, 0.0, 0.0);
-        pointAttenuationsUniform_.value[pointLightsUsed_ .. $] = 1.0f;
-
-        // Force reupload.
-        pointPositionsUniform_.reset();
-        pointDiffuseUniform_.reset();
-        pointAttenuationsUniform_.reset();
-
-        pointUniformsNeedUpdate_ = false;
-    }
-
     // Upload uniforms that need to be uploaded before drawing.
     //
     // Params:  position = 3D position of the sprite.
@@ -692,23 +473,10 @@ private:
         minClipBoundsUniform_.uploadIfNeeded(spriteShader_);
         maxClipBoundsUniform_.uploadIfNeeded(spriteShader_);
 
-        // Ambient light.
-        ambientLightUniform_.uploadIfNeeded(spriteShader_);
-
-        // Directional lights.
-        directionalDirectionsUniform_.uploadIfNeeded(spriteShader_);
-        directionalDiffuseUniform_.uploadIfNeeded(spriteShader_);
-
-        // Point lights.
-        pointPositionsUniform_.uploadIfNeeded(spriteShader_);
-        pointDiffuseUniform_.uploadIfNeeded(spriteShader_);
-        pointAttenuationsUniform_.uploadIfNeeded(spriteShader_);
+        lightUniforms_.upload();
 
         // Reuploaded for each sprite.
-        with(*spriteShader_)
-        {
-            setUniform(positionUniformHandle_, position);
-        }
+        spriteShader_.setUniform(positionUniformHandle_, position);
     }
 }
 
@@ -716,8 +484,14 @@ private:
 abstract class SpriteUnlitRenderer : SpriteRendererBase
 {
 private:
+    // Vertical view angle if dimetric is enabled.
+    float verticalAngleDegrees_;
+
     // Handle to the sprite 2D position uniform.
     uint positionUniformHandle_;
+
+    // Uniform passing vertical view angle in radians to the GPU.
+    Uniform!float verticalAngleUniform_;
 
     // Projection matrix of the camera.
     Uniform!mat4 projectionUniform_;
@@ -726,6 +500,8 @@ private:
     Uniform!vec2 minClipBoundsUniform_;
     // Maximum bounds of the 2D clipped area. Any pixels outside this area will be discarded.
     Uniform!vec2 maxClipBoundsUniform_;
+    // Use a dimetric projection?
+    Uniform!bool dimetricUniform_;
 
 public:
     /// Construct a SpriteUnlitRenderer.
@@ -741,6 +517,7 @@ public:
     /// Throws:  SpriteRendererInitException on failure.
     this(Renderer renderer, VFSDir dataDir, Camera2D camera, string shaderBaseName) @safe
     {
+        verticalAngleDegrees_ = 30.0;
         super(renderer, dataDir, camera, shaderBaseName);
     }
 
@@ -750,6 +527,21 @@ public:
         assert(min.x <= max.x && min.y <= max.y, "Invalid 2D clip bounds");
         minClipBoundsUniform_.value = min;
         maxClipBoundsUniform_.value = max;
+    }
+
+    /// Use a dimetric projection?
+    ///
+    /// Use together with verticalAngle.
+    @property void useDimetric(bool rhs) @safe pure nothrow {dimetricUniform_.value = rhs;}
+
+    /// Set vertical view angle in degrees (30.0 by default).
+    ///
+    /// Only valid when useDimetric is set to true.
+    /// Useful to position plain sprites in world coordinates.
+    @property void verticalAngle(const float rhs) @safe pure nothrow 
+    {
+        verticalAngleDegrees_ = rhs;
+        verticalAngleUniform_.value = rhs * degToRad;
     }
 
 protected:
@@ -762,17 +554,24 @@ protected:
     {
         minClipBoundsUniform_.reset();
         maxClipBoundsUniform_.reset();
+        dimetricUniform_.reset();
+        verticalAngleUniform_.reset();
     }
 
     override void initializeUniforms()
     {
+        const dimetric = dimetricUniform_.value;
         with(*spriteShader_)
         {
+            verticalAngleUniform_         = Uniform!float(getUniformHandle("verticalAngle"));
+            dimetricUniform_              = Uniform!bool(getUniformHandle("dimetric"));
             projectionUniform_            = Uniform!mat4(getUniformHandle("projection"));
             minClipBoundsUniform_         = Uniform!vec2(getUniformHandle("min2DClipBounds"));
             maxClipBoundsUniform_         = Uniform!vec2(getUniformHandle("max2DClipBounds"));
-            positionUniformHandle_        = getUniformHandle("spritePosition2D");
+            positionUniformHandle_        = getUniformHandle("spritePosition3D");
 
+            verticalAngleUniform_.value   = verticalAngleDegrees_ * degToRad;
+            dimetricUniform_.value        = dimetric;
             minClipBoundsUniform_.value   = vec2(-100000.0f, -100000.0f);
             maxClipBoundsUniform_.value   = vec2(100000.0f,  100000.0f);
         }
@@ -780,14 +579,16 @@ protected:
 
     // Upload uniforms that need to be uploaded before drawing.
     //
-    // Params:  position = 2D position of the bottom-left corner of the sprite.
-    void uploadUniforms(const vec2 position) @trusted
+    // Params:  position = 3D position of the bottom-left corner of the sprite.
+    void uploadUniforms(const vec3 position) @trusted
     {
         // The uniforms encapsulated in Uniform structs don't have to be reuploaded every time.
 
+        verticalAngleUniform_.uploadIfNeeded(spriteShader_);
         projectionUniform_.uploadIfNeeded(spriteShader_);
         minClipBoundsUniform_.uploadIfNeeded(spriteShader_);
         maxClipBoundsUniform_.uploadIfNeeded(spriteShader_);
+        dimetricUniform_.uploadIfNeeded(spriteShader_);
         // Reuploaded for each sprite.
         with(*spriteShader_)
         {
@@ -835,7 +636,7 @@ public:
         position.x = round(position.x);
         position.y = round(position.y);
 
-        uploadUniforms(position);
+        uploadUniforms(vec3(position, 0.0f));
 
         assert(sprite.facings_.length == 1,
                "SpritePlainRenderer trying to draw a sprite with multiple facings");
@@ -881,7 +682,7 @@ protected:
         diffuseSamplerUniform_.value  = SpriteTextureUnit.Diffuse;
     }
 
-    override void uploadUniforms(const vec2 position) @trusted
+    override void uploadUniforms(const vec3 position) @trusted
     {
         super.uploadUniforms(position);
         diffuseSamplerUniform_.uploadIfNeeded(spriteShader_);

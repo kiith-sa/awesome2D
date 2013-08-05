@@ -6,6 +6,7 @@
 module video.uniform;
 
 
+import std.range;
 import std.traits;
 
 import video.glslshader;
@@ -47,10 +48,33 @@ struct Uniform(Type)
             value_ = rhs;
         }
 
-        /// Access the value directly, allowing modification (triggers reupload).
-        @property ref Type value() @safe pure nothrow
+        static if(isArray!Type)
         {
-            needReupload_ = true;
+        /// For uniform arrays; set the item at specified index in the uniform array to 
+        /// specified value.
+        void opIndexAssign(ref const ElementType!Type rhs, const size_t index) 
+            @safe pure nothrow
+        {
+            assert(index < value_.length, "Uniform array index out of range");
+            if((value_[index]) != rhs) {needReupload_ = true;}
+            value_[index] = rhs;
+        }
+
+        /// Ditto.
+        void opIndexAssign(const ElementType!Type rhs, const size_t index) @safe pure nothrow
+        {
+            assert(index < value_.length, "Uniform array index out of range");
+            if((value_[index]) != rhs) {needReupload_ = true;}
+            value_[index] = rhs;
+        }
+
+        /// For uniform arrays; return the length of the array.
+        @property size_t length() @safe const pure nothrow {return value_.length;}
+        }
+
+        /// Access the value directly, allowing modification (triggers reupload).
+        @property ref const(Type) value() @safe pure nothrow const
+        {
             return value_;
         }
 

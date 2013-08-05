@@ -23,6 +23,7 @@ import demo.tileshape;
 import containers.vector;
 import math.math;
 import memory.memory;
+import spatial.centeredsquare;
 import util.linalg;
 import util.yaml;
 import video.renderer;
@@ -148,6 +149,21 @@ private:
     vec2u mapSize_;
 
 public:
+    /// Get a square bounding the X-Y 2D area of the map.
+    ///
+    /// Note that this is only approximate; it's not a tight fit,
+    /// but it contains the entire map.
+    @property CenteredSquare boundingSquare() @safe const pure nothrow
+    {
+        // World space X of the max cell might be lower than the first, so we use absolutes.
+        // We use -1, max + 1 to create a slighlty larger bounding square.
+        const start = cellToWorld(vec2i(-1, -1));
+        const end   = cellToWorld(vec2i(mapSize_.x + 1, mapSize_.y + 1));
+        const boundingSize = vec2(abs(end.x - start.x), abs(end.y - start.y));
+        return CenteredSquare(cellToWorld(vec2i(mapSize_.x / 2, mapSize_.y / 2)),
+                              max(boundingSize.x, boundingSize.y) * 0.5);
+    }
+
     /// Destroy the Map, freeing used memory and destroying loaded sprites.
     ~this()
     {
@@ -373,7 +389,7 @@ private:
     /// Access the cell at specified cell coordinates. 
     ///
     /// This should be used to access cells to allow changes in cell storage.
-    ref Cell cell(const uint x, const uint y) @trusted nothrow pure
+    ref Cell cell(const uint x, const uint y) @trusted
     {
         return cells_[y][x];
     }
@@ -398,6 +414,14 @@ private:
         const xStrip = cast(int)floor((tileSize.x * 0.5 + worldCoords.x) / tileSize.x); 
         const yStrip = cast(int)floor((tileSize.y * 0.5 + worldCoords.y) / tileSize.y); 
         return vec2i(yStrip - xStrip, (yStrip + xStrip) / 2);
+    }
+
+    /// Get world space coordinates of the center of specified cell.
+    vec2 cellToWorld(const vec2i cellCoords) @safe pure nothrow const
+    {
+        const xStrip = cellCoords.x - (cellCoords.y / 2);
+        const yStrip = cellCoords.x + ((cellCoords.y + 1) / 2);
+        return vec2(xStrip * tileSize.x, yStrip * tileSize.y);
     }
 
     /// Construct a map with specified size.
@@ -526,9 +550,9 @@ Map generateTestMap(vec2u size)
         tiles_ ~= Tile(null, TileShape.Flat, "sprites/test/tiles/grass01");
         tiles_ ~= Tile(null, TileShape.Flat, "sprites/test/tiles/bridge01");
         // Initialize each cell.
-        foreach(y; 0 .. cellWidth)
+        foreach(x; 0 .. cellWidth)
         {
-            foreach(x; 0 .. cellHeight)
+            foreach(y; 0 .. cellHeight)
             {
                 auto c = &cell(x, y);
                 c.layerIndicesStart_ = cast(uint)layerIndices_.length;
@@ -766,7 +790,7 @@ private:
     //          layer = Layer of the tile.
     //
     // Returns: True if the tile is completely invisible, false otherwise.
-    bool cullTile(const int cellX, const int cellY, const ushort layer) pure nothrow
+    bool cullTile(const int cellX, const int cellY, const ushort layer)
     {
         if(cellY == 0 || cellX == 0 || cellX == map_.mapSize_.x - 1)
         {

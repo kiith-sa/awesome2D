@@ -59,7 +59,26 @@ package:
     // Attenuations of currently enabled point lights.
     Uniform!(float[maxPointLights]) pointAttenuations;
 
+    // Maximum possible light intensity for HDR.
+    //
+    // All light intensities are divided by this value on the shader.
+    Uniform!float maxIntensity;
+
+    // Gamma correction exponents for every color channel.
+    Uniform!vec3 gamma;
+    // Inverse of the gamma correction exponents for every color channel.
+    Uniform!vec3 invGamma_;
+
 public:
+    /// Set the inverse gamma correction exponents for the R, G and B channels.
+    ///
+    /// By default, this is vec3(2.2f, 2.2f, 2.2f).
+    @property void invGamma(const vec3 rhs) @safe pure nothrow 
+    {
+        gamma.value     = vec3(1.0f / rhs.x, 1.0f / rhs.y, 1.0f / rhs.z);
+        invGamma_.value = rhs;
+    }
+
     /// Use specified shader program, and $(B clear) all uniform values to defaults.
     ///
     /// Generally this should only be changed when the renderer is replaced.
@@ -74,6 +93,9 @@ public:
     /// vec3[maxPointLights] pointPositions,
     /// vec3[maxPointLights] pointDiffuse.
     /// float[maxPointLights] pointAttenuations
+    ///
+    /// vec3 gamma
+    /// vec3 invGamma
     void useProgram(GLSLShaderProgram* program)
     {
         shaderProgram_ = program;
@@ -90,6 +112,9 @@ public:
                                                (getUniformHandle("pointDiffuse"));
             pointAttenuations    = Uniform!(float[maxPointLights])
                                                 (getUniformHandle("pointAttenuations"));
+            maxIntensity         = Uniform!float(getUniformHandle("maxIntensity"));
+            gamma                = Uniform!vec3(getUniformHandle("gamma"));
+            invGamma_            = Uniform!vec3(getUniformHandle("invGamma"));
         }
     }
 
@@ -118,6 +143,13 @@ public:
         pointPositions.uploadIfNeeded(shaderProgram_);
         pointDiffuse.uploadIfNeeded(shaderProgram_);
         pointAttenuations.uploadIfNeeded(shaderProgram_);
+
+        // Maximum light intensity for HDR.
+        maxIntensity.uploadIfNeeded(shaderProgram_);
+
+        // Gamma correction.
+        gamma.uploadIfNeeded(shaderProgram_);
+        invGamma_.uploadIfNeeded(shaderProgram_);
     }
 
     /// Reset uniforms, trigerring a reupload of all uniforms with the next upload() call.
@@ -134,5 +166,8 @@ public:
         pointPositions.reset();
         pointDiffuse.reset();
         pointAttenuations.reset();
+        maxIntensity.reset();
+        gamma.reset();
+        invGamma_.reset();
     }
 }

@@ -20,6 +20,7 @@ import gl3n.aabb;
 import color;
 import demo.camera2d;
 import demo.light;
+import demo.lightmanager;
 import demo.map;
 import demo.sprite;
 import demo.spriterenderer;
@@ -33,6 +34,7 @@ alias math.math.clamp clamp;
 import memory.memory;
 import platform.key;
 import platform.platform;
+import spatial.centeredsquare;
 import time.eventcounter;
 import time.gametime;
 import platform.sdl2platform;
@@ -81,6 +83,10 @@ private:
     Sprite3DManager spriteManager_;
     // Renders sprites with lighting.
     Sprite3DRenderer spriteRenderer_;
+    // Renders vector sprites on the map.
+    VectorRenderer dimetricVectorRenderer_;
+    // Manages lights used to light the sprites.
+    LightManager lightManager_;
 
     // Camera used to view GUI.
     Camera2D guiCamera_;
@@ -186,7 +192,7 @@ public:
         scope(failure){destroyGUI();}
 
 
-        // Initialize the test sprite.
+        // Initialize the test sprites.
         sprite_ = spriteManager_.loadSprite("sprites/player");
         bigSprite_ = spriteManager_.loadSprite("sprites/test/big");
         pointLightSprite_ = spriteManager_.loadSprite("sprites/lights/point");
@@ -206,18 +212,30 @@ public:
         directional2 = DirectionalLight(vec3(0.0, -1.0, 0.2), rgb!"FFEFCF");
         point1 = PointLight(vec3(40.0, 200.0, 70.0), rgb!"FF0000", 0.9f);
         point2 = PointLight(vec3(100.0, 400.0, 70.0), rgb!"FFFF00", 0.9f);
-        point3 = PointLight(vec3(100.0, 400.0, 70.0), rgb!"E0E0FF", 0.7f);
-        spriteRenderer_.registerDirectionalLight(&directional1);
-        spriteRenderer_.registerDirectionalLight(&directional2);
-        spriteRenderer_.registerPointLight(&point1);
-        spriteRenderer_.registerPointLight(&point2);
-        spriteRenderer_.registerPointLight(&point3);
-        spriteRenderer_.ambientLight = vec3(0.03, 0.03, 0.06);
-        spriteRenderer_.directionalLightsChanged();
-        spriteRenderer_.pointLightsChanged();
+        point3 = PointLight(vec3(100.0, 400.0, 70.0), rgb!"EFEFFF", 0.3f);
 
-        /*map_ = generateTestMap(vec2u(64, 64));*/
-        map_ = loadMap(dataDir_, "maps/testMap.yaml");
+        map_ = generateTestMap(vec2u(80, 160));
+        //map_ = loadMap(dataDir_, "maps/testMap.yaml");
+
+        lightManager_ = spriteRenderer_.lightManager;
+        const mapBounds = map_.boundingSquare;
+        // Adding extra 1024 units to decrease the number of lights with bounds intersecting
+        // the border of the bounding area (with quadtree, that decreases performance due to
+        // an array fallback).
+        lightManager_.boundingArea = 
+            CenteredSquare(mapBounds.center, mapBounds.halfSize + 1024.0f);
+        with(lightManager_)
+        {
+            unlock();
+            registerDirectionalLight(&directional1);
+            registerDirectionalLight(&directional2);
+            registerPointLight(&point1);
+            registerPointLight(&point2);
+            registerPointLight(&point3);
+            ambientLight = vec3(0.003, 0.003, 0.006);
+            lock();
+        }
+
         map_.loadTiles(dataDir_, spriteManager_);
         writeln("Map size in bytes: ", map_.memoryBytes);
     }
@@ -228,9 +246,11 @@ public:
         writeln("Destroying Demo...");
         map_.deleteTiles();
         destroy(map_);
+        map_ = null;
         if(sprite_ !is null){free(sprite_);}
         if(bigSprite_ !is null){free(bigSprite_);}
         if(pointLightSprite_ !is null){free(pointLightSprite_);}
+
         destroyGUI();
         if(fontRenderer_ !is null){destroy(fontRenderer_);}
         if(guiCamera_ !is null){destroy(guiCamera_);}
@@ -257,13 +277,14 @@ public:
             // Game logic has a locked time step. Rendering does not.
             gameTime_.doGameUpdates
             ({
+                lightManager_.unlock();
+                point3.intensity = point3.intensity * 1.001;
                 point3.position = playerPosition_ + vec3(40.0f, 0.0f, 0.0f);
                 directional2.direction =
                     vec3(mat4.xrotation(directional1RotationZ * degToRad) *
                          vec4(0.0, -1.0, 0.2, 1.0));
-                spriteRenderer_.directionalLightsChanged();
-                spriteRenderer_.pointLightsChanged();
                 handleCameraMovement();
+                lightManager_.lock();
                 return false;
             });
 
@@ -312,10 +333,18 @@ public:
                 spriteRenderer_.drawSprite(bigSprite_, vec3(0.0f, 1024.0f, 128.0f),
                                            vec3(0.0f, 0.0f, playerRotationZ_));
                 spriteRenderer_.stopDrawing();
+
                 if(guiEnabled_)
                 {
                     guiSystem_.render();
                 }
+                dimetricVectorRenderer_.startDrawing();
+                dimetricVectorRenderer_.drawCenteredSquare
+                    (CenteredSquare(point3.position.xy, 
+                                    point3.boundingSphere.radius),
+                     rgb!"E0E0FF");
+                dimetricVectorRenderer_.stopDrawing();
+
                 return true;
             }
             renderer_.renderFrame(&frame);
@@ -403,7 +432,9 @@ private:
             spriteRenderer_.verticalAngle = 30.0f;
             guiSpriteRenderer_ =
                 SpritePlainManager.constructSpriteRenderer(renderer_, dataDir_, guiCamera_);
-            guiVectorRenderer_ = new VectorRenderer(renderer_, dataDir_, guiCamera_);
+            guiVectorRenderer_      = new VectorRenderer(renderer_, dataDir_, guiCamera_);
+            dimetricVectorRenderer_ = new VectorRenderer(renderer_, dataDir_, camera_);
+            dimetricVectorRenderer_.useDimetric = true;
         }
         catch(SpriteRendererInitException e)
         {
@@ -468,6 +499,7 @@ private:
                "Trying to reload renderer, but there's no preexisting renderer");
         spriteRenderer_.prepareForRendererSwitch();
         guiVectorRenderer_.prepareForRendererSwitch();
+        dimetricVectorRenderer_.prepareForRendererSwitch();
         guiSpriteRenderer_.prepareForRendererSwitch();
         spriteManager_.prepareForRendererSwitch();
         guiSpriteManager_.prepareForRendererSwitch();
@@ -489,17 +521,19 @@ private:
         spriteManager_.switchRenderer(renderer_);
         guiSpriteRenderer_.switchRenderer(renderer_);
         guiVectorRenderer_.switchRenderer(renderer_);
+        dimetricVectorRenderer_.switchRenderer(renderer_);
         spriteRenderer_.switchRenderer(renderer_);
     }
 
     /// Destroy sprite loading/rendering objects.
     void destroySprites()
     {
-        destroy(guiVectorRenderer_); guiVectorRenderer_ = null;
-        destroy(guiSpriteRenderer_); guiSpriteRenderer_ = null;
-        destroy(spriteRenderer_);    spriteRenderer_    = null;
-        destroy(spriteManager_);     spriteManager_     = null;
-        destroy(guiSpriteManager_);  guiSpriteManager_  = null;
+        destroy(guiVectorRenderer_);      guiVectorRenderer_ = null;
+        destroy(dimetricVectorRenderer_); dimetricVectorRenderer_ = null;
+        destroy(guiSpriteRenderer_);      guiSpriteRenderer_ = null;
+        destroy(spriteRenderer_);         spriteRenderer_    = null;
+        destroy(spriteManager_);          spriteManager_     = null;
+        destroy(guiSpriteManager_);       guiSpriteManager_  = null;
     }
 
     /// Destroy the renderer.
@@ -545,6 +579,8 @@ private:
             return vec3(rhs.x * cs - rhs.y * sn, rhs.x * sn + rhs.y * cs, 0.0);
         }
         const angle = playerRotationZ_;
+        lightManager_.unlock();
+        scope(exit){lightManager_.lock();}
         if(state == KeyState.Pressed) switch(key) with(Key)
         {
             case Escape: exit(); break;
@@ -638,61 +674,61 @@ private:
             case K_g:
                 guiEnabled_ = !guiEnabled_;
                 break;
+            case K_r:
+                // Used to test renderer switching.
+                reloadRenderer();
+                break;
+
                 // Light on-off switches
             case K_1:
-                if(spriteRenderer_.isDirectionalLightRegistered(&directional1))
+                if(lightManager_.isDirectionalLightRegistered(&directional1))
                 {
-                    spriteRenderer_.unregisterDirectionalLight(&directional1);
+                    lightManager_.unregisterDirectionalLight(&directional1);
                 }
                 else 
                 {
-                    spriteRenderer_.registerDirectionalLight(&directional1);
+                    lightManager_.registerDirectionalLight(&directional1);
                 }
-                spriteRenderer_.directionalLightsChanged();
                 break;
             case K_2:
-                if(spriteRenderer_.isDirectionalLightRegistered(&directional2))
+                if(lightManager_.isDirectionalLightRegistered(&directional2))
                 {
-                    spriteRenderer_.unregisterDirectionalLight(&directional2);
+                    lightManager_.unregisterDirectionalLight(&directional2);
                 }
                 else 
                 {
-                    spriteRenderer_.registerDirectionalLight(&directional2);
+                    lightManager_.registerDirectionalLight(&directional2);
                 }
-                spriteRenderer_.directionalLightsChanged();
                 break;
             case K_3:
-                if(spriteRenderer_.isPointLightRegistered(&point1))
+                if(lightManager_.isPointLightRegistered(&point1))
                 {
-                    spriteRenderer_.unregisterPointLight(&point1);
+                    lightManager_.unregisterPointLight(&point1);
                 }
                 else 
                 {
-                    spriteRenderer_.registerPointLight(&point1);
+                    lightManager_.registerPointLight(&point1);
                 }
-                spriteRenderer_.pointLightsChanged();
                 break;
             case K_4:
-                if(spriteRenderer_.isPointLightRegistered(&point2))
+                if(lightManager_.isPointLightRegistered(&point2))
                 {
-                    spriteRenderer_.unregisterPointLight(&point2);
+                    lightManager_.unregisterPointLight(&point2);
                 }
                 else 
                 {
-                    spriteRenderer_.registerPointLight(&point2);
+                    lightManager_.registerPointLight(&point2);
                 }
-                spriteRenderer_.pointLightsChanged();
                 break;
             case K_5:
-                if(spriteRenderer_.isPointLightRegistered(&point3))
+                if(lightManager_.isPointLightRegistered(&point3))
                 {
-                    spriteRenderer_.unregisterPointLight(&point3);
+                    lightManager_.unregisterPointLight(&point3);
                 }
                 else 
                 {
-                    spriteRenderer_.registerPointLight(&point3);
+                    lightManager_.registerPointLight(&point3);
                 }
-                spriteRenderer_.pointLightsChanged();
                 break;
             // Camera zoom.
             case Plus, NP_Plus:   camera_.zoom = camera_.zoom * 1.25; break;

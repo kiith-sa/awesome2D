@@ -383,7 +383,7 @@ public:
         with(renderEvent.vectorRenderer)
         {
             renderEvent.startVectorDrawing();
-            drawVectorSprite(widgetRectangle_, vec2(minBounds));
+            drawVectorSprite(widgetRectangle_, vec3(minBounds.x, minBounds.y, 0.0f));
         }
     }
 
@@ -423,7 +423,7 @@ public:
         with(renderEvent.vectorRenderer)
         {
             renderEvent.startVectorDrawing();
-            drawVectorSprite(progressBar_, vec2(minBounds) + vec2(0.0f, 1.0f));
+            drawVectorSprite(progressBar_, vec3(vec2(minBounds) + vec2(0.0f, 1.0f), 0.0f));
         }
     }
 }

@@ -79,7 +79,7 @@ protected:
         fontColorUniform_.value = Color.white;
     }
 
-    override void uploadUniforms(const vec2 position) @trusted
+    override void uploadUniforms(const vec3 position) @trusted
     {
         super.uploadUniforms(position);
         fontColorUniform_.uploadIfNeeded(spriteShader_);

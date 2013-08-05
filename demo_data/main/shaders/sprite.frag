@@ -26,6 +26,13 @@ varying vec3  worldSpriteBoundsMin;
 // Size of the 3D bounding box of the sprite.
 varying vec3  spriteBoundsSize;
 
+// Maximum light intensity for HDR. All light intensities are divided by this.
+uniform float maxIntensity;
+
+// Gamma correction
+uniform vec3 gamma;
+uniform vec3 invGamma;
+
 /// Compute lighting contribution from one directional light source.
 ///
 /// Params: light        = Index of the light source in the directionalXXX arrays.
@@ -74,10 +81,11 @@ vec3 pointLighting(in int light, in vec3 pixelDiffuse, in vec3 pixelNormal,
 
     // 128 distance units (pixels in our case) are one lighting distance unit.
     // Avoids needing to use extremely high attenuation values.
-    // Linear attenuation for now. TODO quadratic once we get HDR.
     float attenuationFactor = 1.0 / (1.0 + pointAttenuations[light] * (distance / 128.0));
     vec3 reflectedColor = pointDiffuse[light] * pixelDiffuse;
-    return attenuationFactor * reflectedColor * max(0.0, dot(pixelNormal, lightDirection));
+    // Inverse squared attenuation (as in the real world).
+    return attenuationFactor * attenuationFactor *
+           reflectedColor * max(0.0, dot(pixelNormal, lightDirection));
 }
 
 vec3 pointLightingTotal(in vec3 pixelDiffuse, in vec3 pixelNormal, in vec3 pixelPosition)
@@ -105,6 +113,9 @@ void main (void)
     // and add that to sprite position to get position of the pixel.
     vec3 offset   = vec3(texture2D(texOffset, frag_TexCoord));
     vec3 position = worldSpriteBoundsMin + spriteBoundsSize * offset;
+    // Discard everything _exactly_ at minBounds (the background offset color).
+    // Should not be visible (at most 1 pixel can be there anyway.)
+    if(offset == vec3(0, 0, 0)){discard;}
     if(position.x < minClipBounds.x || 
        position.y < minClipBounds.y ||
        position.z < minClipBounds.z ||
@@ -117,7 +128,7 @@ void main (void)
     }
 
     // Color of the sprite.
-    vec3 diffuse  = vec3(texture2D(texDiffuse, frag_TexCoord));
+    vec3 diffuse  = pow(vec3(texture2D(texDiffuse, frag_TexCoord)), invGamma);
     // We preserve transparency of the sprite.
     float alpha   = texture2D(texDiffuse, frag_TexCoord).a;
     // Map the normal coordinates from [0.0, 1.0] to [-1.0, 1.0]
@@ -129,5 +140,5 @@ void main (void)
                        + directionalLightingTotal(diffuse, normal)
                        + pointLightingTotal(diffuse, normal, position);
 
-    gl_FragColor = vec4(totalLighting, alpha);
+    gl_FragColor = vec4(pow(totalLighting, gamma) / maxIntensity, alpha);
 }

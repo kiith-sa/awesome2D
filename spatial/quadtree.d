@@ -22,6 +22,10 @@ import util.linalg;
 ///
 /// Supports logarithmic object insertion and removal and iteration over objects in 
 /// an area.
+///
+/// Params: T = Type stored in the QuadTree. Must define the following functions:
+///             vec3 position()
+///             BoundingSphere boundingSphere()
 struct QuadTree(T)
 {
 private:
@@ -143,21 +147,23 @@ public:
                 int result = 0;
 
                 // Objects outside the quadtree
-                if(!qTree_.rootSquare_.contains(boundsSquare_))
+                //
+                // We need to always consider these, as an object might be intersecting
+                // the border of the quadtree or large enough to span the entire quad tree.
+                // In such cases, even if boundsSquare is within the quadtree, it might 
+                // intersect some of the outer objects.
+                foreach(object; qTree_.outerObjects_)
                 {
-                    foreach(object; qTree_.outerObjects_)
+                    // Still need to check if they intersect with the square.
+                    const objectSquare = 
+                        CenteredSquare((object.position + object.boundingSphere.center).xy, 
+                                       object.boundingSphere.radius);
+                    if(!boundsSquare_.intersects(objectSquare))
                     {
-                        // Still need to check if they intersect with the square.
-                        const objectSquare = 
-                            CenteredSquare((object.position + object.boundingSphere.center).xy, 
-                                           object.boundingSphere.radius);
-                        if(!boundsSquare_.intersects(objectSquare))
-                        {
-                            continue;
-                        }
-                        result = dg(object);
-                        if(result){break;}
+                        continue;
                     }
+                    result = dg(object);
+                    if(result){break;}
                 }
 
                 // Objects inside the quadtree.
